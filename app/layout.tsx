@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Navbar from "./Navbar";
+import Sidebar from "./components/Sidebar";
+import { NotificationProvider } from "@/app/context/NotificationContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,7 +30,18 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="h-full flex flex-col bg-gray-50">
+        <NotificationProvider>
+          <Navbar />
+          <div className="flex-1 flex flex-row-reverse overflow-hidden">
+            <div className="w-[280px] h-full shrink-0 bg-transparent">
+              <Sidebar />
+            </div>
+            {/* محتوای اصلی */}
+            <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          </div>
+        </NotificationProvider>
+      </body>
     </html>
   );
 }
