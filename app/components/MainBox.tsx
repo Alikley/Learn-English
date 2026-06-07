@@ -6,7 +6,7 @@ import { ArrowLeft, Play } from "lucide-react";
 
 export default function MainBox() {
   return (
-    <div className="w-full bg-[#fbfbfb]">
+    <div className="w-full min-h-full bg-[#fbfbfb]">
       {/* ================= HERO ================= */}
 
       <section className="mx-5 mt-5 rounded-4xl bg-[#F3F8FF] relative overflow-hidden h-[280px]">
