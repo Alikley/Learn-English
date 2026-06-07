@@ -1,7 +1,9 @@
+import MainBox from "./components/MainBox";
+
 export default function Home() {
   return (
-    <div>
-      <h1>Hi</h1>
+    <div className="h-full w-full">
+      <MainBox />
     </div>
   );
 }

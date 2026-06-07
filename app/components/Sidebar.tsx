@@ -16,7 +16,6 @@ import {
 const Sidebar = () => {
   const pathname = usePathname();
 
-  // اینجا آدرس صفحاتی که ساختی رو وارد کن
   const menuItems = [
     { label: "داشبورد", icon: Home, href: "/dashboard" },
     { label: "دوره‌های من", icon: BookOpen, href: "/my-course" },
@@ -28,13 +27,12 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="h-[calc(100vh-80px)] p-4 bg-white rounded-2xl shadow-xl border border-slate-100 flex flex-col">
-      {/* منوی اصلی */}
-      <nav className="flex-1 space-y-2 mt-2">
+    /* حذف p-4 و rounded-2xl و shadow-xl تا کاملا به لبه‌ها بچسبه */
+    <div className="h-full bg-white border-l border-slate-100 flex flex-col">
+      {/* منوی اصلی - پدینگ رو دادیم داخل */}
+      <nav className="flex-1 space-y-2 p-4">
         {menuItems.map((item) => {
-          // بررسی میکنیم آیا آدرس فعلی با آدرس این دکمه یکی هست؟
           const isActive = pathname === item.href;
-
           return (
             <Link
               key={item.label}
@@ -55,16 +53,18 @@ const Sidebar = () => {
         })}
       </nav>
 
-      {/* باکس روزهای متوالی */}
-      <div className="mt-auto p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-center">
-        <h3 className="text-xs font-medium text-gray-500 mb-1">
-          روزهای متوالی یادگیری
-        </h3>
-        <div className="text-4xl font-bold text-gray-900 mb-0.5">12</div>
-        <p className="text-sm text-gray-500 mb-1">روز</p>
-        <div className="flex items-center justify-center gap-1 text-xs text-gray-600">
-          <span>🔥</span>
-          <span>آفرین! به مسیرت ادامه بده</span>
+      {/* باکس روزهای متوالی - پدینگ دادیم داخل */}
+      <div className="p-4 border-t border-slate-100">
+        <div className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-center">
+          <h3 className="text-xs font-medium text-gray-500 mb-1">
+            روزهای متوالی یادگیری
+          </h3>
+          <div className="text-4xl font-bold text-gray-900 mb-0.5">12</div>
+          <p className="text-sm text-gray-500 mb-1">روز</p>
+          <div className="flex items-center justify-center gap-1 text-xs text-gray-600">
+            <span>🔥</span>
+            <span>آفرین! به مسیرت ادامه بده</span>
+          </div>
         </div>
       </div>
     </div>

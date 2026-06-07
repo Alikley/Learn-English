@@ -33,12 +33,14 @@ export default function RootLayout({
       <body className="h-full flex flex-col bg-gray-50">
         <NotificationProvider>
           <Navbar />
-          <div className="flex-1 flex flex-row-reverse overflow-hidden">
+          {/* کانتینر اصلی زیر نوبار، با ارتفاع کامل */}
+          <div className="flex-1 flex flex-row-reverse overflow-hidden h-full">
+            {/* اسلایدر (ضخامت 280px و ارتفاع پر) */}
             <div className="w-[280px] h-full shrink-0 bg-transparent">
               <Sidebar />
             </div>
-            {/* محتوای اصلی */}
-            <main className="flex-1 overflow-y-auto p-6">{children}</main>
+            {/* محتوای اصلی - پدینگ حذف شد تا کاملا چسبیده باشه */}
+            <main className="flex-1 overflow-y-auto h-full">{children}</main>
           </div>
         </NotificationProvider>
       </body>
