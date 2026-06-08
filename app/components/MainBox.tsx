@@ -5,10 +5,76 @@ import Link from "next/link";
 import { ArrowLeft, Play } from "lucide-react";
 
 export default function MainBox() {
+  const courses = [
+    {
+      title: "گرامر ضروریات",
+      level: "سطح مبتدی",
+      progress: 65,
+      image: "/assets/grammar.svg",
+      color: "bg-blue-500",
+    },
+    {
+      title: "مکالمه روزمره",
+      level: "سطح مبتدی",
+      progress: 40,
+      image: "/assets/conversation.svg",
+      color: "bg-teal-500",
+    },
+    {
+      title: "لغات کاربردی",
+      level: "سطح مبتدی",
+      progress: 20,
+      image: "/assets/vocabulary.svg",
+      color: "bg-purple-500",
+    },
+    {
+      title: "لیسنینگ در عمل",
+      level: "سطح متوسط",
+      progress: 10,
+      image: "/assets/listening.svg",
+      color: "bg-orange-500",
+    },
+  ];
+
+  // داده‌های بخش تمرین و بازی دقیقاً طبق عکس
+  const exercises = [
+    {
+      title: "تمرین لغات",
+      description: "با فلش‌کارت‌ها لغات جدید یاد بگیر",
+      bgColor: "bg-purple-50",
+      btnColor: "bg-purple-200 text-purple-700",
+      icon: "/assets/icon_1_abc_blocks.svg",
+      btnLabel: "شروع تمرین",
+    },
+    {
+      title: "بازی هنگ کلمه",
+      description: "کلمات را حدس بزن و امتیاز بگیر",
+      bgColor: "bg-green-50",
+      btnColor: "bg-green-200 text-green-700",
+      icon: "/assets/icon_2_hangman.svg",
+      btnLabel: "شروع بازی",
+    },
+    {
+      title: "تمرین گرامر",
+      description: "دانش گرامر خود را تقویت کن",
+      bgColor: "bg-yellow-50",
+      btnColor: "bg-yellow-200 text-yellow-700",
+      icon: "/assets/icon_3_document_sign.svg",
+      btnLabel: "شروع تمرین",
+    },
+    {
+      title: "تمرین شنیداری",
+      description: "به آهنگ‌ها و مکالمات گوش بده",
+      bgColor: "bg-blue-50",
+      btnColor: "bg-blue-200 text-blue-700",
+      icon: "/assets/icon_4_headphones.svg",
+      btnLabel: "شروع تمرین",
+    },
+  ];
+
   return (
     <div className="w-full min-h-full bg-[#fbfbfb]">
       {/* ================= HERO ================= */}
-
       <section className="mx-5 mt-5 rounded-4xl bg-[#F3F8FF] relative overflow-hidden h-[280px]">
         {/* Shape Top Left */}
         <div className="absolute -top-20 -left-10 w-48 h-48 rounded-full bg-blue-200/30" />
@@ -25,10 +91,11 @@ export default function MainBox() {
             <Image
               src="/assets/student_image.svg"
               alt="Student Character"
-              width={440}
+              width={485}
               height={440}
               priority
               className="object-contain"
+              style={{ transform: "translateY(30px)" }}
             />
           </div>
 
@@ -55,87 +122,134 @@ export default function MainBox() {
       </section>
 
       {/* ================= COURSES ================= */}
-
-      <section className="p-5">
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-slate-800">دوره‌های من</h2>
-
+      <section className="mx-5 pt-8 pb-8">
+        <div className="mb-8 flex items-center justify-between">
           <Link
             href="/courses"
-            className="text-sm text-blue-600 hover:underline"
+            className="flex items-center gap-1 text-blue-600 text-sm font-medium"
           >
+            <ArrowLeft size={15} />
             مشاهده همه
           </Link>
+          <h2 className="text-[32px] font-bold text-slate-900">دوره‌های من</h2>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {/* Grammar */}
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            <div className="h-36 bg-blue-500 flex items-center justify-center">
-              <Play size={30} className="text-white fill-white" />
-            </div>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {courses.map((course) => (
+            <div
+              key={course.title}
+              className="
+          group
+          overflow-hidden
+          rounded-3xl
+          bg-white
+          shadow-[0_4px_18px_rgba(15,23,42,0.06)]
+          transition-all
+          duration-300
+          hover:-translate-y-1
+          hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)]
+        "
+            >
+              <div className="relative aspect-965/407 overflow-hidden">
+                <Image
+                  src={course.image}
+                  alt={course.title}
+                  fill
+                  sizes="25vw"
+                  className="
+              object-cover
+              transition-transform
+              duration-500
+              ease-out
+              group-hover:scale-110
+            "
+                />
+              </div>
 
-            <div className="p-4 text-right">
-              <h3 className="font-semibold text-slate-800">گرامر ضروریات</h3>
+              <div className="p-5">
+                <div className="text-right">
+                  <h3 className="text-[20px] font-bold text-slate-900">
+                    {course.title}
+                  </h3>
 
-              <p className="mt-1 text-sm text-slate-500">سطح مقدماتی</p>
+                  <p className="mt-1 text-[15px] text-slate-500">
+                    {course.level}
+                  </p>
+                </div>
 
-              <div className="mt-4 h-2 rounded-full bg-slate-200">
-                <div className="h-2 w-[65%] rounded-full bg-blue-500" />
+                <div className="mt-5">
+                  <div className="mb-2 flex items-center justify-between text-sm text-slate-500">
+                    <span>{course.progress}%</span>
+                    <span>پیشرفت</span>
+                  </div>
+
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div
+                      className={`h-full rounded-full ${course.color}`}
+                      style={{
+                        width: `${course.progress}%`,
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          ))}
+        </div>
+      </section>
 
-          {/* Conversation */}
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            <div className="h-36 bg-teal-500 flex items-center justify-center">
-              <Play size={30} className="text-white fill-white" />
-            </div>
+      {/* ================= EXERCISES & GAMES (تمرین و بازی) ================= */}
+      <section className="mx-5 pt-2 pb-12">
+        <div className="mb-8 flex items-center justify-between">
+          <Link
+            href="/exercises"
+            className="flex items-center gap-1 text-blue-600 text-sm font-medium"
+          >
+            <ArrowLeft size={15} />
+            مشاهده همه
+          </Link>
+          <h2 className="text-[32px] font-bold text-slate-900">تمرین و بازی</h2>
+        </div>
 
-            <div className="p-4 text-right">
-              <h3 className="font-semibold text-slate-800">مکالمه روزمره</h3>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {exercises.map((item) => (
+            <div
+              key={item.title}
+              className={`${item.bgColor} rounded-3xl p-5 flex flex-col gap-4 shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition hover:-translate-y-1 hover:shadow-lg`}
+            >
+              {/* Top Section: icon left, text right */}
+              <div className="flex flex-row-reverse items-start justify-between gap-3">
+                {/* Texts on right */}
+                <div className="flex-1 text-right">
+                  <h3 className="text-base font-bold text-slate-900 leading-snug">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1 leading-snug">
+                    {item.description}
+                  </p>
+                </div>
 
-              <p className="mt-1 text-sm text-slate-500">سطح مقدماتی</p>
+                {/* Icon on left */}
+                <div className="w-12 h-12 shrink-0 relative">
+                  <Image
+                    src={item.icon}
+                    alt={item.title}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+              </div>
 
-              <div className="mt-4 h-2 rounded-full bg-slate-200">
-                <div className="h-2 w-[40%] rounded-full bg-teal-500" />
+              {/* Bottom Button - auto width, right aligned */}
+              <div className="flex justify-end">
+                <button
+                  className={`${item.btnColor} px-5 py-2 rounded-xl text-sm font-semibold transition hover:opacity-90`}
+                >
+                  {item.btnLabel ?? "شروع تمرین"}
+                </button>
               </div>
             </div>
-          </div>
-
-          {/* Vocabulary */}
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            <div className="h-36 bg-purple-500 flex items-center justify-center">
-              <Play size={30} className="text-white fill-white" />
-            </div>
-
-            <div className="p-4 text-right">
-              <h3 className="font-semibold text-slate-800">لغات کاربردی</h3>
-
-              <p className="mt-1 text-sm text-slate-500">سطح مقدماتی</p>
-
-              <div className="mt-4 h-2 rounded-full bg-slate-200">
-                <div className="h-2 w-[20%] rounded-full bg-purple-500" />
-              </div>
-            </div>
-          </div>
-
-          {/* Listening */}
-          <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-            <div className="h-36 bg-orange-500 flex items-center justify-center">
-              <Play size={30} className="text-white fill-white" />
-            </div>
-
-            <div className="p-4 text-right">
-              <h3 className="font-semibold text-slate-800">لیسنینگ در عمل</h3>
-
-              <p className="mt-1 text-sm text-slate-500">سطح متوسط</p>
-
-              <div className="mt-4 h-2 rounded-full bg-slate-200">
-                <div className="h-2 w-[10%] rounded-full bg-orange-500" />
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
     </div>
