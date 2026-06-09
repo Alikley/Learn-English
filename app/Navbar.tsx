@@ -11,23 +11,39 @@ import {
   Award,
   MessageCircle,
   AlertCircle,
+  Menu, // اضافه کردن آیکون همبرگر
 } from "lucide-react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/NotificationContext";
 
-export default function Navbar() {
+// دریافت تابع toggleSidebar از layot
+export default function Navbar({
+  toggleSidebar,
+  isOpen,
+}: {
+  toggleSidebar: () => void;
+  isOpen: boolean;
+}) {
   const { notifications, unreadCount } = useNotifications();
 
-  // فقط ۳ نوتیف اخیر برای نمایش در هاور
   const recentNotifications = notifications.slice(0, 3);
 
   return (
     <header className="h-20 border-b border-slate-100 bg-white shrink-0 z-30">
-      <div className="flex h-full items-center justify-between px-6">
+      <div className="flex h-full items-center justify-between px-4 md:px-6">
         {/* Left Side (سمت چپ) */}
-        <div className="flex items-center gap-4">
-          {/* پروفایل */}
-          <div className="relative group">
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* دکمه همبرگر - فقط در موبایل نمایش داده می‌شود */}
+          <button onClick={toggleSidebar} className="md:hidden p-1">
+            {isOpen ? (
+              <Menu className="h-6 w-6 text-blue-600" />
+            ) : (
+              <Menu className="h-6 w-6 text-slate-700" />
+            )}
+          </button>
+
+          {/* پروفایل - در موبایل اسم را مخفی می‌کنیم تا فضای اضافه اشغال نشود */}
+          <div className="relative group hidden sm:block">
             <div className="flex items-center gap-2 cursor-pointer">
               <div className="h-10 w-10 overflow-hidden rounded-full">
                 <Image
@@ -43,7 +59,7 @@ export default function Navbar() {
               </span>
               <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-hover:rotate-180" />
             </div>
-            {/* منوی کشویی پروفایل (بدون تغییر) */}
+            {/* منوی کشویی پروفایل */}
             <div className="absolute top-14 left-0 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="bg-blue-50 p-3 rounded-lg mb-3">
                 <div className="flex items-center gap-2 text-blue-700 text-xs font-medium mb-1">
@@ -74,19 +90,32 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* زنگوله - تعداد دقیق از Context */}
+          {/* آیکون پروفایل کوچک برای موبایل */}
+          <div className="block sm:hidden">
+            <div className="h-8 w-8 overflow-hidden rounded-full">
+              <Image
+                src="https://i.pravatar.cc/150?img=12"
+                alt="profile"
+                width={32}
+                height={32}
+                className="h-full w-full object-cover"
+              />
+            </div>
+          </div>
+
+          {/* زنگوله */}
           <div className="relative group">
             <button className="relative flex items-center justify-center">
-              <Bell className="h-6 w-6 text-slate-700 hover:text-blue-600 transition-colors" />
+              <Bell className="h-5 w-5 md:h-6 md:w-6 text-slate-700 hover:text-blue-600 transition-colors" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded-full">
                   {unreadCount}
                 </span>
               )}
             </button>
 
-            {/* باکس هاوری */}
-            <div className="absolute top-12 left-0 w-72 bg-white rounded-xl shadow-xl border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            {/* باکس هاوری نوتیف */}
+            <div className="absolute top-12 left-0 w-64 md:w-72 bg-white rounded-xl shadow-xl border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {recentNotifications.length > 0 ? (
                   recentNotifications.map((notif) => (
@@ -134,9 +163,9 @@ export default function Navbar() {
           {/* جستجو */}
           <div className="relative group">
             <button>
-              <Search className="h-6 w-6 text-slate-700 hover:text-blue-600" />
+              <Search className="h-5 w-5 md:h-6 md:w-6 text-slate-700 hover:text-blue-600" />
             </button>
-            <div className="absolute top-12 right-0 w-80 bg-white rounded-xl shadow-xl border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="absolute top-12 right-0 w-64 md:w-80 bg-white rounded-xl shadow-xl border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
@@ -151,7 +180,10 @@ export default function Navbar() {
 
         {/* Right Side (لوگو) */}
         <div className="flex items-center">
-          <Link href="/" className="text-2xl font-bold text-blue-600">
+          <Link
+            href="/"
+            className="text-xl md:text-2xl font-bold text-blue-600"
+          >
             flex <span className="text-slate-900">English</span>
           </Link>
         </div>
