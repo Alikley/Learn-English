@@ -12,16 +12,33 @@ export default function MainBox() {
         <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-blue-200/30 -translate-x-8 translate-y-8" />
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-blue-200/30 translate-x-8 -translate-y-8" />
 
-        <div className="relative z-10 flex flex-col md:flex-row h-full pt-4 md:pt-0">
+        <div className="relative z-10 flex flex-col md:flex-row md:h-[280px]">
           {/* Character */}
-          <div className="w-full md:w-[35%] flex items-end justify-center -mb-4 md:mb-0">
+          <div className="w-full md:w-[32%] flex items-end justify-center shrink-0">
+            {/* موبایل: عکس نرمال بدون translate */}
             <Image
               src="/assets/student_image.svg"
               alt="Student Character"
               width={485}
               height={440}
               priority
-              className="object-contain w-30 sm:w-35 md:w-full"
+              className="
+                object-contain block md:hidden
+                w-[80%] sm:w-[50%]
+                max-h-[220px] sm:max-h-[240px]
+              "
+              style={{ transform: "translateX(20px) translateY(0px)" }}
+
+            />
+            {/* دسکتاپ: عکس با translate اصلی */}
+            <Image
+              src="/assets/student_image.svg"
+              alt="Student Character"
+              width={485}
+              height={440}
+              priority
+              className="object-contain hidden md:block w-full max-h-89.5"
+              style={{ transform: "translateX(200px) translateY(50px)" }}
             />
           </div>
 
@@ -34,7 +51,7 @@ export default function MainBox() {
                 <span>به</span>
               </h1>
               <p className="mt-2 sm:mt-3 text-[14px] sm:text-[16px] md:text-[20px] text-slate-600 max-w-[90%] md:max-w-xl wrap-break-word">
-                یادگیری زبان انگلیسی را به ساده‌ترین و جذاب‌ترین شکل تجربه کنید.
+                .یادگیری زبان انگلیسی را به ساده‌ترین و جذاب‌ترین شکل تجربه کنید
               </p>
               <button className="mt-4 sm:mt-5 flex items-center gap-2 sm:gap-3 rounded-2xl bg-blue-600 px-6 sm:px-8 md:px-10 py-2 sm:py-3 md:py-4 text-white text-sm md:text-base font-medium shadow-md transition hover:bg-blue-700 whitespace-nowrap">
                 <ArrowLeft size={18} />
