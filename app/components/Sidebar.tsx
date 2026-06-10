@@ -13,22 +13,21 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-const Sidebar = () => {
-  const pathname = usePathname();
+const menuItems = [
+  { label: "داشبورد", icon: Home, href: "/dashboard" },
+  { label: "دوره‌های من", icon: BookOpen, href: "/my-course" },
+  { label: "تمرین‌ها", icon: Pencil, href: "/training" },
+  { label: "بازی‌ها", icon: Gamepad2, href: "/game" },
+  { label: "لغت‌نامه", icon: Library, href: "/vocab" },
+  { label: "عملکرد من", icon: BarChart3, href: "/performance" },
+  { label: "پیام‌ها", icon: MessageCircle, href: "/chat" },
+];
 
-  const menuItems = [
-    { label: "داشبورد", icon: Home, href: "/dashboard" },
-    { label: "دوره‌های من", icon: BookOpen, href: "/my-course" },
-    { label: "تمرین‌ها", icon: Pencil, href: "/training" },
-    { label: "بازی‌ها", icon: Gamepad2, href: "/game" },
-    { label: "لغت‌نامه", icon: Library, href: "/vocab" },
-    { label: "عملکرد من", icon: BarChart3, href: "/performance" },
-    { label: "پیام‌ها", icon: MessageCircle, href: "/chat" },
-  ];
+export default function Sidebar() {
+  const pathname = usePathname();
 
   return (
     <div className="h-full bg-white border-l border-slate-100 flex flex-col">
-      {/* منوی اصلی - پدینگ مناسب برای فاصله از لبه‌ها */}
       <nav className="flex-1 space-y-2 p-3 md:p-4">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
@@ -54,7 +53,7 @@ const Sidebar = () => {
         })}
       </nav>
 
-      {/* باکس روزهای متوالی - فقط در دسکتاپ */}
+      {/* باکس روزهای متوالی - فقط دسکتاپ */}
       <div className="hidden md:block p-3 md:p-4 border-t border-slate-100">
         <div className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-center">
           <h3 className="text-xs font-medium text-gray-500 mb-1">
@@ -70,6 +69,4 @@ const Sidebar = () => {
       </div>
     </div>
   );
-};
-
-export default Sidebar;
+}

@@ -8,15 +8,13 @@ import {
   User,
   LogOut,
   Calendar,
-  Award,
   MessageCircle,
   AlertCircle,
-  Menu, // اضافه کردن آیکون همبرگر
+  Menu,
 } from "lucide-react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/NotificationContext";
 
-// دریافت تابع toggleSidebar از layot
 export default function Navbar({
   toggleSidebar,
   isOpen,
@@ -25,24 +23,21 @@ export default function Navbar({
   isOpen: boolean;
 }) {
   const { notifications, unreadCount } = useNotifications();
-
   const recentNotifications = notifications.slice(0, 3);
 
   return (
     <header className="h-20 border-b border-slate-100 bg-white shrink-0 z-30">
       <div className="flex h-full items-center justify-between px-4 md:px-6">
-        {/* Left Side (سمت چپ) */}
+        {/* Left Side */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* دکمه همبرگر - فقط در موبایل نمایش داده می‌شود */}
+          {/* دکمه همبرگر - فقط موبایل */}
           <button onClick={toggleSidebar} className="md:hidden p-1">
-            {isOpen ? (
-              <Menu className="h-6 w-6 text-blue-600" />
-            ) : (
-              <Menu className="h-6 w-6 text-slate-700" />
-            )}
+            <Menu
+              className={`h-6 w-6 ${isOpen ? "text-blue-600" : "text-slate-700"}`}
+            />
           </button>
 
-          {/* پروفایل - در موبایل اسم را مخفی می‌کنیم تا فضای اضافه اشغال نشود */}
+          {/* پروفایل - دسکتاپ */}
           <div className="relative group hidden sm:block">
             <div className="flex items-center gap-2 cursor-pointer">
               <div className="h-10 w-10 overflow-hidden rounded-full">
@@ -59,6 +54,7 @@ export default function Navbar({
               </span>
               <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-hover:rotate-180" />
             </div>
+
             {/* منوی کشویی پروفایل */}
             <div className="absolute top-14 left-0 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="bg-blue-50 p-3 rounded-lg mb-3">
@@ -68,7 +64,7 @@ export default function Navbar({
                 </div>
                 <div className="text-slate-800 font-bold text-lg">12 روز</div>
                 <div className="w-full bg-blue-200 h-1.5 rounded-full mt-1">
-                  <div className="bg-blue-600 h-1.5 rounded-full w-3/4"></div>
+                  <div className="bg-blue-600 h-1.5 rounded-full w-3/4" />
                 </div>
               </div>
               <div className="space-y-1">
@@ -90,7 +86,7 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* آیکون پروفایل کوچک برای موبایل */}
+          {/* آیکون پروفایل کوچک - موبایل */}
           <div className="block sm:hidden">
             <div className="h-8 w-8 overflow-hidden rounded-full">
               <Image
@@ -148,7 +144,6 @@ export default function Navbar({
                   </p>
                 )}
               </div>
-
               <div className="mt-2 pt-2 border-t border-slate-100">
                 <Link
                   href="/notif"
@@ -178,7 +173,7 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Right Side (لوگو) */}
+        {/* Right Side - لوگو */}
         <div className="flex items-center">
           <Link
             href="/"
