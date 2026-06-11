@@ -12,21 +12,33 @@ import {
   Library,
   BarChart3,
   MessageCircle,
-  X,
+  LibraryBig,
 } from "lucide-react";
 
 const menuItems = [
   { label: "داشبورد", icon: Home, href: "/dashboard" },
-  { label: "دوره‌های من", icon: BookOpen, href: "/my-course" },
   { label: "تمرین‌ها", icon: Pencil, href: "/training" },
   { label: "بازی‌ها", icon: Gamepad2, href: "/game" },
+  { label: "کتابخانه", icon: LibraryBig, href: "/library" },
   { label: "لغت‌نامه", icon: Library, href: "/vocab" },
+  { label: "دوره‌های من", icon: BookOpen, href: "/my-course" },
   { label: "عملکرد من", icon: BarChart3, href: "/performance" },
   { label: "پیام‌ها", icon: MessageCircle, href: "/chat" },
 ];
 
 // انیمیشن مخصوص هر آیکون
-const iconAnimations: Record<string, object> = {
+const iconAnimations: Record<
+  string,
+  {
+    rotate?: number[];
+    rotateY?: number[];
+    x?: number[];
+    scale?: number[];
+    y?: number[];
+    scaleY?: number[];
+    transition: { duration: number; repeat?: number };
+  }
+> = {
   "/dashboard": { rotate: [0, -15, 15, -10, 0], transition: { duration: 0.5 } },
   "/my-course": { rotateY: [0, 180, 360], transition: { duration: 0.6 } },
   "/training": { x: [0, -3, 3, -2, 0], transition: { duration: 0.4 } },
@@ -86,8 +98,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
         <button
           onClick={onClose}
           className="p-1.5 rounded-lg hover:bg-slate-50"
-        >
-        </button>
+        ></button>
       </div>
 
       <nav className="flex-1 space-y-1 p-3">
@@ -97,7 +108,6 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
             item={item}
             isActive={pathname === item.href}
             onClose={onClose}
-            
           />
         ))}
       </nav>
