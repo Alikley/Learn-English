@@ -92,7 +92,7 @@ export default function Cards() {
               key={course.title}
               className="group overflow-hidden rounded-2xl md:rounded-3xl bg-white shadow-[0_4px_18px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)]"
             >
-              <div className="relative aspect-[965/407] overflow-hidden">
+              <div className="relative aspect-965/407 overflow-hidden">
                 <Image
                   src={course.image}
                   alt={course.title}

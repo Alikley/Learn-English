@@ -6,13 +6,13 @@ export default function MainBox() {
   return (
     <div className="w-full min-h-full bg-[#fbfbfb]">
       {/* ================= HERO ================= */}
-      <section className="mx-4 md:mx-5 mt-4 md:mt-5 rounded-3xl md:rounded-4xl bg-[#F3F8FF] relative overflow-hidden h-auto md:h-[280px] pb-4 md:pb-0">
+      <section className="mx-4 md:mx-5 mt-4 md:mt-5 rounded-3xl md:rounded-4xl bg-[#F3F8FF] relative overflow-hidden h-auto md:h-70 pb-4 md:pb-0">
         {/* Decorative shapes */}
         <div className="absolute -top-20 -left-10 w-48 h-48 rounded-full bg-blue-200/30" />
         <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-blue-200/30 -translate-x-8 translate-y-8" />
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-blue-200/30 translate-x-8 -translate-y-8" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:h-[280px]">
+        <div className="relative z-10 flex flex-col md:flex-row md:h-70">
           {/* Character */}
           <div className="w-full md:w-[32%] flex items-end justify-center shrink-0">
             {/* موبایل: عکس نرمال بدون translate */}
@@ -25,7 +25,7 @@ export default function MainBox() {
               className="
                 object-contain block md:hidden
                 w-[80%] sm:w-[50%]
-                max-h-[220px] sm:max-h-[240px]
+                max-h-55 sm:max-h-60
               "
               style={{ transform: "translateX(20px) translateY(0px)" }}
 
