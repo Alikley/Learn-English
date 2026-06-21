@@ -2,17 +2,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
-// ...existing code...
 datasource db {
-  provider = "mysql" // یا mysql/sqlite
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-// ...existing code...
-
-// ─── Auth ───────────────────────────────────────────────
-model Account {
-  id                String  @id @default(cuid())
+model account {
+  id                String  @id
   userId            String
   type              String
   provider          String
@@ -25,69 +21,76 @@ model Account {
   id_token          String? @db.LongText
   session_state     String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
+  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model conversation {
+  id        String   @id
+  createdAt DateTime @default(now())
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
+model conversationparticipant {
+  id             String @id
+  conversationId String
+  userId         String
 
-  @@unique([identifier, token])
+  @@unique([conversationId, userId], map: "ConversationParticipant_conversationId_userId_key")
 }
 
-// ─── User ────────────────────────────────────────────────
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts      Account[]
-  sessions      Session[]
-  enrollments   Enrollment[]
-  progress      LessonProgress[]
-  gameScores    GameScore[]
-  vocabProgress VocabProgress[]
-  messages      Message[]
-  streak        Streak?
-  notifications Notification[]
-}
-
-// ─── Courses ─────────────────────────────────────────────
-model Course {
-  id          String   @id @default(cuid())
+model course {
+  id          String       @id
   title       String
   titleEn     String?
   description String?
-  level       Level    @default(BEGINNER)
+  level       course_level @default(BEGINNER)
   imageUrl    String?
   color       String?
-  isPublished Boolean  @default(false)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-
-  lessons     Lesson[]
-  enrollments Enrollment[]
+  isPublished Boolean      @default(false)
+  order       Int          @default(0)
+  createdAt   DateTime     @default(now())
 }
 
-model Lesson {
-  id        String   @id @default(cuid())
+model enrollment {
+  id         String   @id
+  userId     String
+  courseId   String
+  enrolledAt DateTime @default(now())
+  progress   Int      @default(0)
+
+  @@unique([userId, courseId], map: "Enrollment_userId_courseId_key")
+}
+
+model exercise {
+  id          String         @id
+  title       String
+  description String?
+  type        exercise_type
+  level       exercise_level @default(BEGINNER)
+  content     String         @db.LongText
+  xp          Int            @default(15)
+  isPublished Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+}
+
+model game {
+  id          String    @id
+  title       String
+  type        game_type
+  description String?
+  isActive    Boolean   @default(true)
+}
+
+model gamescore {
+  id       String   @id
+  userId   String
+  gameId   String
+  score    Int
+  level    Int      @default(1)
+  playedAt DateTime @default(now())
+}
+
+model lesson {
+  id        String   @id
   courseId  String
   title     String
   content   String?  @db.LongText
@@ -96,90 +99,74 @@ model Lesson {
   duration  Int?
   xp        Int      @default(10)
   createdAt DateTime @default(now())
-
-  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  progress LessonProgress[]
 }
 
-model Enrollment {
-  id         String   @id @default(cuid())
-  userId     String
-  courseId   String
-  enrolledAt DateTime @default(now())
-  progress   Int      @default(0)
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-}
-
-model LessonProgress {
-  id          String    @id @default(cuid())
+model lessonprogress {
+  id          String    @id
   userId      String
   lessonId    String
   isCompleted Boolean   @default(false)
   completedAt DateTime?
   score       Int?
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, lessonId])
+  @@unique([userId, lessonId], map: "LessonProgress_userId_lessonId_key")
 }
 
-// ─── Training ─────────────────────────────────────────────
-model Exercise {
-  id          String       @id @default(cuid())
-  title       String
-  description String?
-  type        ExerciseType
-  level       Level        @default(BEGINNER)
-  content     String       @db.LongText
-  xp          Int          @default(15)
-  isPublished Boolean      @default(false)
-  createdAt   DateTime     @default(now())
+model message {
+  id             String   @id
+  conversationId String
+  senderId       String
+  content        String   @db.LongText
+  isRead         Boolean  @default(false)
+  sentAt         DateTime @default(now())
 }
 
-// ─── Game ─────────────────────────────────────────────────
-model Game {
-  id          String   @id @default(cuid())
-  title       String
-  type        GameType
-  description String?
-  isActive    Boolean  @default(true)
-
-  scores GameScore[]
+model notification {
+  id        String            @id
+  userId    String
+  title     String
+  text      String            @db.LongText
+  type      notification_type @default(INFO)
+  isRead    Boolean           @default(false)
+  createdAt DateTime          @default(now())
 }
 
-model GameScore {
-  id       String   @id @default(cuid())
-  userId   String
-  gameId   String
-  score    Int
-  level    Int      @default(1)
-  playedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+model session {
+  id           String   @id
+  sessionToken String   @unique(map: "Session_sessionToken_key")
+  userId       String
+  expires      DateTime
 }
 
-// ─── Vocabulary ───────────────────────────────────────────
-model VocabWord {
-  id            String  @id @default(cuid())
-  word          String  @unique
-  meaning       String
-  pronunciation String?
-  example       String?
-  level         Level   @default(BEGINNER)
-  category      String?
-  imageUrl      String?
-
-  progress VocabProgress[]
+model streak {
+  id           String   @id
+  userId       String   @unique(map: "Streak_userId_key")
+  current      Int      @default(0)
+  longest      Int      @default(0)
+  lastActiveAt DateTime @default(now())
 }
 
-model VocabProgress {
-  id           String    @id @default(cuid())
+model user {
+  id            String    @id
+  name          String?
+  email         String?   @unique(map: "User_email_key")
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+}
+
+model verificationtoken {
+  identifier String
+  token      String   @unique(map: "VerificationToken_token_key")
+  expires    DateTime
+
+  @@unique([identifier, token], map: "VerificationToken_identifier_token_key")
+}
+
+model vocabprogress {
+  id           String    @id
   userId       String
   wordId       String
   isLearned    Boolean   @default(false)
@@ -187,77 +174,28 @@ model VocabProgress {
   nextReviewAt DateTime?
   learnedAt    DateTime?
 
-  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  word VocabWord @relation(fields: [wordId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, wordId])
+  @@unique([userId, wordId], map: "VocabProgress_userId_wordId_key")
 }
 
-// ─── Performance ──────────────────────────────────────────
-model Streak {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  current      Int      @default(0)
-  longest      Int      @default(0)
-  lastActiveAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model vocabword {
+  id            String          @id
+  word          String          @unique(map: "VocabWord_word_key")
+  meaning       String
+  pronunciation String?
+  example       String?
+  level         vocabword_level @default(BEGINNER)
+  category      String?
+  imageUrl      String?
 }
 
-// ─── Chat ─────────────────────────────────────────────────
-model Conversation {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-
-  participants ConversationParticipant[]
-  messages     Message[]
+enum game_type {
+  HANGMAN
+  WORD_MATCH
+  SPELLING_BEE
+  MEMORY_CARDS
 }
 
-model ConversationParticipant {
-  id             String @id @default(cuid())
-  conversationId String
-  userId         String
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-
-  @@unique([conversationId, userId])
-}
-
-model Message {
-  id             String   @id @default(cuid())
-  conversationId String
-  senderId       String
-  content        String   @db.LongText
-  isRead         Boolean  @default(false)
-  sentAt         DateTime @default(now())
-
-  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
-}
-
-// ─── Notifications ────────────────────────────────────────
-model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  title     String
-  text      String           @db.LongText
-  type      NotificationType @default(INFO)
-  isRead    Boolean          @default(false)
-  createdAt DateTime         @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// ─── Enums ────────────────────────────────────────────────
-enum Level {
-  BEGINNER
-  ELEMENTARY
-  INTERMEDIATE
-  UPPER_INTERMEDIATE
-  ADVANCED
-}
-
-enum ExerciseType {
+enum exercise_type {
   FLASHCARD
   FILL_IN_BLANK
   MULTIPLE_CHOICE
@@ -266,16 +204,33 @@ enum ExerciseType {
   GRAMMAR
 }
 
-enum GameType {
-  HANGMAN
-  WORD_MATCH
-  SPELLING_BEE
-  MEMORY_CARDS
+enum course_level {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
 }
 
-enum NotificationType {
+enum exercise_level {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+}
+
+enum notification_type {
   INFO
   SUCCESS
   WARNING
   ACHIEVEMENT
+}
+
+enum vocabword_level {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
 }
