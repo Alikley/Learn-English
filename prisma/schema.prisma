@@ -2,9 +2,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ...existing code...
 datasource db {
-  provider = "mysql"
+  provider = "mysql" // یا mysql/sqlite
+  url      = env("DATABASE_URL")
 }
+
+// ...existing code...
 
 // ─── Auth ───────────────────────────────────────────────
 model Account {
