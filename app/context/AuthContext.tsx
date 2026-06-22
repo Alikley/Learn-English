@@ -1,78 +1,73 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+import { createContext, useContext, ReactNode } from "react";
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-type User = {
-  name: string;
-  email: string;
-};
-
 type AuthContextType = {
-  user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  user: { name?: string | null; email?: string | null; id?: string } | null;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+  ) => Promise<{ error?: string }>;
   logout: () => void;
   isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = "flex_english_user";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    // Read from localStorage synchronously during initialization to avoid
-    // calling setState inside useEffect which may cause cascading renders.
-    if (typeof window === "undefined") return null;
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return null;
-    try {
-      return JSON.parse(stored) as User;
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      return null;
-    }
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const isLoading = status === "loading";
 
-  // user is initialized from localStorage in the state initializer above
-
-  const login = async (email: string, _password: string) => {
-    setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    const userData = { name: email.split("@")[0], email };
-    setUser(userData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-    setIsLoading(false);
+  const login = async (email: string, password: string) => {
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+    if (res?.error) return { error: "ایمیل یا رمز عبور اشتباه است" };
     router.push("/");
+    return {};
   };
 
-  const register = async (name: string, email: string, _password: string) => {
-    setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    const userData = { name, email };
-    setUser(userData);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-    setIsLoading(false);
+  const register = async (name: string, email: string, password: string) => {
+    // ۱. ثبت‌نام در دیتابیس
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) return { error: data.error ?? "خطا در ثبت نام" };
+
+    // ۲. ورود خودکار بعد از ثبت‌نام
+    const signInRes = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+    if (signInRes?.error) return { error: "ثبت نام موفق بود، لطفاً وارد شوید" };
+
     router.push("/");
+    return {};
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem(STORAGE_KEY);
-    router.push("/login");
-  };
+  const logout = () => signOut({ callbackUrl: "/login" });
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider
+      value={{
+        user: session?.user ?? null,
+        login,
+        register,
+        logout,
+        isLoading,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

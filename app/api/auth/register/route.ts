@@ -6,26 +6,24 @@ export async function POST(req: NextRequest) {
   try {
     const { name, email, password } = await req.json();
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password)
       return NextResponse.json(
         { error: "همه فیلدها الزامی هستند" },
         { status: 400 },
       );
-    }
-    if (password.length < 6) {
+
+    if (password.length < 6)
       return NextResponse.json(
         { error: "رمز عبور حداقل ۶ کاراکتر باشد" },
         { status: 400 },
       );
-    }
 
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
+    if (existing)
       return NextResponse.json(
         { error: "این ایمیل قبلاً ثبت شده است" },
         { status: 409 },
       );
-    }
 
     const hashed = await bcrypt.hash(password, 12);
 

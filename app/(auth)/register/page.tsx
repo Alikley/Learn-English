@@ -17,7 +17,7 @@ export default function RegisterPage() {
   const { register: registerUser, isLoading } = useAuth();
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
+  const [serverError, setServerError] = useState("");
   const {
     register,
     handleSubmit,
@@ -25,17 +25,18 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<RegisterForm>();
 
-  const onSubmit = (data: RegisterForm) => {
-    registerUser(data.name, data.email, data.password);
+  const onSubmit = async (data: RegisterForm) => {
+    setServerError("");
+    const res = await registerUser(data.name, data.email, data.password);
+    if (res?.error) setServerError(res.error);
   };
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center p-4"
+      className="min-h-screen bg-linear-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center p-4"
       dir="rtl"
     >
       <div className="w-full max-w-md">
-        {/* لوگو */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-blue-600">
             flex <span className="text-slate-900">English</span>
@@ -45,18 +46,22 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* کارت */}
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 p-8 border border-slate-100">
           <h2 className="text-xl font-bold text-slate-800 mb-6">
             ساخت حساب جدید
           </h2>
+
+          {serverError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+              {serverError}
+            </div>
+          )}
 
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-4"
             noValidate
           >
-            {/* نام */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 نام و نام خانوادگی
@@ -68,12 +73,7 @@ export default function RegisterPage() {
                   required: "نام را وارد کنید",
                   minLength: { value: 3, message: "حداقل ۳ کاراکتر" },
                 })}
-                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200
-                  ${
-                    errors.name
-                      ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                      : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"
-                  }`}
+                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.name ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
               />
               {errors.name && (
                 <p className="text-red-500 text-xs mt-1.5">
@@ -82,7 +82,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* ایمیل */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 ایمیل
@@ -97,12 +96,7 @@ export default function RegisterPage() {
                     message: "ایمیل معتبر نیست",
                   },
                 })}
-                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200
-                  ${
-                    errors.email
-                      ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                      : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"
-                  }`}
+                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.email ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
               />
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1.5">
@@ -111,7 +105,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* رمز عبور */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 رمز عبور
@@ -124,12 +117,7 @@ export default function RegisterPage() {
                     required: "رمز عبور را وارد کنید",
                     minLength: { value: 6, message: "حداقل ۶ کاراکتر" },
                   })}
-                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200
-                    ${
-                      errors.password
-                        ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                        : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"
-                    }`}
+                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.password ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
                 />
                 <button
                   type="button"
@@ -146,7 +134,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* تکرار رمز */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 تکرار رمز عبور
@@ -161,12 +148,7 @@ export default function RegisterPage() {
                       val === watch("password") ||
                       "رمز عبور و تکرار آن یکسان نیستند",
                   })}
-                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200
-                    ${
-                      errors.confirmPassword
-                        ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                        : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"
-                    }`}
+                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.confirmPassword ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
                 />
                 <button
                   type="button"
@@ -183,7 +165,6 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* دکمه ثبت نام */}
             <button
               type="submit"
               disabled={isLoading}
@@ -200,7 +181,6 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          {/* لینک ورود */}
           <div className="mt-6 pt-5 border-t border-slate-100 text-center">
             <p className="text-sm text-slate-500">
               قبلاً ثبت نام کردی؟{" "}
@@ -213,7 +193,6 @@ export default function RegisterPage() {
             </p>
           </div>
         </div>
-
         <p className="text-center text-xs text-slate-400 mt-6">
           با ثبت نام، قوانین و حریم خصوصی flex English را می‌پذیری
         </p>

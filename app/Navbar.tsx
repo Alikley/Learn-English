@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/NotificationContext";
+import { useAuth } from "@/app/context/AuthContext";
 
 export default function Navbar({
   toggleSidebar,
@@ -23,6 +24,7 @@ export default function Navbar({
   isOpen: boolean;
 }) {
   const { notifications, unreadCount } = useNotifications();
+  const { user, logout } = useAuth();
   const recentNotifications = notifications.slice(0, 3);
 
   return (
@@ -30,32 +32,38 @@ export default function Navbar({
       <div className="flex h-full items-center justify-between px-4 md:px-6">
         {/* Left Side */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* دکمه همبرگر - فقط موبایل */}
+          {/* همبرگر موبایل */}
           <button onClick={toggleSidebar} className="md:hidden p-1">
             <Menu
               className={`h-6 w-6 ${isOpen ? "text-blue-600" : "text-slate-700"}`}
             />
           </button>
 
-          {/* پروفایل - دسکتاپ */}
+          {/* پروفایل دسکتاپ */}
           <div className="relative group hidden sm:block">
             <div className="flex items-center gap-2 cursor-pointer">
-              <div className="h-10 w-10 overflow-hidden rounded-full">
-                <Image
-                  src="https://i.pravatar.cc/150?img=12"
-                  alt="profile"
-                  width={40}
-                  height={40}
-                  className="h-full w-full object-cover"
-                />
+              <div className="h-10 w-10 overflow-hidden rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                {user?.image ? (
+                  <Image
+                    src={user.image}
+                    alt="profile"
+                    width={40}
+                    height={40}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="text-blue-600 font-bold text-sm">
+                    {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+                  </span>
+                )}
               </div>
               <span className="text-sm font-medium text-slate-800">
-                علی مرادی
+                {user?.name ?? "کاربر"}
               </span>
               <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-hover:rotate-180" />
             </div>
 
-            {/* منوی کشویی پروفایل */}
+            {/* منوی کشویی */}
             <div className="absolute top-14 left-0 w-56 bg-white rounded-xl shadow-xl border border-slate-100 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="bg-blue-50 p-3 rounded-lg mb-3">
                 <div className="flex items-center gap-2 text-blue-700 text-xs font-medium mb-1">
@@ -75,27 +83,24 @@ export default function Navbar({
                   <User size={16} />
                   <span>ویرایش پروفایل</span>
                 </Link>
-                <Link
-                  href="/logout"
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
+                {/* ✅ دکمه logout - به جای Link */}
+                <button
+                  onClick={logout}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <LogOut size={16} />
                   <span>خروج</span>
-                </Link>
+                </button>
               </div>
             </div>
           </div>
 
-          {/* آیکون پروفایل کوچک - موبایل */}
+          {/* آیکون پروفایل موبایل */}
           <div className="block sm:hidden">
-            <div className="h-8 w-8 overflow-hidden rounded-full">
-              <Image
-                src="https://i.pravatar.cc/150?img=12"
-                alt="profile"
-                width={32}
-                height={32}
-                className="h-full w-full object-cover"
-              />
+            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+              <span className="text-blue-600 font-bold text-xs">
+                {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+              </span>
             </div>
           </div>
 
@@ -109,8 +114,6 @@ export default function Navbar({
                 </span>
               )}
             </button>
-
-            {/* باکس هاوری نوتیف */}
             <div className="absolute top-12 left-0 w-64 md:w-72 bg-white rounded-xl shadow-xl border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {recentNotifications.length > 0 ? (
@@ -173,15 +176,10 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Right Side - لوگو */}
-        <div className="flex items-center">
-          <Link
-            href="/"
-            className="text-xl md:text-2xl font-bold text-blue-600"
-          >
-            flex <span className="text-slate-900">English</span>
-          </Link>
-        </div>
+        {/* لوگو */}
+        <Link href="/" className="text-xl md:text-2xl font-bold text-blue-600">
+          flex <span className="text-slate-900">English</span>
+        </Link>
       </div>
     </header>
   );

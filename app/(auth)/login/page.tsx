@@ -6,23 +6,22 @@ import Link from "next/link";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useState } from "react";
 
-type LoginForm = {
-  email: string;
-  password: string;
-};
+type LoginForm = { email: string; password: string };
 
 export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const [showPass, setShowPass] = useState(false);
-
+  const [serverError, setServerError] = useState("");
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm<LoginForm>();
 
-  const onSubmit = (data: LoginForm) => {
-    login(data.email, data.password);
+  const onSubmit = async (data: LoginForm) => {
+    setServerError("");
+    const res = await login(data.email, data.password);
+    if (res?.error) setServerError(res.error);
   };
 
   return (
@@ -31,7 +30,6 @@ export default function LoginPage() {
       dir="rtl"
     >
       <div className="w-full max-w-md">
-        {/* لوگو */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-blue-600">
             flex <span className="text-slate-900">English</span>
@@ -41,18 +39,22 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* کارت */}
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 p-8 border border-slate-100">
           <h2 className="text-xl font-bold text-slate-800 mb-6">
             ورود به حساب
           </h2>
+
+          {serverError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+              {serverError}
+            </div>
+          )}
 
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-5"
             noValidate
           >
-            {/* ایمیل */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 ایمیل
@@ -67,12 +69,7 @@ export default function LoginPage() {
                     message: "ایمیل معتبر نیست",
                   },
                 })}
-                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200
-                  ${
-                    errors.email
-                      ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                      : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"
-                  }`}
+                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.email ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
               />
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1.5">
@@ -81,7 +78,6 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* رمز عبور */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 رمز عبور
@@ -94,12 +90,7 @@ export default function LoginPage() {
                     required: "رمز عبور را وارد کنید",
                     minLength: { value: 6, message: "حداقل ۶ کاراکتر" },
                   })}
-                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200
-                    ${
-                      errors.password
-                        ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100"
-                        : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"
-                    }`}
+                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.password ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
                 />
                 <button
                   type="button"
@@ -116,7 +107,6 @@ export default function LoginPage() {
               )}
             </div>
 
-            {/* دکمه ورود */}
             <button
               type="submit"
               disabled={isLoading}
@@ -133,7 +123,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* لینک ثبت نام */}
           <div className="mt-6 pt-5 border-t border-slate-100 text-center">
             <p className="text-sm text-slate-500">
               حساب کاربری نداری؟{" "}
@@ -146,8 +135,6 @@ export default function LoginPage() {
             </p>
           </div>
         </div>
-
-        {/* دکور پایین */}
         <p className="text-center text-xs text-slate-400 mt-6">
           با ورود، قوانین و حریم خصوصی flex English را می‌پذیری
         </p>
