@@ -2,6 +2,7 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/Prisma client";
 import { NextRequest } from "next/server";
 
+// GET /api/courses/[courseId] — جزئیات دوره + درس‌ها
 export async function GET(
   _req: NextRequest,
   { params }: { params: { courseId: string } },
@@ -11,34 +12,54 @@ export async function GET(
   const userId = auth.session.user.id;
 
   try {
-    const lessons = await prisma.lesson.findMany({
-      where: { courseId: params.courseId },
+    const course = await prisma.course.findUnique({
+      where: { id: params.courseId },
       include: {
-        progress: {
+        lessons: {
+          include: {
+            progress: {
+              where: { userId },
+              select: { isCompleted: true, completedAt: true, score: true },
+            },
+          },
+          orderBy: { order: "asc" },
+        },
+        enrollments: {
           where: { userId },
-          select: { isCompleted: true, completedAt: true, score: true },
+          select: { progress: true, enrolledAt: true },
         },
       },
-      orderBy: { order: "asc" },
     });
 
-    const result = lessons.map((l: (typeof lessons)[number]) => ({
-      id: l.id,
-      title: l.title,
-      duration: l.duration,
-      xp: l.xp,
-      order: l.order,
-      isCompleted: l.progress[0]?.isCompleted ?? false,
-      completedAt: l.progress[0]?.completedAt ?? null,
-      score: l.progress[0]?.score ?? null,
-    }));
+    if (!course) return err("دوره یافت نشد", 404);
 
-    return ok(result);
+    return ok({
+      id: course.id,
+      title: course.title,
+      titleEn: course.titleEn,
+      description: course.description,
+      level: course.level,
+      imageUrl: course.imageUrl,
+      color: course.color,
+      isEnrolled: course.enrollments.length > 0,
+      progress: course.enrollments[0]?.progress ?? 0,
+      lessons: course.lessons.map((l) => ({
+        id: l.id,
+        title: l.title,
+        duration: l.duration,
+        xp: l.xp,
+        order: l.order,
+        isCompleted: l.progress[0]?.isCompleted ?? false,
+        completedAt: l.progress[0]?.completedAt ?? null,
+        score: l.progress[0]?.score ?? null,
+      })),
+    });
   } catch {
-    return err("خطا در دریافت درس‌ها", 500);
+    return err("خطا در دریافت دوره", 500);
   }
 }
 
+// POST /api/courses/[courseId] — تکمیل درس
 export async function POST(
   req: NextRequest,
   { params }: { params: { courseId: string } },
@@ -80,7 +101,27 @@ export async function POST(
       data: { progress: courseProgress },
     });
 
-    await updateStreak(userId);
+    // آپدیت streak
+    const streak = await prisma.streak.findUnique({ where: { userId } });
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (!streak) {
+      await prisma.streak.create({ data: { userId, current: 1, longest: 1 } });
+    } else {
+      const last = new Date(streak.lastActiveAt);
+      last.setHours(0, 0, 0, 0);
+      const diff = Math.floor((today.getTime() - last.getTime()) / 86400000);
+      const newCurrent =
+        diff === 1 ? streak.current + 1 : diff > 1 ? 1 : streak.current;
+      await prisma.streak.update({
+        where: { userId },
+        data: {
+          current: newCurrent,
+          longest: Math.max(newCurrent, streak.longest),
+          lastActiveAt: new Date(),
+        },
+      });
+    }
 
     return ok({ progress, courseProgress });
   } catch {
@@ -88,32 +129,29 @@ export async function POST(
   }
 }
 
-async function updateStreak(userId: string) {
-  const streak = await prisma.streak.findUnique({ where: { userId } });
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+// PATCH /api/courses/[courseId] — ثبت‌نام در دوره
+export async function PATCH(
+  _req: NextRequest,
+  { params }: { params: { courseId: string } },
+) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.session.user.id;
 
-  if (!streak) {
-    await prisma.streak.create({ data: { userId, current: 1, longest: 1 } });
-    return;
+  try {
+    const course = await prisma.course.findUnique({
+      where: { id: params.courseId },
+    });
+    if (!course) return err("دوره یافت نشد", 404);
+
+    const enrollment = await prisma.enrollment.upsert({
+      where: { userId_courseId: { userId, courseId: params.courseId } },
+      update: {},
+      create: { userId, courseId: params.courseId },
+    });
+
+    return ok({ enrollment }, 201);
+  } catch {
+    return err("خطا در ثبت‌نام", 500);
   }
-
-  const lastActive = new Date(streak.lastActiveAt);
-  lastActive.setHours(0, 0, 0, 0);
-  const diffDays = Math.floor(
-    (today.getTime() - lastActive.getTime()) / 86400000,
-  );
-
-  let newCurrent = streak.current;
-  if (diffDays === 1) newCurrent += 1;
-  else if (diffDays > 1) newCurrent = 1;
-
-  await prisma.streak.update({
-    where: { userId },
-    data: {
-      current: newCurrent,
-      longest: Math.max(newCurrent, streak.longest),
-      lastActiveAt: new Date(),
-    },
-  });
 }

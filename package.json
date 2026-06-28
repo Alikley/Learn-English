@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma:seed": "node -r ts-node/register prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "npm run prisma:seed"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
@@ -36,6 +40,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
