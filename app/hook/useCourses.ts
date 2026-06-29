@@ -12,6 +12,9 @@ export function useCourses() {
     try {
       const res = await fetch("/api/courses");
       const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.message || "error");
+
       setCourses(data);
     } finally {
       setLoading(false);
@@ -23,10 +26,26 @@ export function useCourses() {
   }, [fetchCourses]);
 
   const enroll = async (courseId: string) => {
+    if (!courseId) return;
+
     setEnrolling(courseId);
-    await fetch(`/api/courses/${courseId}`, { method: "PATCH" });
-    await fetchCourses();
-    setEnrolling(null);
+
+    try {
+      const res = await fetch("/api/courses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ courseId }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message);
+
+      await fetchCourses();
+    } finally {
+      setEnrolling(null);
+    }
   };
 
   return { courses, loading, enrolling, enroll };

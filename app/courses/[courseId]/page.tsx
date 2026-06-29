@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { ArrowRight, BookOpen } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import LessonCard from "@/app/components/course/LessonCard";
 import EmptyState from "@/app/components/course/EmptyState";
 import { LEVEL_LABEL } from "@/types/course";

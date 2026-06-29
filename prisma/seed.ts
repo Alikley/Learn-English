@@ -150,30 +150,47 @@ const courseData = [
 
 async function main() {
   console.log("Seeding...");
-  for (const { lessons, ...info } of courseData) {
-    const id = `seed-${info.titleEn.toLowerCase().replace(/\s+/g, "-")}`;
-    const course = await prisma.course.upsert({
+
+  for (const course of courseData) {
+    const id = `seed-${course.titleEn.toLowerCase().replace(/\s+/g, "-")}`;
+
+    await prisma.course.upsert({
       where: { id },
       update: {},
       create: {
         id,
-        ...info,
-        description: `دوره ${info.title}`,
-        imageUrl: `/assets/${info.titleEn.split(" ")[0].toLowerCase()}.svg`,
+        title: course.title,
+        titleEn: course.titleEn,
+        level: course.level,
+        color: course.color,
         isPublished: true,
+        order: course.order,
+        description: `دوره ${course.title}`,
+
         lessons: {
-          create: lessons.map((title, i) => ({
+          create: course.lessons.map((title, i) => ({
             title,
             order: i + 1,
-            duration: 10 + i * 5,
             xp: 10 + i * 5,
+            duration: 8 + i * 3,
+
+            // 👇 مهم: ساختار درس واقعی
+            type: i === 0 ? "TEACH" : i === 4 ? "QUIZ" : "PRACTICE",
+
+            content: JSON.stringify({
+              title,
+              rule: course.titleEn.includes("Grammar")
+                ? "Present Continuous / Simple Grammar"
+                : "Learning Content",
+              examples: ["Example 1", "Example 2"],
+            }),
           })),
         },
       },
     });
-    console.log("Created:", course.title);
   }
-  console.log("Done!");
+
+  console.log("Done");
 }
 
 main()

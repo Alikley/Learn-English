@@ -7,34 +7,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model account {
-  id                String  @id
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.LongText
-  access_token      String? @db.LongText
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.LongText
-  session_state     String?
-
-  @@unique([provider, providerAccountId], map: "Account_provider_providerAccountId_key")
-}
-
-model conversation {
-  id        String   @id
+model user {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  image     String?
+  password  String?
   createdAt DateTime @default(now())
-}
+  updatedAt DateTime @updatedAt
 
-model conversationparticipant {
-  id             String @id
-  conversationId String
-  userId         String
-
-  @@unique([conversationId, userId], map: "ConversationParticipant_conversationId_userId_key")
+  enrollments    enrollment[]
+  lessonProgress lessonprogress[]
+  streak         streak?
 }
 
 model course {
@@ -47,58 +31,27 @@ model course {
   color       String?
   isPublished Boolean      @default(false)
   order       Int          @default(0)
-  createdAt   DateTime     @default(now())
-}
 
-model enrollment {
-  id         String   @id
-  userId     String
-  courseId   String
-  enrolledAt DateTime @default(now())
-  progress   Int      @default(0)
-
-  @@unique([userId, courseId], map: "Enrollment_userId_courseId_key")
-}
-
-model exercise {
-  id          String         @id
-  title       String
-  description String?
-  type        exercise_type
-  level       exercise_level @default(BEGINNER)
-  content     String         @db.LongText
-  xp          Int            @default(15)
-  isPublished Boolean        @default(false)
-  createdAt   DateTime       @default(now())
-}
-
-model game {
-  id          String    @id
-  title       String
-  type        game_type
-  description String?
-  isActive    Boolean   @default(true)
-}
-
-model gamescore {
-  id       String   @id
-  userId   String
-  gameId   String
-  score    Int
-  level    Int      @default(1)
-  playedAt DateTime @default(now())
+  lessons     lesson[]
+  enrollments enrollment[]
 }
 
 model lesson {
-  id        String   @id
-  courseId  String
-  title     String
-  content   String?  @db.LongText
-  videoUrl  String?
-  order     Int      @default(0)
-  duration  Int?
-  xp        Int      @default(10)
-  createdAt DateTime @default(now())
+  id       String      @id @default(cuid())
+  courseId String
+  title    String
+  /// محتوای درس (JSON یا HTML)
+  content  String?     @db.LongText
+  videoUrl String?
+  order    Int         @default(0)
+  duration Int?
+  xp       Int         @default(10)
+  /// 👇 مهم: ساختار تدریس + تمرین
+  type     lesson_type @default(TEACH)
+
+  course   course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress lessonprogress[]
+  exercises exercise[]
 }
 
 model lessonprogress {
@@ -107,101 +60,55 @@ model lessonprogress {
   lessonId    String
   isCompleted Boolean   @default(false)
   completedAt DateTime?
+  user   user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
   score       Int?
+  currentStep Int       @default(0)
+  xpEarned    Int       @default(0)
 
-  @@unique([userId, lessonId], map: "LessonProgress_userId_lessonId_key")
+  @@unique([userId, lessonId])
 }
 
-model message {
-  id             String   @id
-  conversationId String
-  senderId       String
-  content        String   @db.LongText
-  isRead         Boolean  @default(false)
-  sentAt         DateTime @default(now())
-}
+model enrollment {
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String
+  user   user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-model notification {
-  id        String            @id
-  userId    String
-  title     String
-  text      String            @db.LongText
-  type      notification_type @default(INFO)
-  isRead    Boolean           @default(false)
-  createdAt DateTime          @default(now())
-}
+  enrolledAt DateTime @default(now())
+  progress   Int      @default(0)
 
-model session {
-  id           String   @id
-  sessionToken String   @unique(map: "Session_sessionToken_key")
-  userId       String
-  expires      DateTime
+  @@unique([userId, courseId])
 }
-
 model streak {
-  id           String   @id
-  userId       String   @unique(map: "Streak_userId_key")
+  id           String   @id @default(cuid())
+  userId       String   @unique
   current      Int      @default(0)
   longest      Int      @default(0)
   lastActiveAt DateTime @default(now())
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model user {
-  id            String    @id
-  name          String?
-  email         String?   @unique(map: "User_email_key")
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime
+model exercise {
+  id       String        @id
+  type     exercise_type
+  xp       Int           @default(10)
+  lesson lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  answer   String
+  lessonId String
+  options  Json?
+  order    Int           @default(0)
+  question String        @db.LongText
 }
 
-model verificationtoken {
-  identifier String
-  token      String   @unique(map: "VerificationToken_token_key")
-  expires    DateTime
-
-  @@unique([identifier, token], map: "VerificationToken_identifier_token_key")
-}
-
-model vocabprogress {
-  id           String    @id
-  userId       String
-  wordId       String
-  isLearned    Boolean   @default(false)
-  reviewCount  Int       @default(0)
-  nextReviewAt DateTime?
-  learnedAt    DateTime?
-
-  @@unique([userId, wordId], map: "VocabProgress_userId_wordId_key")
-}
-
-model vocabword {
-  id            String          @id
-  word          String          @unique(map: "VocabWord_word_key")
-  meaning       String
-  pronunciation String?
-  example       String?
-  level         vocabword_level @default(BEGINNER)
-  category      String?
-  imageUrl      String?
-}
-
-enum game_type {
-  HANGMAN
-  WORD_MATCH
-  SPELLING_BEE
-  MEMORY_CARDS
-}
-
-enum exercise_type {
-  FLASHCARD
-  FILL_IN_BLANK
-  MULTIPLE_CHOICE
-  LISTENING
-  SPEAKING
-  GRAMMAR
+enum lesson_type {
+  TEACH
+  PRACTICE
+  QUIZ
 }
 
 enum course_level {
@@ -212,25 +119,8 @@ enum course_level {
   ADVANCED
 }
 
-enum exercise_level {
-  BEGINNER
-  ELEMENTARY
-  INTERMEDIATE
-  UPPER_INTERMEDIATE
-  ADVANCED
-}
-
-enum notification_type {
-  INFO
-  SUCCESS
-  WARNING
-  ACHIEVEMENT
-}
-
-enum vocabword_level {
-  BEGINNER
-  ELEMENTARY
-  INTERMEDIATE
-  UPPER_INTERMEDIATE
-  ADVANCED
+enum exercise_type {
+  MULTIPLE_CHOICE
+  FILL_IN_BLANK
+  MATCHING
 }

@@ -16,7 +16,7 @@ export default function CourseCard({ course, onEnroll, enrolling }: Props) {
   return (
     <div className="bg-white rounded-2xl shadow-[0_4px_18px_rgba(15,23,42,0.06)] overflow-hidden hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] transition-all duration-300 flex flex-col">
       {/* تصویر */}
-      <div className="relative aspect-[16/7] overflow-hidden bg-slate-100">
+      <div className="relative aspect-16/7 overflow-hidden bg-slate-100">
         {course.imageUrl ? (
           <Image
             src={course.imageUrl}
@@ -70,7 +70,7 @@ export default function CourseCard({ course, onEnroll, enrolling }: Props) {
         <div className="mt-auto">
           {course.isEnrolled ? (
             <Link
-              href={`/my-course/${course.id}`}
+              href={`/courses/${course.id}`}
               className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
             >
               <ChevronLeft size={16} />
@@ -78,8 +78,8 @@ export default function CourseCard({ course, onEnroll, enrolling }: Props) {
             </Link>
           ) : (
             <button
-              onClick={() => onEnroll(course.id)}
-              disabled={isEnrolling}
+              onClick={() => course?.id && onEnroll(course.id)}
+              disabled={!course?.id || isEnrolling}
               className="w-full flex items-center justify-center gap-1.5 border-2 border-blue-200 hover:border-blue-500 hover:bg-blue-50 text-blue-600 text-sm font-semibold py-2.5 rounded-xl transition-all disabled:opacity-60"
             >
               {isEnrolling ? (
