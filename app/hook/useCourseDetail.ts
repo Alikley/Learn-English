@@ -9,27 +9,45 @@ export function useCourseDetail(courseId: string) {
   const [completing, setCompleting] = useState<string | null>(null);
 
   const fetchCourse = useCallback(async () => {
+    if (!courseId) return;
+
     try {
       const res = await fetch(`/api/courses/${courseId}`);
+
+      if (!res.ok) {
+        setCourse(null);
+        return;
+      }
+
       const data = await res.json();
       setCourse(data);
+    } catch (e) {
+      console.error(e);
+      setCourse(null);
     } finally {
       setLoading(false);
     }
   }, [courseId]);
 
   useEffect(() => {
-    fetchCourse();
-  }, [fetchCourse]);
+    if (!courseId) return;
+
+    void (async () => {
+      await fetchCourse();
+    })();
+  }, [courseId, fetchCourse]);
 
   const completeLesson = async (lessonId: string) => {
     if (!course?.isEnrolled) return;
+
     setCompleting(lessonId);
+
     await fetch(`/api/courses/${courseId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lessonId, score: 100 }),
     });
+
     await fetchCourse();
     setCompleting(null);
   };

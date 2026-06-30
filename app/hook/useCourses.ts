@@ -11,18 +11,23 @@ export function useCourses() {
   const fetchCourses = useCallback(async () => {
     try {
       const res = await fetch("/api/courses");
+      if (!res.ok) return;
+
       const data = await res.json();
-
-      if (!res.ok) throw new Error(data?.message || "error");
-
       setCourses(data);
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchCourses();
+    const timeoutId = window.setTimeout(() => {
+      void fetchCourses();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchCourses]);
 
   const enroll = async (courseId: string) => {
@@ -31,18 +36,15 @@ export function useCourses() {
     setEnrolling(courseId);
 
     try {
-      const res = await fetch("/api/courses", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ courseId }),
+      const res = await fetch(`/api/courses/${courseId}`, {
+        method: "PATCH",
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message);
+      if (!res.ok) return;
 
       await fetchCourses();
+    } catch (e) {
+      console.error(e);
     } finally {
       setEnrolling(null);
     }
