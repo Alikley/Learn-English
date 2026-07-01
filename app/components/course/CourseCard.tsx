@@ -4,6 +4,41 @@ import { BookOpen, ChevronLeft } from "lucide-react";
 import type { Course } from "@/types/course";
 import { LEVEL_COLOR, LEVEL_LABEL } from "@/types/course";
 
+// 👇 نگاشت دسته‌بندی به عکس پیش‌فرض
+const CATEGORY_IMAGES: Record<string, string> = {
+  grammar: "/assets/grammar.svg",
+  conversation: "/assets/conversation.svg",
+  vocabulary: "/assets/vocabulary.svg",
+  listening: "/assets/listening.svg",
+};
+
+// 👇 نگاشت دسته‌بندی به رنگ پس‌زمینه
+const CATEGORY_BG: Record<string, string> = {
+  grammar: "bg-blue-50",
+  conversation: "bg-teal-50",
+  vocabulary: "bg-purple-50",
+  listening: "bg-orange-50",
+};
+
+function getCourseImage(course: Course): string {
+  if (course.imageUrl) return course.imageUrl;
+
+  // fallback: بر اساس titleEn عکس مناسب رو پیدا کن
+  const key = course.titleEn?.toLowerCase() ?? "";
+  for (const [category, image] of Object.entries(CATEGORY_IMAGES)) {
+    if (key.includes(category)) return image;
+  }
+  return "";
+}
+
+function getCourseBg(course: Course): string {
+  const key = course.titleEn?.toLowerCase() ?? "";
+  for (const [category, bg] of Object.entries(CATEGORY_BG)) {
+    if (key.includes(category)) return bg;
+  }
+  return "bg-slate-100";
+}
+
 type Props = {
   course: Course;
   onEnroll: (id: string) => void;
@@ -12,17 +47,20 @@ type Props = {
 
 export default function CourseCard({ course, onEnroll, enrolling }: Props) {
   const isEnrolling = enrolling === course.id;
+  const imageSrc = getCourseImage(course);
+  const bgColor = getCourseBg(course);
 
   return (
     <div className="bg-white rounded-2xl shadow-[0_4px_18px_rgba(15,23,42,0.06)] overflow-hidden hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] transition-all duration-300 flex flex-col">
       {/* تصویر */}
-      <div className="relative aspect-16/7 overflow-hidden bg-slate-100">
-        {course.imageUrl ? (
+      <div className={`relative aspect-[2.37/1] overflow-hidden ${bgColor}`}>
+        {imageSrc ? (
           <Image
-            src={course.imageUrl}
+            src={imageSrc}
             alt={course.title}
             fill
-            className="object-cover"
+            sizes="25vw"
+            className="object-contain p-2"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

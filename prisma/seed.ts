@@ -7,6 +7,7 @@ const courseData = [
     titleEn: "Grammar Beginner",
     level: "BEGINNER" as const,
     color: "bg-blue-500",
+    imageUrl: "/assets/grammar.svg",
     order: 1,
     lessons: [
       "آشنایی با افعال to be",
@@ -21,6 +22,7 @@ const courseData = [
     titleEn: "Grammar Intermediate",
     level: "INTERMEDIATE" as const,
     color: "bg-blue-600",
+    imageUrl: "/assets/grammar.svg",
     order: 2,
     lessons: [
       "زمان حال کامل",
@@ -35,6 +37,7 @@ const courseData = [
     titleEn: "Grammar Advanced",
     level: "ADVANCED" as const,
     color: "bg-blue-700",
+    imageUrl: "/assets/grammar.svg",
     order: 3,
     lessons: [
       "conditional type 2&3",
@@ -49,6 +52,7 @@ const courseData = [
     titleEn: "Conversation Beginner",
     level: "BEGINNER" as const,
     color: "bg-teal-500",
+    imageUrl: "/assets/conversation.svg",
     order: 4,
     lessons: [
       "معرفی خود",
@@ -63,6 +67,7 @@ const courseData = [
     titleEn: "Conversation Intermediate",
     level: "INTERMEDIATE" as const,
     color: "bg-teal-600",
+    imageUrl: "/assets/conversation.svg",
     order: 5,
     lessons: ["در محل کار", "مذاکره", "بیان نظر", "تعارف", "صحبت درباره آینده"],
   },
@@ -71,6 +76,7 @@ const courseData = [
     titleEn: "Conversation Advanced",
     level: "ADVANCED" as const,
     color: "bg-teal-700",
+    imageUrl: "/assets/conversation.svg",
     order: 6,
     lessons: [
       "بحث و مناظره",
@@ -85,6 +91,7 @@ const courseData = [
     titleEn: "Vocabulary Beginner",
     level: "BEGINNER" as const,
     color: "bg-purple-500",
+    imageUrl: "/assets/vocabulary.svg",
     order: 7,
     lessons: ["لغات خانه", "اعداد", "رنگ‌ها", "روزهای هفته", "ماه‌های سال"],
   },
@@ -93,6 +100,7 @@ const courseData = [
     titleEn: "Vocabulary Intermediate",
     level: "INTERMEDIATE" as const,
     color: "bg-purple-600",
+    imageUrl: "/assets/vocabulary.svg",
     order: 8,
     lessons: ["لغات تجاری", "محیط زیست", "تکنولوژی", "بهداشت", "اقتصاد"],
   },
@@ -101,6 +109,7 @@ const courseData = [
     titleEn: "Vocabulary Advanced",
     level: "ADVANCED" as const,
     color: "bg-purple-700",
+    imageUrl: "/assets/vocabulary.svg",
     order: 9,
     lessons: ["اصطلاحات آکادمیک", "لغات حقوقی", "پزشکی", "ادبیات", "idioms"],
   },
@@ -109,6 +118,7 @@ const courseData = [
     titleEn: "Listening Beginner",
     level: "BEGINNER" as const,
     color: "bg-orange-500",
+    imageUrl: "/assets/listening.svg",
     order: 10,
     lessons: [
       "تلفظ الفبا",
@@ -123,6 +133,7 @@ const courseData = [
     titleEn: "Listening Intermediate",
     level: "INTERMEDIATE" as const,
     color: "bg-orange-600",
+    imageUrl: "/assets/listening.svg",
     order: 11,
     lessons: [
       "اخبار رادیو",
@@ -137,6 +148,7 @@ const courseData = [
     titleEn: "Listening Advanced",
     level: "ADVANCED" as const,
     color: "bg-orange-700",
+    imageUrl: "/assets/listening.svg",
     order: 12,
     lessons: [
       "TED talks",
@@ -169,6 +181,7 @@ async function main() {
           titleEn: course.titleEn,
           level: course.level,
           color: course.color,
+          imageUrl: course.imageUrl,
           isPublished: true,
           order: course.order,
           description: `دوره ${course.title}`,
@@ -211,6 +224,7 @@ async function main() {
           titleEn: course.titleEn,
           level: course.level,
           color: course.color,
+          imageUrl: course.imageUrl,
           isPublished: true,
           order: course.order,
           description: `دوره ${course.title}`,
