@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import type { Course } from "@/types/course";
 
 export function useCourses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState<string | null>(null);
+  const router = useRouter();
 
   const fetchCourses = useCallback(async () => {
     try {
@@ -43,6 +45,9 @@ export function useCourses() {
       if (!res.ok) return;
 
       await fetchCourses();
+
+      // 👇 بعد از ثبت‌نام موفق، مستقیم به صفحه دوره بریم
+      router.push(`/courses/${courseId}`);
     } catch (e) {
       console.error(e);
     } finally {

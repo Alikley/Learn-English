@@ -154,40 +154,86 @@ async function main() {
   for (const course of courseData) {
     const id = `seed-${course.titleEn.toLowerCase().replace(/\s+/g, "-")}`;
 
-    await prisma.course.upsert({
+    // ساخت یا آپدیت دوره
+    const existing = await prisma.course.findUnique({
       where: { id },
-      update: {},
-      create: {
-        id,
-        title: course.title,
-        titleEn: course.titleEn,
-        level: course.level,
-        color: course.color,
-        isPublished: true,
-        order: course.order,
-        description: `دوره ${course.title}`,
-
-        lessons: {
-          create: course.lessons.map((title, i) => ({
-            title,
-            order: i + 1,
-            xp: 10 + i * 5,
-            duration: 8 + i * 3,
-
-            // 👇 مهم: ساختار درس واقعی
-            type: i === 0 ? "TEACH" : i === 4 ? "QUIZ" : "PRACTICE",
-
-            content: JSON.stringify({
-              title,
-              rule: course.titleEn.includes("Grammar")
-                ? "Present Continuous / Simple Grammar"
-                : "Learning Content",
-              examples: ["Example 1", "Example 2"],
-            }),
-          })),
-        },
-      },
+      include: { lessons: { select: { id: true, title: true } } },
     });
+
+    if (existing) {
+      // آپدیت اطلاعات دوره
+      await prisma.course.update({
+        where: { id },
+        data: {
+          title: course.title,
+          titleEn: course.titleEn,
+          level: course.level,
+          color: course.color,
+          isPublished: true,
+          order: course.order,
+          description: `دوره ${course.title}`,
+        },
+      });
+
+      // حذف درس‌های قدیمی و ساخت دوباره
+      if (existing.lessons.length === 0) {
+        console.log(`  → Creating ${course.lessons.length} lessons for "${course.title}"`);
+
+        for (let i = 0; i < course.lessons.length; i++) {
+          const title = course.lessons[i];
+          await prisma.lesson.create({
+            data: {
+              courseId: id,
+              title,
+              order: i + 1,
+              xp: 10 + i * 5,
+              duration: 8 + i * 3,
+              type: i === 0 ? "TEACH" : i === 4 ? "QUIZ" : "PRACTICE",
+              content: JSON.stringify({
+                title,
+                rule: course.titleEn.includes("Grammar")
+                  ? "Present Continuous / Simple Grammar"
+                  : "Learning Content",
+                examples: ["Example 1", "Example 2"],
+              }),
+            },
+          });
+        }
+      } else {
+        console.log(`  → "${course.title}" already has ${existing.lessons.length} lessons, skipping.`);
+      }
+    } else {
+      // ساخت دوره جدید با درس‌ها
+      await prisma.course.create({
+        data: {
+          id,
+          title: course.title,
+          titleEn: course.titleEn,
+          level: course.level,
+          color: course.color,
+          isPublished: true,
+          order: course.order,
+          description: `دوره ${course.title}`,
+          lessons: {
+            create: course.lessons.map((title, i) => ({
+              title,
+              order: i + 1,
+              xp: 10 + i * 5,
+              duration: 8 + i * 3,
+              type: i === 0 ? "TEACH" : i === 4 ? "QUIZ" : "PRACTICE",
+              content: JSON.stringify({
+                title,
+                rule: course.titleEn.includes("Grammar")
+                  ? "Present Continuous / Simple Grammar"
+                  : "Learning Content",
+                examples: ["Example 1", "Example 2"],
+              }),
+            })),
+          },
+        },
+      });
+      console.log(`  → Created "${course.title}" with ${course.lessons.length} lessons.`);
+    }
   }
 
   console.log("Done");

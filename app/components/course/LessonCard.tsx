@@ -1,10 +1,12 @@
 import { CheckCircle2, Circle, Clock, Star, ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { Lesson } from "@/types/course";
 
 type Props = {
   lesson: Lesson;
   index: number;
   isEnrolled: boolean;
+  courseId: string;
   completing: string | null;
   onComplete: (id: string) => void;
 };
@@ -13,10 +15,17 @@ export default function LessonCard({
   lesson,
   index,
   isEnrolled,
+  courseId,
   completing,
   onComplete,
 }: Props) {
   const isCompleting = completing === lesson.id;
+  const router = useRouter();
+
+  const handleStart = () => {
+    // هدایت به صفحه درس
+    router.push(`/courses/${courseId}/lesson/${lesson.id}`);
+  };
 
   return (
     <div
@@ -69,12 +78,15 @@ export default function LessonCard({
         {/* دکمه */}
         {isEnrolled ? (
           lesson.isCompleted ? (
-            <span className="text-xs font-medium text-green-600 bg-green-50 px-3 py-1.5 rounded-lg shrink-0">
-              تکمیل ✓
-            </span>
+            <button
+              onClick={handleStart}
+              className="text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg shrink-0 transition-colors"
+            >
+              مشاهده مجدد
+            </button>
           ) : (
             <button
-              onClick={() => onComplete(lesson.id)}
+              onClick={handleStart}
               disabled={isCompleting}
               className="flex items-center gap-1 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors disabled:opacity-60 shrink-0"
             >

@@ -120,6 +120,7 @@ export default function CourseDetailPage() {
                 lesson={lesson}
                 index={index}
                 isEnrolled={course.isEnrolled}
+                courseId={courseId}
                 completing={completing}
                 onComplete={completeLesson}
               />

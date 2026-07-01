@@ -4,20 +4,21 @@ import { requireAuth } from "@/lib/api-helpers";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { courseId: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
 
     const userId = auth.session.user.id;
+    const { id: courseId } = await params;
 
-    if (!params?.courseId) {
+    if (!courseId) {
       return NextResponse.json({ error: "courseId missing" }, { status: 400 });
     }
 
     const course = await prisma.course.findUnique({
-      where: { id: params.courseId },
+      where: { id: courseId },
       include: {
         lessons: {
           orderBy: { order: "asc" },
@@ -60,14 +61,14 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { courseId: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
 
     const userId = auth.session.user.id;
-    const courseId = params.courseId;
+    const { id: courseId } = await params;
 
     if (!courseId) {
       return NextResponse.json({ error: "courseId missing" }, { status: 400 });
@@ -88,6 +89,90 @@ export async function PATCH(
     });
 
     return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    return NextResponse.json({ error: "server error" }, { status: 500 });
+  }
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+
+    const userId = auth.session.user.id;
+    const { id: courseId } = await params;
+
+    if (!courseId) {
+      return NextResponse.json({ error: "courseId missing" }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const { lessonId, score } = body;
+
+    if (!lessonId) {
+      return NextResponse.json(
+        { error: "lessonId is required" },
+        { status: 400 },
+      );
+    }
+
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+
+    if (!enrollment) {
+      return NextResponse.json({ error: "not enrolled" }, { status: 403 });
+    }
+
+    await prisma.lessonprogress.upsert({
+      where: {
+        userId_lessonId: { userId, lessonId },
+      },
+      update: {
+        isCompleted: true,
+        completedAt: new Date(),
+        score: score ?? 100,
+        xpEarned: 0,
+      },
+      create: {
+        id: `${userId}-${lessonId}`,
+        userId,
+        lessonId,
+        isCompleted: true,
+        completedAt: new Date(),
+        score: score ?? 100,
+        xpEarned: 0,
+      },
+    });
+
+    const totalLessons = await prisma.lesson.count({
+      where: { courseId },
+    });
+    const completedLessons = await prisma.lessonprogress.count({
+      where: {
+        userId,
+        lesson: { courseId },
+        isCompleted: true,
+      },
+    });
+    const progressPercent =
+      totalLessons > 0
+        ? Math.round((completedLessons / totalLessons) * 100)
+        : 0;
+
+    await prisma.enrollment.update({
+      where: { userId_courseId: { userId, courseId } },
+      data: { progress: progressPercent },
+    });
+
+    return NextResponse.json({
+      ok: true,
+      courseProgress: progressPercent,
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "server error" }, { status: 500 });
