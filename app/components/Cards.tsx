@@ -1,37 +1,9 @@
+"use client";
+
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-
-const courses = [
-  {
-    title: "گرامر ضروریات",
-    level: "سطح مبتدی",
-    progress: 65,
-    image: "/assets/grammar.svg",
-    color: "bg-blue-500",
-  },
-  {
-    title: "مکالمه روزمره",
-    level: "سطح مبتدی",
-    progress: 40,
-    image: "/assets/conversation.svg",
-    color: "bg-teal-500",
-  },
-  {
-    title: "لغات کاربردی",
-    level: "سطح مبتدی",
-    progress: 20,
-    image: "/assets/vocabulary.svg",
-    color: "bg-purple-500",
-  },
-  {
-    title: "لیسنینگ در عمل",
-    level: "سطح متوسط",
-    progress: 10,
-    image: "/assets/listening.svg",
-    color: "bg-orange-500",
-  },
-];
+import { useCategories } from "../hook/useCategories";
 
 const exercises = [
   {
@@ -69,6 +41,8 @@ const exercises = [
 ];
 
 export default function Cards() {
+  const { categories, loading } = useCategories();
+
   return (
     <div>
       {/* ================= COURSES ================= */}
@@ -86,46 +60,54 @@ export default function Cards() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-6">
-          {courses.map((course) => (
-            <div
-              key={course.title}
-              className="group overflow-hidden rounded-2xl md:rounded-3xl bg-white shadow-[0_4px_18px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)]"
-            >
-              <div className="relative aspect-965/407 overflow-hidden">
-                <Image
-                  src={course.image}
-                  alt={course.title}
-                  fill
-                  sizes="25vw"
-                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                />
-              </div>
-              <div className="p-3 md:p-5">
-                <div className="text-right">
-                  <h3 className="text-[16px] md:text-[20px] font-bold text-slate-900">
-                    {course.title}
-                  </h3>
-                  <p className="mt-1 text-[13px] md:text-[15px] text-slate-500">
-                    {course.level}
-                  </p>
+        {loading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-6">
+            {categories.map((card) => (
+              <Link
+                href="/courses"
+                key={card.key}
+                className="group overflow-hidden rounded-2xl md:rounded-3xl bg-white shadow-[0_4px_18px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] block"
+              >
+                <div className="relative aspect-[2.37/1] overflow-hidden">
+                  <Image
+                    src={card.image}
+                    alt={card.title}
+                    fill
+                    sizes="25vw"
+                    className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
+                  />
                 </div>
-                <div className="mt-3 md:mt-5">
-                  <div className="mb-2 flex items-center justify-between text-xs md:text-sm text-slate-500">
-                    <span>{course.progress}%</span>
-                    <span>پیشرفت</span>
+                <div className="p-3 md:p-5">
+                  <div className="text-right">
+                    <h3 className="text-[16px] md:text-[20px] font-bold text-slate-900">
+                      {card.title}
+                    </h3>
                   </div>
-                  <div className="h-1.5 md:h-2 overflow-hidden rounded-full bg-slate-200">
+
+                  {/* میانگین پیشرفت */}
+                  <div className="mt-3 md:mt-4 flex items-center justify-between">
+                    <span className="text-xs text-slate-500">
+                      میانگین پیشرفت
+                    </span>
+                    <span className="text-sm font-bold text-slate-700">
+                      {card.avgProgress}%
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 md:h-2 overflow-hidden rounded-full bg-slate-200">
                     <div
-                      className={`h-full rounded-full ${course.color}`}
-                      style={{ width: `${course.progress}%` }}
+                      className={`h-full rounded-full ${card.color}`}
+                      style={{ width: `${card.avgProgress}%` }}
                     />
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ================= EXERCISES & GAMES ================= */}
