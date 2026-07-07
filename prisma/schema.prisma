@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model user {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  image     String?
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments    enrollment[]
+  lessonProgress lessonprogress[]
+  streak         streak?
+}
+
+model course {
+  id          String       @id
+  title       String
+  titleEn     String?
+  description String?
+  level       course_level @default(BEGINNER)
+  imageUrl    String?
+  color       String?
+  isPublished Boolean      @default(false)
+  order       Int          @default(0)
+
+  lessons     lesson[]
+  enrollments enrollment[]
+}
+
+model lesson {
+  id       String      @id @default(cuid())
+  courseId String
+  title    String
+  /// محتوای درس (JSON یا HTML)
+  content  String?     @db.LongText
+  videoUrl String?
+  order    Int         @default(0)
+  duration Int?
+  xp       Int         @default(10)
+  /// 👇 مهم: ساختار تدریس + تمرین
+  type     lesson_type @default(TEACH)
+
+  course   course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress lessonprogress[]
+  exercises exercise[]
+}
+
+model lessonprogress {
+  id          String    @id
+  userId      String
+  lessonId    String
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  user   user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  score       Int?
+  currentStep Int       @default(0)
+  xpEarned    Int       @default(0)
+
+  @@unique([userId, lessonId])
+}
+
+model enrollment {
+  id         String   @id @default(cuid())
+  userId     String
+  courseId   String
+  user   user   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  enrolledAt DateTime @default(now())
+  progress   Int      @default(0)
+
+  @@unique([userId, courseId])
+}
+model streak {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  current      Int      @default(0)
+  longest      Int      @default(0)
+  lastActiveAt DateTime @default(now())
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model exercise {
+  id       String        @id
+  type     exercise_type
+  xp       Int           @default(10)
+  lesson lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  answer   String
+  lessonId String
+  options  Json?
+  order    Int           @default(0)
+  question String        @db.LongText
+}
+
+enum lesson_type {
+  TEACH
+  PRACTICE
+  QUIZ
+}
+
+enum course_level {
+  BEGINNER
+  ELEMENTARY
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+}
+
+enum exercise_type {
+  MULTIPLE_CHOICE
+  FILL_IN_BLANK
+  MATCHING
+}
+
+model Book {
+  id          Int      @id @default(autoincrement())
+  title       String
+  titleFa     String
+  author      String
+  description String
+  level       String   @default("BEGINNER")
+  coverUrl    String
+  pdfPath     String
+  pages       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
