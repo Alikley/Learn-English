@@ -1,66 +1,32 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-
-type Book = {
-  id: number;
-  title: string;
-  titleFa: string;
-  author: string;
-  description: string;
-  level: string;
-  coverUrl: string;
-  pdfPath: string;
-  pages: number;
-};
+import { useBook } from "@/app/hook/useBook";
 
 export default function BookReaderPage() {
   const params = useParams();
   const router = useRouter();
-  const [book, setBook] = useState<Book | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const bookId = params.bookId as string;
+  const { book, loading, notFound } = useBook(bookId);
   const [zoom, setZoom] = useState(100);
   const [showBar, setShowBar] = useState(false);
   const [pdfReady, setPdfReady] = useState(false);
 
-  useEffect(() => {
-    if (!params.bookId) return;
-    const id = Number(params.bookId);
-    if (isNaN(id)) {
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
-
-    fetch("/api/books")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((books: Book[]) => {
-        const found = books.find((b) => b.id === id);
-        found ? setBook(found) : setNotFound(true);
-      })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
-  }, [params.bookId]);
-
-  // مخفی کردن خودکار نوار بعد ۳ ثانیه
   useEffect(() => {
     if (!showBar) return;
     const t = setTimeout(() => setShowBar(false), 3000);
     return () => clearTimeout(t);
   }, [showBar]);
 
-  // کلید Escape برای برگشت
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") router.push(`/library/${params.bookId}`);
+      if (e.key === "Escape") router.push(`/library/${bookId}`);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [params.bookId, router]);
+  }, [bookId, router]);
 
   const handleZoom = useCallback((d: number) => {
     setZoom((z) => Math.min(200, Math.max(60, z + d)));
@@ -100,11 +66,9 @@ export default function BookReaderPage() {
       className="h-screen flex flex-col bg-[#F5F0E8] overflow-hidden"
       dir="rtl"
     >
-      {/* نوار بالایی - فقط وقتی hover کنی */}
+      {/* نوار بالایی */}
       <div
-        className={`absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/60 via-black/30 to-transparent px-6 py-4 flex items-center justify-between transition-all duration-500 ${
-          showBar ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/60 via-black/30 to-transparent px-6 py-4 flex items-center justify-between transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
         <div className="flex items-center gap-4">
           <button
@@ -132,7 +96,6 @@ export default function BookReaderPage() {
           </span>
         </div>
 
-        {/* کنترل زوم */}
         <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur rounded-xl px-2 py-1">
           <button
             onClick={() => handleZoom(-10)}
@@ -154,12 +117,10 @@ export default function BookReaderPage() {
 
       {/* نوار پایین */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/50 to-transparent px-6 py-4 flex items-center justify-center transition-all duration-500 ${
-          showBar ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
+        className={`absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/50 to-transparent px-6 py-4 flex items-center justify-center transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
-        <span className="text-white/40 text-xs hover:text-white/60 transition cursor-default">
-          برای نمایش منو روی صفحه کلیک کنید · کلید Escape برای خروج
+        <span className="text-white/40 text-xs">
+          برای نمایش منو روی صفحه کلیک کنید · Escape برای خروج
         </span>
       </div>
 

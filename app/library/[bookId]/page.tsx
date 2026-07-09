@@ -1,70 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-
-type Book = {
-  id: number;
-  title: string;
-  titleFa: string;
-  author: string;
-  description: string;
-  level: string;
-  coverUrl: string;
-  pdfPath: string;
-  pages: number;
-};
+import { useBook } from "@/app/hook/useBook";
+import { getLevelInfo } from "@/types/book";
 
 export default function BookDetailPage() {
   const params = useParams();
-  const [book, setBook] = useState<Book | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-
-  useEffect(() => {
-    if (!params.bookId) return;
-    const id = Number(params.bookId);
-    if (isNaN(id)) {
-      setNotFound(true);
-      setLoading(false);
-      return;
-    }
-
-    fetch("/api/books")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((books: Book[]) => {
-        const found = books.find((b) => b.id === id);
-        found ? setBook(found) : setNotFound(true);
-      })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
-  }, [params.bookId]);
-
-  const levelInfo = (level: string) => {
-    switch (level) {
-      case "BEGINNER":
-        return {
-          fa: "مبتدی",
-          color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25",
-        };
-      case "INTERMEDIATE":
-        return {
-          fa: "متوسط",
-          color: "bg-amber-500/15 text-amber-400 border-amber-500/25",
-        };
-      case "ADVANCED":
-        return {
-          fa: "پیشرفته",
-          color: "bg-rose-500/15 text-rose-400 border-rose-500/25",
-        };
-      default:
-        return {
-          fa: level,
-          color: "bg-gray-500/15 text-gray-400 border-gray-500/25",
-        };
-    }
-  };
+  const bookId = params.bookId as string;
+  const { book, loading, notFound } = useBook(bookId);
 
   if (loading) {
     return (
@@ -89,18 +33,16 @@ export default function BookDetailPage() {
     );
   }
 
-  const lvl = levelInfo(book.level);
+  const lvl = getLevelInfo(book.level);
 
   return (
     <div className="min-h-screen bg-gray-950" dir="rtl">
-      {/* گرادیانت بکدراپ */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-blue-900/15 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-indigo-900/15 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative max-w-4xl mx-auto px-5 py-8">
-        {/* بreadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-10">
           <Link href="/" className="hover:text-gray-300 transition">
             خانه
@@ -137,12 +79,9 @@ export default function BookDetailPage() {
           <span className="text-gray-300">{book.titleFa}</span>
         </nav>
 
-        {/* کارت اصلی */}
         <div className="bg-gray-900/60 backdrop-blur-xl rounded-3xl border border-white/[0.06] shadow-2xl shadow-black/30">
           <div className="flex flex-col md:flex-row">
-            {/* بخش اطلاعات */}
             <div className="flex-1 p-8 md:p-10 flex flex-col">
-              {/* تگ‌ها */}
               <div className="flex flex-wrap gap-2 mb-6">
                 <span className="px-3 py-1 rounded-full text-xs border bg-white/5 text-gray-300 border-white/10">
                   📄 {book.pages} صفحه
@@ -157,7 +96,6 @@ export default function BookDetailPage() {
                 </span>
               </div>
 
-              {/* عنوان */}
               <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-1 leading-tight">
                 {book.titleFa}
               </h1>
@@ -165,12 +103,10 @@ export default function BookDetailPage() {
                 {book.title}
               </p>
 
-              {/* توضیحات */}
               <p className="text-gray-400 leading-8 text-[15px] mb-10 flex-1">
                 {book.description}
               </p>
 
-              {/* دکمه‌ها */}
               <div className="flex flex-wrap gap-3">
                 <Link
                   href={`/library/${book.id}/read`}
@@ -191,7 +127,6 @@ export default function BookDetailPage() {
                   </svg>
                   شروع خواندن کتاب!
                 </Link>
-
                 <Link
                   href="/library"
                   className="inline-flex items-center gap-2 px-5 py-4 bg-white/[0.04] hover:bg-white/[0.08] text-gray-400 hover:text-gray-300 rounded-2xl text-sm transition border border-white/[0.06]"
@@ -214,12 +149,9 @@ export default function BookDetailPage() {
               </div>
             </div>
 
-            {/* کاور کتاب */}
             <div className="md:w-72 lg:w-80 flex items-center justify-center p-8 md:p-10">
               <div className="relative group">
-                {/* سایه */}
                 <div className="absolute -bottom-4 left-4 right-4 h-16 bg-black/40 rounded-2xl blur-xl group-hover:h-20 transition-all duration-500" />
-                {/* کاور */}
                 <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl shadow-black/50 ring-1 ring-white/10 group-hover:ring-white/20 transition-all duration-500 group-hover:-translate-y-1">
                   <img
                     src={book.coverUrl}
@@ -230,7 +162,6 @@ export default function BookDetailPage() {
                         "/assets/grammar.svg";
                     }}
                   />
-                  {/* بازتاب نور */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/5 pointer-events-none" />
                 </div>
               </div>
