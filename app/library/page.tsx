@@ -34,7 +34,7 @@ export default function LibraryPage() {
               href={`/library/${book.id}`}
               className="group bg-gray-800/60 backdrop-blur rounded-2xl overflow-hidden border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl hover:shadow-blue-500/10"
             >
-              <div className="relative aspect-[2/3] overflow-hidden bg-gray-900">
+              <div className="relative aspect-2/3 overflow-hidden bg-gray-900">
                 <Image
                   src={book.coverUrl}
                   alt={book.title}
@@ -46,7 +46,7 @@ export default function LibraryPage() {
                 >
                   {lvl.fa}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                   <span className="text-white text-sm flex items-center gap-2">
                     📖 مطالعه کتاب
                     <svg

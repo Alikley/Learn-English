@@ -68,7 +68,7 @@ export default function BookReaderPage() {
     >
       {/* نوار بالایی */}
       <div
-        className={`absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/60 via-black/30 to-transparent px-6 py-4 flex items-center justify-between transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`absolute top-0 left-0 right-0 z-50 bg-linear-to-b from-black/60 via-black/30 to-transparent px-6 py-4 flex items-center justify-between transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
         <div className="flex items-center gap-4">
           <button
@@ -117,7 +117,7 @@ export default function BookReaderPage() {
 
       {/* نوار پایین */}
       <div
-        className={`absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/50 to-transparent px-6 py-4 flex items-center justify-center transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className={`absolute bottom-0 left-0 right-0 z-50 bg-linear-to-t from-black/50 to-transparent px-6 py-4 flex items-center justify-center transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
         <span className="text-white/40 text-xs">
           برای نمایش منو روی صفحه کلیک کنید · Escape برای خروج

@@ -38,8 +38,8 @@ export default function BookDetailPage() {
   return (
     <div className="min-h-screen bg-gray-950" dir="rtl">
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-blue-900/15 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-indigo-900/15 rounded-full blur-[100px]" />
+        <div className="absolute top-0 right-1/4 w-125 h-125 bg-blue-900/15 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-100 h-100 bg-indigo-900/15 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative max-w-4xl mx-auto px-5 py-8">
@@ -79,7 +79,7 @@ export default function BookDetailPage() {
           <span className="text-gray-300">{book.titleFa}</span>
         </nav>
 
-        <div className="bg-gray-900/60 backdrop-blur-xl rounded-3xl border border-white/[0.06] shadow-2xl shadow-black/30">
+        <div className="bg-gray-900/60 backdrop-blur-xl rounded-3xl border border-white/6 shadow-2xl shadow-black/30">
           <div className="flex flex-col md:flex-row">
             <div className="flex-1 p-8 md:p-10 flex flex-col">
               <div className="flex flex-wrap gap-2 mb-6">
@@ -110,7 +110,7 @@ export default function BookDetailPage() {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href={`/library/${book.id}/read`}
-                  className="group inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-l from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl text-base font-bold transition-all duration-300 hover:shadow-xl hover:shadow-blue-600/20 hover:scale-[1.02]"
+                  className="group inline-flex items-center gap-3 px-8 py-4 bg-linear-to-l from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl text-base font-bold transition-all duration-300 hover:shadow-xl hover:shadow-blue-600/20 hover:scale-[1.02]"
                 >
                   <svg
                     className="w-5 h-5 group-hover:scale-110 transition-transform"
@@ -129,7 +129,7 @@ export default function BookDetailPage() {
                 </Link>
                 <Link
                   href="/library"
-                  className="inline-flex items-center gap-2 px-5 py-4 bg-white/[0.04] hover:bg-white/[0.08] text-gray-400 hover:text-gray-300 rounded-2xl text-sm transition border border-white/[0.06]"
+                  className="inline-flex items-center gap-2 px-5 py-4 bg-white/4 hover:bg-white/8 text-gray-400 hover:text-gray-300 rounded-2xl text-sm transition border border-white/6"
                 >
                   <svg
                     className="w-4 h-4"
@@ -162,7 +162,7 @@ export default function BookDetailPage() {
                         "/assets/grammar.svg";
                     }}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/5 pointer-events-none" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/20 via-transparent to-white/5 pointer-events-none" />
                 </div>
               </div>
             </div>
