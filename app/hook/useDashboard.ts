@@ -22,7 +22,11 @@ export function useDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchDashboard();
+    // Avoid calling setState synchronously within an effect — defer the call
+    const id = setTimeout(() => {
+      void fetchDashboard();
+    }, 0);
+    return () => clearTimeout(id);
   }, [fetchDashboard]);
 
   const updateProfile = useCallback(async (nickname: string, phone: string) => {

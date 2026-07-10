@@ -1,80 +1,76 @@
+import { NextRequest } from "next/server";
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/Prisma client";
-import { NextRequest } from "next/server";
+import { getStreak } from "@/lib/streak";
 
-// GET — آمار داشبورد + اطلاعات کاربر
+// ========================================
+// GET — دریافت تمام اطلاعات داشبورد
+// ========================================
 export async function GET() {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
   const userId = auth.session.user.id;
 
   try {
-    const [user, enrollments, streak, monthlyProgress, categoryStats] =
-      await Promise.all([
-        prisma.user.findUnique({
-          where: { id: userId },
+    // ---- ۱. اطلاعات کاربر ----
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        nickname: true,
+        email: true,
+        phone: true,
+        image: true,
+      },
+    });
+
+    // ---- ۲. ثبت‌نام‌ها + دوره‌ها ----
+    const enrollments = await prisma.enrollment.findMany({
+      where: { userId },
+      include: {
+        course: {
           select: {
             id: true,
-            name: true,
-            nickname: true,
-            email: true,
-            phone: true,
-            image: true,
+            title: true,
+            titleEn: true,
+            level: true,
+            imageUrl: true,
+            color: true,
           },
-        }),
-        prisma.enrollment.findMany({
-          where: { userId },
-          include: {
+        },
+      },
+      orderBy: { enrolledAt: "desc" },
+    });
+
+    // ---- ۳. استریک ----
+    const streak = await getStreak(userId);
+
+    // ---- ۴. پیشرفت درس‌های ۳۰ روز گذشته ----
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const monthlyProgress = await prisma.lessonprogress.findMany({
+      where: {
+        userId,
+        isCompleted: true,
+        completedAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        completedAt: true,
+        xpEarned: true,
+        lesson: {
+          select: {
+            courseId: true,
             course: {
               select: {
-                id: true,
-                title: true,
                 titleEn: true,
-                level: true,
-                imageUrl: true,
-                color: true,
               },
             },
           },
-          orderBy: { enrolledAt: "desc" },
-        }),
-        prisma.streak.findUnique({ where: { userId } }),
-        // درس‌های تکمیل شده تو ۳۰ روز گذشته
-        prisma.lessonprogress.findMany({
-          where: {
-            userId,
-            isCompleted: true,
-            completedAt: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            },
-          },
-          select: {
-            completedAt: true,
-            xpEarned: true,
-            lesson: { select: { title: true, courseId: true } },
-          },
-        }),
-        // آمار هر دسته‌بندی
-        prisma.course.findMany({
-          where: { isPublished: true },
-          include: {
-            enrollments: { where: { userId }, select: { progress: true } },
-            lessons: {
-              select: {
-                progress: {
-                  where: { userId, isCompleted: true },
-                  select: { id: true },
-                },
-              },
-            },
-          },
-        }),
-      ]);
+        },
+      },
+    });
 
-    // محاسبه آمار ۳۰ روزه
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-
-    // نمودار فعالیت روزانه (۳۰ روز)
+    // ---- ۵. نمودار فعالیت روزانه (۳۰ روز) ----
     const dailyActivity: { date: string; lessons: number; xp: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date();
@@ -91,31 +87,46 @@ export async function GET() {
       });
     }
 
-    // آمار هفتگی (4 هفته)
+    // ---- ۶. آمار هفتگی (۴ هفته) ----
     const weeklyStats: { week: string; lessons: number; xp: number }[] = [];
     for (let w = 3; w >= 0; w--) {
-      const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - (w + 1) * 7);
       const weekEnd = new Date();
       weekEnd.setDate(weekEnd.getDate() - w * 7);
-      const weekLabel = `هفته ${4 - w}`;
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - (w + 1) * 7);
+
       const weekLessons = monthlyProgress.filter((p) => {
         if (!p.completedAt) return false;
         return p.completedAt >= weekStart && p.completedAt < weekEnd;
       });
+
       weeklyStats.push({
-        week: weekLabel,
+        week: `هفته ${4 - w}`,
         lessons: weekLessons.length,
         xp: weekLessons.reduce((s, l) => s + (l.xpEarned || 0), 0),
       });
     }
 
-    // آمار دسته‌بندی‌ها
-    const categoryMap: Record<
-      string,
-      { completed: number; total: number; progress: number }
-    > = {};
-    categoryStats.forEach((c) => {
+    // ---- ۷. آمار دسته‌بندی‌ها ----
+    // دریافت تمام دوره‌ها با تعداد درس‌ها و پیشرفت کاربر
+    const coursesWithStats = await prisma.course.findMany({
+      select: {
+        titleEn: true,
+        lessons: {
+          select: {
+            id: true,
+            progress: {
+              where: { userId, isCompleted: true },
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+
+    const categoryMap: Record<string, { completed: number; total: number }> =
+      {};
+    coursesWithStats.forEach((c) => {
       const titleEn = (c.titleEn || "").toLowerCase();
       let catKey = "سایر";
       if (titleEn.includes("grammar")) catKey = "گرامر";
@@ -125,32 +136,35 @@ export async function GET() {
       else if (titleEn.includes("listening")) catKey = "لیسنینگ";
 
       if (!categoryMap[catKey])
-        categoryMap[catKey] = { completed: 0, total: 0, progress: 0 };
-      const completedCount = c.lessons.reduce(
+        categoryMap[catKey] = { completed: 0, total: 0 };
+      categoryMap[catKey].completed += c.lessons.reduce(
         (s, l) => s + l.progress.length,
         0,
       );
-      const totalCount = c.lessons.length;
-      categoryMap[catKey].completed += completedCount;
-      categoryMap[catKey].total += totalCount;
+      categoryMap[catKey].total += c.lessons.length;
     });
 
     const categories = Object.entries(categoryMap).map(([name, data]) => ({
       name,
-      ...data,
+      completed: data.completed,
+      total: data.total,
       progress:
         data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0,
     }));
 
-    // کل آمار
+    // ---- ۸. آمار کلی ----
     const totalLessons = monthlyProgress.length;
     const totalXP = monthlyProgress.reduce((s, l) => s + (l.xpEarned || 0), 0);
     const avgPerDay = Math.round((totalLessons / 30) * 10) / 10;
 
     return ok({
       user,
-      enrollments,
-      streak: streak ?? { current: 0, longest: 0 },
+      enrollments: enrollments.map((e) => ({
+        id: e.id,
+        progress: e.progress,
+        course: e.course,
+      })),
+      streak,
       stats: {
         totalLessonsThisMonth: totalLessons,
         totalXPThisMonth: totalXP,
@@ -174,7 +188,9 @@ export async function GET() {
   }
 }
 
-// PUT — آپدیت پروفایل (نام مستعار، شماره تلفن)
+// ========================================
+// PUT — آپدیت پروفایل (نام مستعار، تلفن)
+// ========================================
 export async function PUT(req: NextRequest) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;

@@ -2,6 +2,7 @@
 
 import Navbar from "@/app/Navbar";
 import Sidebar from "@/app/components/Sidebar";
+import StreakLoginAlert from "@/app/components/StreakLoginAlert";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { useIsPublicPath } from "@/app/components/AuthGuard";
 import { useSidebar } from "../hook/useSidebar";
@@ -18,6 +19,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <NotificationProvider>
       <Navbar toggleSidebar={toggle} isOpen={isOpen} />
+
+      {/* ✅ آلرت استریک ورود */}
+      <StreakLoginAlert />
 
       <div className="flex-1 flex flex-row-reverse overflow-hidden h-full relative">
         {/* overlay موبایل */}

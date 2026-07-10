@@ -10,9 +10,12 @@ import {
   Pencil,
   Gamepad2,
   Library,
+  BarChart3,
   MessageCircle,
   LibraryBig,
+  Flame,
 } from "lucide-react";
+import { useStreak } from "@/app/hook/useStreak";
 
 const menuItems = [
   { label: "داشبورد", icon: Home, href: "/dashboard" },
@@ -21,10 +24,10 @@ const menuItems = [
   { label: "کتابخانه", icon: LibraryBig, href: "/library" },
   { label: "لغت‌نامه", icon: Library, href: "/vocab" },
   { label: "دوره‌های من", icon: BookOpen, href: "/courses" },
+  { label: "عملکرد من", icon: BarChart3, href: "/performance" },
   { label: "پیام‌ها", icon: MessageCircle, href: "/chat" },
 ];
 
-// انیمیشن مخصوص هر آیکون
 const iconAnimations: Record<
   string,
   {
@@ -42,7 +45,10 @@ const iconAnimations: Record<
   "/training": { x: [0, -3, 3, -2, 0], transition: { duration: 0.4 } },
   "/game": { scale: [1, 1.3, 0.9, 1.15, 1], transition: { duration: 0.5 } },
   "/vocab": { y: [0, -5, 0, -3, 0], transition: { duration: 0.5 } },
-  "/library": { scaleY: [1, 1.2, 0.8, 1.1, 1], transition: { duration: 0.5 } },
+  "/performance": {
+    scaleY: [1, 1.4, 0.8, 1.2, 1],
+    transition: { duration: 0.5 },
+  },
   "/chat": { scale: [1, 1.2, 1], transition: { duration: 0.3, repeat: 1 } },
 };
 
@@ -85,6 +91,17 @@ function SidebarItem({
 
 export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
+  const { streak } = useStreak();
+
+  // پیام motivitational بر اساس عدد استریک
+  const getMessage = () => {
+    if (streak.current === 0) return "شروع یک مسیر جدید!";
+    if (streak.current < 3) return "فوق‌العاده! داری شروع میکنی";
+    if (streak.current < 7) return "عالی! به همین راه ادامه بده";
+    if (streak.current < 14) return "آفرین! به مسیرت ادامه بده";
+    if (streak.current < 30) return "حرفه‌ای! هر روز تمرین کن";
+    return "افسانه‌ای! بیش از یک ماه متوالی!";
+  };
 
   return (
     <div className="h-full bg-white border-l border-slate-100 flex flex-col pt-16 md:pt-0">
@@ -107,17 +124,31 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
         ))}
       </nav>
 
-      {/* باکس روزهای متوالی */}
+      {/* ✅ باکس روزهای متوالی — داینامیک */}
       <div className="p-3 border-t border-slate-100">
         <div className="p-3 bg-white border border-gray-100 rounded-xl shadow-sm text-center">
           <h3 className="text-xs font-medium text-gray-500 mb-1">
             روزهای متوالی یادگیری
           </h3>
-          <div className="text-4xl font-bold text-gray-900 mb-0.5">12</div>
+
+          <div className="flex items-center justify-center gap-2 mb-0.5">
+            {streak.current > 0 ? (
+              <>
+                <span className="text-4xl font-bold text-orange-500">
+                  {streak.current}
+                </span>
+                <Flame className="h-6 w-6 text-orange-500" />
+              </>
+            ) : (
+              <span className="text-4xl font-bold text-gray-300">0</span>
+            )}
+          </div>
+
           <p className="text-sm text-gray-500 mb-1">روز</p>
+
           <div className="flex items-center justify-center gap-1 text-xs text-gray-600">
             <span>🔥</span>
-            <span>آفرین! به مسیرت ادامه بده</span>
+            <span>{getMessage()}</span>
           </div>
         </div>
       </div>

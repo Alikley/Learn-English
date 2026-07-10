@@ -95,6 +95,8 @@ export async function PATCH(
   }
 }
 
+// ... GET و PATCH همون قبلی بمونن ...
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -168,6 +170,10 @@ export async function POST(
       where: { userId_courseId: { userId, courseId } },
       data: { progress: progressPercent },
     });
+
+    // ✅ آپدیت streak بعد از تکمیل درس
+    const { updateStreak } = await import("@/lib/streak");
+    await updateStreak(userId);
 
     return NextResponse.json({
       ok: true,

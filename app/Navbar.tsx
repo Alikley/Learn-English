@@ -11,10 +11,12 @@ import {
   MessageCircle,
   AlertCircle,
   Menu,
+  Flame,
 } from "lucide-react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { useAuth } from "@/app/context/AuthContext";
+import { useStreak } from "@/app/hook/useStreak";
 
 export default function Navbar({
   toggleSidebar,
@@ -25,12 +27,13 @@ export default function Navbar({
 }) {
   const { notifications, unreadCount } = useNotifications();
   const { user, logout } = useAuth();
+  const { streak } = useStreak();
   const recentNotifications = notifications.slice(0, 3);
 
   return (
     <header className="h-20 border-b border-slate-100 bg-white shrink-0 z-30">
       <div className="flex h-full items-center justify-between px-4 md:px-6">
-        {/* Left Side */}
+        {/* Right Side (start in RTL) */}
         <div className="flex items-center gap-2 md:gap-4">
           {/* همبرگر موبایل */}
           <button onClick={toggleSidebar} className="md:hidden p-1">
@@ -58,7 +61,7 @@ export default function Navbar({
                 )}
               </div>
               <span className="text-sm font-medium text-slate-800">
-                {user?.nickname || user?.name || "کاربر"}
+                {user?.name ?? "کاربر"}
               </span>
               <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-hover:rotate-180" />
             </div>
@@ -77,13 +80,12 @@ export default function Navbar({
               </div>
               <div className="space-y-1">
                 <Link
-                  href="/dashboard"
+                  href="/profile/edit"
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <User size={16} />
                   <span>ویرایش پروفایل</span>
                 </Link>
-                {/* ✅ دکمه logout - به جای Link */}
                 <button
                   onClick={logout}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -103,6 +105,16 @@ export default function Navbar({
               </span>
             </div>
           </div>
+
+          {/* ✅ استریک روزهای متوالی */}
+          {streak.current > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 rounded-full border border-orange-100">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <span className="text-sm font-bold text-orange-600">
+                {streak.current}
+              </span>
+            </div>
+          )}
 
           {/* زنگوله */}
           <div className="relative group">
