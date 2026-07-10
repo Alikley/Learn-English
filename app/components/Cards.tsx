@@ -13,6 +13,7 @@ const exercises = [
     btnColor: "bg-purple-200 text-purple-700",
     icon: "/assets/icon_1_abc_blocks.svg",
     btnLabel: "شروع تمرین",
+    href: "/vocab",
   },
   {
     title: "بازی هنگ کلمه",
@@ -21,6 +22,7 @@ const exercises = [
     btnColor: "bg-green-200 text-green-700",
     icon: "/assets/icon_2_hangman.svg",
     btnLabel: "شروع بازی",
+    href: "/game",
   },
   {
     title: "تمرین گرامر",
@@ -29,6 +31,7 @@ const exercises = [
     btnColor: "bg-yellow-200 text-yellow-700",
     icon: "/assets/icon_3_document_sign.svg",
     btnLabel: "شروع تمرین",
+    href: "/courses",
   },
   {
     title: "تمرین شنیداری",
@@ -37,6 +40,7 @@ const exercises = [
     btnColor: "bg-blue-200 text-blue-700",
     icon: "/assets/icon_4_headphones.svg",
     btnLabel: "شروع تمرین",
+    href: "/training",
   },
 ];
 
@@ -149,13 +153,13 @@ export default function Cards() {
                   </p>
                 </div>
               </div>
-              <div className="flex justify-end">
+              <Link href={item.href} className="flex justify-end">
                 <button
                   className={`${item.btnColor} px-4 md:px-6 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-semibold transition hover:opacity-90`}
                 >
                   {item.btnLabel}
                 </button>
-              </div>
+              </Link>
             </div>
           ))}
         </div>

@@ -151,11 +151,19 @@ export async function GET() {
       progress:
         data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0,
     }));
-
+    const listeningStats = await prisma.listeningProgress.groupBy({
+      by: ["userId"],
+      where: { userId },
+      _sum: { xpEarned: true },
+      _count: { id: true },
+    });
     // ---- ۸. آمار کلی ----
     const totalLessons = monthlyProgress.length;
     const totalXP = monthlyProgress.reduce((s, l) => s + (l.xpEarned || 0), 0);
     const avgPerDay = Math.round((totalLessons / 30) * 10) / 10;
+
+    const totalListeningXP = listeningStats[0]?._sum.xpEarned ?? 0;
+    const completedListeningEpisodes = listeningStats[0]?._count.id ?? 0;
 
     return ok({
       user,
@@ -177,6 +185,8 @@ export async function GET() {
                   enrollments.length,
               )
             : 0,
+        totalListeningXP, // ✅ اضافه شد
+        completedListeningEpisodes, // ✅ اضافه شد
       },
       dailyActivity,
       weeklyStats,

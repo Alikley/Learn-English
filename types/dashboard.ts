@@ -41,6 +41,8 @@ export type DashboardData = {
     avgLessonsPerDay: number;
     totalCourses: number;
     avgProgress: number;
+    totalListeningXP: number; 
+    completedListeningEpisodes: number;
   };
   dailyActivity: DailyActivity[];
   weeklyStats: WeeklyStats[];

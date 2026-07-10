@@ -41,6 +41,8 @@ export default function PerformanceBox({
     avgLessonsPerDay: number;
     totalCourses: number;
     avgProgress: number;
+    totalListeningXP: number;
+    completedListeningEpisodes: number;
   };
   weeklyStats: { week: string; lessons: number; xp: number }[];
   dailyActivity: { date: string; lessons: number; xp: number }[];
@@ -77,8 +79,8 @@ export default function PerformanceBox({
           </p>
         </div>
 
-        {/* کارت‌های آمار */}
-        <div className="p-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* ✅ کارت‌های آمار — ۵ ستونه */}
+        <div className="p-6 grid grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             icon="📖"
             label="درس‌های تکمیل شده"
@@ -87,9 +89,15 @@ export default function PerformanceBox({
           />
           <StatCard
             icon="⚡"
-            label="امتیاز کسب شده"
+            label="امتیاز درس‌ها"
             value={stats.totalXPThisMonth.toLocaleString("fa-IR")}
             color="text-amber-600"
+          />
+          <StatCard
+            icon="🎧"
+            label="XP شنیداری"
+            value={`+${stats.totalListeningXP}`}
+            color="text-orange-600"
           />
           <StatCard
             icon="📊"
@@ -101,7 +109,7 @@ export default function PerformanceBox({
             icon="🔥"
             label="روز متوالی"
             value={streak.current}
-            color="text-orange-600"
+            color="text-red-600"
           />
         </div>
       </div>

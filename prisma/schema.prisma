@@ -11,16 +11,17 @@ model user {
   id        String   @id @default(cuid())
   name      String?
   nickname  String?
-  email     String?  @unique
   phone     String?
+  email     String?  @unique
   image     String?
   password  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  enrollments    enrollment[]
-  lessonProgress lessonprogress[]
-  streak         streak?
+  enrollments       enrollment[]
+  lessonProgress    lessonprogress[]
+  streak            streak?
+  listeningProgress ListeningProgress[]
 }
 
 model course {
@@ -140,4 +141,41 @@ model Book {
   pages       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model ListeningEpisode {
+  id          String  @id @default(cuid())
+  title       String
+  titleEn     String
+  titleFa     String
+  description String
+  audioUrl    String
+  level       String  @default("BEGINNER")
+  duration    Int     @default(0)
+  xp          Int     @default(30)
+  order       Int     @default(0)
+  isPublished Boolean @default(true)
+  transcript  String   @db.LongText
+  gaps        Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  progress ListeningProgress[]
+}
+
+model ListeningProgress {
+  id        String @id @default(cuid())
+  userId    String
+  episodeId String
+
+  stars       Int       @default(0)
+  score       Int       @default(0)
+  xpEarned    Int       @default(0)
+  completedAt DateTime?
+
+  user    user             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode ListeningEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, episodeId])
 }
