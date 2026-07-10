@@ -10,7 +10,6 @@ import {
   Pencil,
   Gamepad2,
   Library,
-  BarChart3,
   MessageCircle,
   LibraryBig,
 } from "lucide-react";
@@ -22,7 +21,6 @@ const menuItems = [
   { label: "کتابخانه", icon: LibraryBig, href: "/library" },
   { label: "لغت‌نامه", icon: Library, href: "/vocab" },
   { label: "دوره‌های من", icon: BookOpen, href: "/courses" },
-  { label: "عملکرد من", icon: BarChart3, href: "/performance" },
   { label: "پیام‌ها", icon: MessageCircle, href: "/chat" },
 ];
 
@@ -44,10 +42,7 @@ const iconAnimations: Record<
   "/training": { x: [0, -3, 3, -2, 0], transition: { duration: 0.4 } },
   "/game": { scale: [1, 1.3, 0.9, 1.15, 1], transition: { duration: 0.5 } },
   "/vocab": { y: [0, -5, 0, -3, 0], transition: { duration: 0.5 } },
-  "/performance": {
-    scaleY: [1, 1.4, 0.8, 1.2, 1],
-    transition: { duration: 0.5 },
-  },
+  "/library": { scaleY: [1, 1.2, 0.8, 1.1, 1], transition: { duration: 0.5 } },
   "/chat": { scale: [1, 1.2, 1], transition: { duration: 0.3, repeat: 1 } },
 };
 

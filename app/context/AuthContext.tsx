@@ -5,7 +5,13 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 type AuthContextType = {
-  user: { name?: string | null; email?: string | null; id?: string } | null;
+  user: {
+    name?: string | null;
+    nickname?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    id?: string;
+  } | null;
   login: (email: string, password: string) => Promise<{ error?: string }>;
   register: (
     name: string,

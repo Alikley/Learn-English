@@ -58,7 +58,7 @@ export default function Navbar({
                 )}
               </div>
               <span className="text-sm font-medium text-slate-800">
-                {user?.name ?? "کاربر"}
+                {user?.nickname || user?.name || "کاربر"}
               </span>
               <ChevronDown className="h-4 w-4 text-slate-500 transition-transform group-hover:rotate-180" />
             </div>
@@ -77,7 +77,7 @@ export default function Navbar({
               </div>
               <div className="space-y-1">
                 <Link
-                  href="/profile/edit"
+                  href="/dashboard"
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <User size={16} />
