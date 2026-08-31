@@ -1,7 +1,7 @@
 "use client";
 
-import { ListeningEpisode } from "@prisma/client";
 import { useState, useEffect, useCallback } from "react";
+import type { ListeningEpisode } from "@/types/listening";
 
 export function useListening() {
   const [episodes, setEpisodes] = useState<ListeningEpisode[]>([]);

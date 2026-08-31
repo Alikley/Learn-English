@@ -10,6 +10,7 @@ type AuthContextType = {
     nickname?: string | null;
     email?: string | null;
     phone?: string | null;
+    image?: string | null;
     id?: string;
   } | null;
   login: (email: string, password: string) => Promise<{ error?: string }>;
