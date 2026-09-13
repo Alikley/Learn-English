@@ -27,6 +27,17 @@ export async function updateStreak(userId: string) {
 
     // ---- همان روز — قبلاً حساب شده ----
     if (lastActiveDay.getTime() === todayStart.getTime()) {
+      // حالت خاص: روز ثبت‌نام (streak با current=0 ساخته شده)
+      // اولین فعالیت امروز (درس یا بازی) باید استریک را 1 کند
+      if (existing.current === 0) {
+        return await prisma.streak.update({
+          where: { userId },
+          data: {
+            current: 1,
+            longest: Math.max(existing.longest, 1),
+          },
+        });
+      }
       return existing;
     }
 
