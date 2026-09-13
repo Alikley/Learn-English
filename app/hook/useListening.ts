@@ -22,7 +22,11 @@ export function useListening() {
   }, []);
 
   useEffect(() => {
-    fetchEpisodes();
+    // Avoid calling setState synchronously within an effect — defer the call
+    const id = setTimeout(() => {
+      void fetchEpisodes();
+    }, 0);
+    return () => clearTimeout(id);
   }, [fetchEpisodes]);
 
   return { episodes, loading, refetch: fetchEpisodes };

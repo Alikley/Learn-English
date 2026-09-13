@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { HANGMAN_WORDS } from "../data/hangman/words";
 const prisma = new PrismaClient();
 
 const courseData = [
@@ -316,10 +317,33 @@ Alice: Wow, that's a lot of people! That's all for today. Bye!`,
   }
 }
 
+async function seedGameWords() {
+  console.log("🎮 Seeding hangman game words...");
+
+  // همیشه تازه‌سازی می‌کنیم تا سطح‌بندی و لیست کلمات به‌روز شود
+  // (کلمات بازی داده سیستمی‌اند، نه تولید کاربر)
+  await prisma.gameWord.deleteMany();
+  await prisma.gameWord.createMany({
+    data: HANGMAN_WORDS.map((w) => ({
+      word: w.word,
+      hint: w.hint,
+      category: w.category,
+      level: w.level,
+    })),
+  });
+
+  const levels = { EASY: 0, MEDIUM: 0, HARD: 0 };
+  for (const w of HANGMAN_WORDS) levels[w.level]++;
+  console.log(
+    `  ✅ ${HANGMAN_WORDS.length} hangman words seeded (EASY: ${levels.EASY} / MEDIUM: ${levels.MEDIUM} / HARD: ${levels.HARD})`,
+  );
+}
+
 async function main() {
   await seedCourses();
   await seedBooks();
   await seedListening();
+  await seedGameWords();
   console.log("🎉 All done!");
 }
 

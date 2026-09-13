@@ -22,6 +22,7 @@ model user {
   lessonProgress    lessonprogress[]
   streak            streak?
   listeningProgress ListeningProgress[]
+  gameScores        GameScore[]
 }
 
 model course {
@@ -178,4 +179,35 @@ model ListeningProgress {
   episode ListeningEpisode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
   @@unique([userId, episodeId])
+}
+
+// ========================================
+// بخش بازی‌ها (Hangman)
+// ========================================
+
+/// کلمات بازی هنگ‌من — منبع: data/hangman/words.ts (seed)
+model GameWord {
+  id       Int     @id @default(autoincrement())
+  word     String
+  hint     String
+  category String  @default("general")
+  level    String  @default("BEGINNER")
+  isActive Boolean @default(true)
+}
+
+/// امتیاز و آمار بازی هر کاربر — فقط در صفحه بازی‌ها نمایش داده می‌شود
+model GameScore {
+  id             String   @id @default(cuid())
+  userId         String
+  game           String   @default("hangman")
+  bestScore      Int      @default(0)
+  totalWins      Int      @default(0)
+  totalLosses    Int      @default(0)
+  sessionsPlayed Int      @default(0)
+  lastPlayedAt   DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, game])
 }

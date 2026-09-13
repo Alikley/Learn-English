@@ -1,4 +1,3 @@
-import { prisma } from "@/prisma/Prisma client";
 import { NextRequest, NextResponse } from "next/server";
 
 const PDF_SOURCES: Record<number, string> = {
@@ -55,7 +54,7 @@ async function extractPdfFromZip(
 
   const entries = zip.getEntries();
   const pdfEntry = entries.find(
-    (e: any) => e.entryName.endsWith(".pdf") && !e.isDirectory,
+    (e) => e.entryName.endsWith(".pdf") && !e.isDirectory,
   );
 
   if (!pdfEntry) return null;

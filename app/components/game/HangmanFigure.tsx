@@ -2,10 +2,13 @@
 
 import { useEffect, useRef } from "react";
 import { motion, useAnimation } from "motion/react";
+import HangmanGallows from "./HangmanGallows";
+import HangmanFace from "./HangmanFace";
+import type { FaceState } from "./HangmanFace";
 
 // ========================================
 // فیگور هنگ‌من با انیمیشن
-// - دار موقع ورود با انیمیشن pathLength کشیده می‌شود
+// - دار موقع ورود کشیده می‌شود
 // - با هر حدس غلط یک عضو با فنر ظاهر می‌شود
 // - کل فیگور با هر اشتباه می‌لرزد
 // - حالت چهره با پیشرفت بازی تغییر می‌کند
@@ -14,127 +17,8 @@ import { motion, useAnimation } from "motion/react";
 
 export type FigureStatus = "playing" | "won" | "lost";
 
-type FaceState = "happy" | "neutral" | "worried" | "scared" | "dead";
-
-// رنگ‌ها
-const WOOD = "#b45309"; // دار
-const WOOD_DARK = "#78350f"; // طناب و خطوط صورت
 const BODY = "#475569"; // بدن فیگور
 const HEAD_FILL = "#fef9c3"; // صورت
-
-function Face({ state, cx, cy }: { state: FaceState; cx: number; cy: number }) {
-  const lx = cx - 6;
-  const rx = cx + 6;
-  const ey = cy - 4;
-
-  return (
-    <motion.g
-      key={state}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.25 }}
-    >
-      {state === "dead" ? (
-        <>
-          {/* چشم‌های ضربدری */}
-          <path
-            d={`M${lx - 3} ${ey - 3} L${lx + 3} ${ey + 3} M${lx + 3} ${ey - 3} L${lx - 3} ${ey + 3}`}
-            stroke={WOOD_DARK}
-            strokeWidth={2}
-            strokeLinecap="round"
-          />
-          <path
-            d={`M${rx - 3} ${ey - 3} L${rx + 3} ${ey + 3} M${rx + 3} ${ey - 3} L${rx - 3} ${ey + 3}`}
-            stroke={WOOD_DARK}
-            strokeWidth={2}
-            strokeLinecap="round"
-          />
-          {/* دهان غمگین */}
-          <path
-            d={`M${cx - 5} ${cy + 8} Q${cx} ${cy + 4} ${cx + 5} ${cy + 8}`}
-            stroke={WOOD_DARK}
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-          />
-        </>
-      ) : state === "scared" ? (
-        <>
-          {/* چشم‌های گرد و وحشت‌زده */}
-          <circle cx={lx} cy={ey} r={3} fill="#ffffff" stroke={WOOD_DARK} strokeWidth={1.5} />
-          <circle cx={rx} cy={ey} r={3} fill="#ffffff" stroke={WOOD_DARK} strokeWidth={1.5} />
-          <circle cx={lx} cy={ey} r={1.2} fill={WOOD_DARK} />
-          <circle cx={rx} cy={ey} r={1.2} fill={WOOD_DARK} />
-          {/* دهان باز */}
-          <ellipse cx={cx} cy={cy + 7} rx={3.5} ry={4.5} fill={WOOD_DARK} opacity={0.85} />
-        </>
-      ) : state === "worried" ? (
-        <>
-          {/* ابروهای نگران */}
-          <path
-            d={`M${lx - 3.5} ${ey - 5.5} L${lx + 2.5} ${ey - 3.5}`}
-            stroke={WOOD_DARK}
-            strokeWidth={1.8}
-            strokeLinecap="round"
-          />
-          <path
-            d={`M${rx + 3.5} ${ey - 5.5} L${rx - 2.5} ${ey - 3.5}`}
-            stroke={WOOD_DARK}
-            strokeWidth={1.8}
-            strokeLinecap="round"
-          />
-          <circle cx={lx} cy={ey} r={2.2} fill={WOOD_DARK} />
-          <circle cx={rx} cy={ey} r={2.2} fill={WOOD_DARK} />
-          {/* دهان صاف و نگران */}
-          <path
-            d={`M${cx - 4} ${cy + 7.5} Q${cx} ${cy + 5.5} ${cx + 4} ${cy + 7.5}`}
-            stroke={WOOD_DARK}
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-          />
-        </>
-      ) : state === "neutral" ? (
-        <>
-          <circle cx={lx} cy={ey} r={2} fill={WOOD_DARK} />
-          <circle cx={rx} cy={ey} r={2} fill={WOOD_DARK} />
-          <path
-            d={`M${cx - 4.5} ${cy + 7} L${cx + 4.5} ${cy + 7}`}
-            stroke={WOOD_DARK}
-            strokeWidth={2}
-            strokeLinecap="round"
-          />
-        </>
-      ) : (
-        <>
-          {/* چشم‌های خندان */}
-          <path
-            d={`M${lx - 2.5} ${ey - 1} Q${lx} ${ey - 3.5} ${lx + 2.5} ${ey - 1}`}
-            stroke={WOOD_DARK}
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            fill="none"
-          />
-          <path
-            d={`M${rx - 2.5} ${ey - 1} Q${rx} ${ey - 3.5} ${rx + 2.5} ${ey - 1}`}
-            stroke={WOOD_DARK}
-            strokeWidth={1.8}
-            strokeLinecap="round"
-            fill="none"
-          />
-          {/* لبخند */}
-          <path
-            d={`M${cx - 5} ${cy + 5.5} Q${cx} ${cy + 10} ${cx + 5} ${cy + 5.5}`}
-            stroke={WOOD_DARK}
-            strokeWidth={2}
-            strokeLinecap="round"
-            fill="none"
-          />
-        </>
-      )}
-    </motion.g>
-  );
-}
 
 export default function HangmanFigure({
   wrongCount,
@@ -185,71 +69,8 @@ export default function HangmanFigure({
         role="img"
         aria-label="فیگور بازی هنگ‌من"
       >
-        {/* ============ دار (با انیمیشن رسم شدن) ============ */}
-        <motion.line
-          x1={25}
-          y1={240}
-          x2={195}
-          y2={240}
-          stroke={WOOD}
-          strokeWidth={7}
-          strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.5 }}
-        />
-        {/* تیرک عمودی */}
-        <motion.line
-          x1={55}
-          y1={240}
-          x2={55}
-          y2={25}
-          stroke={WOOD}
-          strokeWidth={7}
-          strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.6, delay: 0.15 }}
-        />
-        {/* تیر افقی */}
-        <motion.line
-          x1={55}
-          y1={25}
-          x2={150}
-          y2={25}
-          stroke={WOOD}
-          strokeWidth={7}
-          strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        />
-        {/* مهار مورب */}
-        <motion.line
-          x1={55}
-          y1={60}
-          x2={92}
-          y2={25}
-          stroke={WOOD}
-          strokeWidth={5}
-          strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.4, delay: 0.8 }}
-        />
-        {/* طناب */}
-        <motion.line
-          x1={150}
-          y1={25}
-          x2={150}
-          y2={46}
-          stroke={WOOD_DARK}
-          strokeWidth={3.5}
-          strokeLinecap="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 0.3, delay: 1 }}
-        />
+        {/* ============ دار ============ */}
+        <HangmanGallows />
 
         {/* ============ فیگور (موقع برد شادی می‌کند) ============ */}
         <motion.g
@@ -274,10 +95,10 @@ export default function HangmanFigure({
                 cy={63}
                 r={16}
                 fill={HEAD_FILL}
-                stroke={WOOD_DARK}
+                stroke="#78350f"
                 strokeWidth={3}
               />
-              <Face state={faceState} cx={150} cy={63} />
+              <HangmanFace state={faceState} cx={150} cy={63} />
             </motion.g>
           )}
 
@@ -374,18 +195,12 @@ export default function HangmanFigure({
             animate={{ opacity: [0, 1, 1, 0], scale: [0, 1.2, 1, 1.2] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            <path
-              d="M95 40 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z"
-              fill="#fbbf24"
-            />
+            <path d="M95 40 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z" fill="#fbbf24" />
             <path
               d="M185 80 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5 z"
               fill="#fbbf24"
             />
-            <path
-              d="M105 120 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z"
-              fill="#34d399"
-            />
+            <path d="M105 120 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 z" fill="#34d399" />
           </motion.g>
         )}
       </svg>

@@ -5,22 +5,30 @@ import { motion } from "motion/react";
 
 // ========================================
 // کانفتی جشن — برای برد کلمه و پایان دور
+// از شبه‌تصادفی قطعی (seeded) استفاده می‌کنیم
+// تا رندر خالص بماند (قانون React Compiler)
 // ========================================
 
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
+// شبه‌تصادفی قطعی — ورودی یکتا → خروجی پخش‌دار در بازه [0,1)
+function seededRand(seed: number): number {
+  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
 
 export default function Confetti({ count = 26 }: { count?: number }) {
   const pieces = useMemo(
     () =>
       Array.from({ length: count }, (_, i) => ({
-        left: Math.random() * 100,
-        delay: Math.random() * 0.8,
-        duration: 1.6 + Math.random() * 1.2,
+        left: seededRand(i + 1) * 100,
+        delay: seededRand(i + 101) * 0.8,
+        duration: 1.6 + seededRand(i + 201) * 1.2,
         color: COLORS[i % COLORS.length],
-        w: 5 + Math.random() * 5,
-        h: 8 + Math.random() * 6,
+        w: 5 + seededRand(i + 301) * 5,
+        h: 8 + seededRand(i + 401) * 6,
         rotate:
-          (Math.random() > 0.5 ? 1 : -1) * (360 + Math.random() * 360),
+          (seededRand(i + 501) > 0.5 ? 1 : -1) * (360 + seededRand(i + 601) * 360),
       })),
     [count],
   );
