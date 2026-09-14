@@ -7,13 +7,13 @@ import { useCategories } from "../hook/useCategories";
 
 const exercises = [
   {
-    title: "تمرین لغات",
-    description: "با فلش‌کارت‌ها لغات جدید یاد بگیر",
+    title: "بازی حافظه کلمات",
+    description: "کارت‌ها را باز کن و جفت کلمات را پیدا کن",
     bgColor: "bg-purple-50",
     btnColor: "bg-purple-200 text-purple-700",
     icon: "/assets/icon_1_abc_blocks.svg",
-    btnLabel: "شروع تمرین",
-    href: "/vocab",
+    btnLabel: "شروع بازی",
+    href: "/game/memory",
   },
   {
     title: "بازی هنگ کلمه",

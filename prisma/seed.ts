@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { HANGMAN_WORDS } from "../data/hangman/words";
+import { MEMORY_WORDS } from "../data/memory/words";
 const prisma = new PrismaClient();
 
 const courseData = [
@@ -339,11 +340,34 @@ async function seedGameWords() {
   );
 }
 
+async function seedMemoryWords() {
+  console.log("🧩 Seeding memory game words...");
+
+  // همیشه تازه‌سازی می‌کنیم تا سطح‌بندی و لیست کلمات به‌روز شود
+  // (کلمات بازی داده سیستمی‌اند، نه تولید کاربر)
+  await prisma.memoryWord.deleteMany();
+  await prisma.memoryWord.createMany({
+    data: MEMORY_WORDS.map((w) => ({
+      word: w.word,
+      translation: w.translation,
+      category: w.category,
+      level: w.level,
+    })),
+  });
+
+  const levels = { EASY: 0, MEDIUM: 0, HARD: 0 };
+  for (const w of MEMORY_WORDS) levels[w.level]++;
+  console.log(
+    `  ✅ ${MEMORY_WORDS.length} memory words seeded (EASY: ${levels.EASY} / MEDIUM: ${levels.MEDIUM} / HARD: ${levels.HARD})`,
+  );
+}
+
 async function main() {
   await seedCourses();
   await seedBooks();
   await seedListening();
   await seedGameWords();
+  await seedMemoryWords();
   console.log("🎉 All done!");
 }
 

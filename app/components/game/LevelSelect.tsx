@@ -3,10 +3,12 @@
 import { motion } from "motion/react";
 import { Smile, Meh, Frown, Play } from "lucide-react";
 import { GAME_CONFIG, GAME_LEVELS } from "@/types/game";
-import type { GameLevel } from "@/types/game";
+import type { GameLevel, GameLevelConfig } from "@/types/game";
 
 // ========================================
 // انتخاب سطح بازی — آسان / متوسط / سخت
+// قابل استفاده برای همه بازی‌ها (هنگ‌من / حافظه / ...)
+// levels و subtitle قابل سفارشی‌سازی هستند
 // ========================================
 
 const LEVEL_ICONS: Record<GameLevel, React.ComponentType<{ className?: string }>> = {
@@ -23,20 +25,26 @@ const LEVEL_ICON_COLOR: Record<GameLevel, string> = {
 
 export default function LevelSelect({
   onSelect,
+  levels = GAME_LEVELS,
+  subtitle,
 }: {
   onSelect: (level: GameLevel) => void;
+  // لیست سطح‌های این بازی (پیش‌فرض: هنگ‌من)
+  levels?: GameLevelConfig[];
+  // متن زیر عنوان (پیش‌فرض: تعداد کلمات هر دور هنگ‌من)
+  subtitle?: string;
 }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-7">
       <div className="text-center mb-5">
         <h2 className="text-lg font-bold text-slate-800">سطح بازی را انتخاب کن</h2>
         <p className="text-sm text-slate-500 mt-1">
-          هر دور {GAME_CONFIG.wordsPerSession} کلمه از سطح انتخابی دارد
+          {subtitle ?? `هر دور ${GAME_CONFIG.wordsPerSession} کلمه از سطح انتخابی دارد`}
         </p>
       </div>
 
       <div className="grid gap-3">
-        {GAME_LEVELS.map((lvl, i) => {
+        {levels.map((lvl, i) => {
           const Icon = LEVEL_ICONS[lvl.id];
           return (
             <motion.button

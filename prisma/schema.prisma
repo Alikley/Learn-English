@@ -211,3 +211,18 @@ model GameScore {
 
   @@unique([userId, game])
 }
+
+// ========================================
+// بازی حافظه کلمات (Memory Match)
+// ========================================
+
+/// جفت کلمات بازی حافظه — منبع: data/memory/words.ts (seed)
+/// هر ردیف یک کلمه انگلیسی + معنی فارسی آن
+model MemoryWord {
+  id          Int     @id @default(autoincrement())
+  word        String
+  translation String
+  category    String  @default("general")
+  level       String  @default("EASY")
+  isActive    Boolean @default(true)
+}

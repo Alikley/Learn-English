@@ -7,6 +7,8 @@ import Confetti from "./Confetti";
 
 // ========================================
 // اورلی پایان دور — نتیجه نهایی + ثبت امتیاز
+// title / winLabel / lossLabel قابل سفارشی‌سازی‌اند
+// (هنگ‌من: «پایان دور!» برد/باخت — حافظه: «پایان بازی!» جفت/اشتباه)
 // ========================================
 
 export default function SessionEndOverlay({
@@ -19,6 +21,9 @@ export default function SessionEndOverlay({
   isNewRecord,
   onRestart,
   onChangeLevel,
+  title = "پایان دور!",
+  winLabel = "برد",
+  lossLabel = "باخت",
 }: {
   submitting: boolean;
   score: number;
@@ -29,6 +34,9 @@ export default function SessionEndOverlay({
   isNewRecord: boolean;
   onRestart: () => void;
   onChangeLevel: () => void;
+  title?: string;
+  winLabel?: string;
+  lossLabel?: string;
 }) {
   return (
     <motion.div
@@ -59,7 +67,7 @@ export default function SessionEndOverlay({
               <Trophy className="h-14 w-14 text-amber-400 mx-auto fill-amber-100" />
             </motion.div>
 
-            <h3 className="text-xl font-bold text-slate-800">پایان دور!</h3>
+            <h3 className="text-xl font-bold text-slate-800">{title}</h3>
 
             {isNewRecord && (
               <motion.div
@@ -80,9 +88,9 @@ export default function SessionEndOverlay({
               </div>
               <div className="text-slate-200">|</div>
               <div>
-                <span className="text-emerald-600 font-bold">{wins} برد</span>
+                <span className="text-emerald-600 font-bold">{wins} {winLabel}</span>
                 <span className="text-slate-400"> / </span>
-                <span className="text-red-500 font-bold">{losses} باخت</span>
+                <span className="text-red-500 font-bold">{losses} {lossLabel}</span>
               </div>
             </div>
 

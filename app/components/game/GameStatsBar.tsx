@@ -38,13 +38,16 @@ function StatChip({
 
 // ========================================
 // نوار آمار بازی — بهترین امتیاز / بردها / دفعات / استریک
+// winLabel قابل سفارشی‌سازی است (هنگ‌من: «کلمات برده» / حافظه: «جفت‌های درست»)
 // ========================================
 export default function GameStatsBar({
   stats,
   streak,
+  winLabel = "کلمات برده",
 }: {
   stats: GameStats | null;
   streak: StreakInfo | null;
+  winLabel?: string;
 }) {
   return (
     <div className="grid grid-cols-4 gap-2 mt-4 mb-5">
@@ -56,7 +59,7 @@ export default function GameStatsBar({
       />
       <StatChip
         icon={CheckCircle2}
-        label="کلمات برده"
+        label={winLabel}
         value={stats?.totalWins ?? 0}
         classes="bg-emerald-50 border-emerald-100 text-emerald-600"
       />

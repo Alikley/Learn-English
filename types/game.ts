@@ -95,4 +95,67 @@ export const CATEGORY_LABELS: Record<string, string> = {
   clothes: "لباس",
   weather: "آب و هوا",
   celebration: "جشن‌ها",
+  general: "عمومی",
 };
+
+// ========================================
+// بازی حافظه کلمات (Memory Match)
+// ========================================
+
+// ---- جفت کلمه انگلیسی + معنی فارسی ----
+export type MemoryWordPair = {
+  id: number;
+  word: string;
+  translation: string;
+  category: string;
+  level: GameLevel;
+};
+
+// ---- قوانین امتیازدهی و ساختار بازی حافظه ----
+export const MEMORY_CONFIG = {
+  // هر دور کامل = ۳ تخته (راند) پشت سر هم
+  roundsPerSession: 3,
+  // تعداد جفت روی هر تخته بر اساس سطح
+  pairsPerBoard: { EASY: 3, MEDIUM: 4, HARD: 6 } as Record<GameLevel, number>,
+  // امتیاز هر جفت درست
+  pointsPerMatch: 20,
+  // پاداش کمبو: هر جفت پشت سر هم بدون خطا +۵ امتیاز بیشتر
+  comboStepBonus: 5,
+  // پاداش راند بی‌نقص (بدون هیچ اشتباهی)
+  perfectRoundBonus: 50,
+  // زمان برگشت کارت‌های ناهمسان (میلی‌ثانیه)
+  flipBackDelayMs: 900,
+} as const;
+
+// ---- تنظیمات هر سطح برای بازی حافظه ----
+export const MEMORY_LEVELS: GameLevelConfig[] = [
+  {
+    id: "EASY",
+    fa: "آسان",
+    desc: "کلمات ساده و پرکاربرد — تخته کوچک برای گرم کردن حافظه",
+    lengthLabel: "۳ جفت • ۶ کارت",
+    badge: "bg-emerald-100 text-emerald-700",
+    theme: "border-emerald-200 hover:border-emerald-400 bg-emerald-50/60",
+  },
+  {
+    id: "MEDIUM",
+    fa: "متوسط",
+    desc: "کلمات متوسط — چالش واقعی برای تقویت واژگان",
+    lengthLabel: "۴ جفت • ۸ کارت",
+    badge: "bg-orange-100 text-orange-700",
+    theme: "border-orange-200 hover:border-orange-400 bg-orange-50/60",
+  },
+  {
+    id: "HARD",
+    fa: "سخت",
+    desc: "کلمات بلند و پیشرفته — تخته بزرگ مخصوص حرفه‌ای‌ها",
+    lengthLabel: "۶ جفت • ۱۲ کارت",
+    badge: "bg-red-100 text-red-700",
+    theme: "border-red-200 hover:border-red-400 bg-red-50/60",
+  },
+];
+
+// تعداد کل کلمات لازم برای یک دور کامل (بر اساس سطح)
+export function memoryWordCount(level: GameLevel): number {
+  return MEMORY_CONFIG.roundsPerSession * MEMORY_CONFIG.pairsPerBoard[level];
+}
