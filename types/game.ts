@@ -181,3 +181,78 @@ export const MEMORY_LEVELS: GameLevelConfig[] = [
 export function memoryWordCount(level: GameLevel): number {
   return MEMORY_CONFIG.roundsPerSession * MEMORY_CONFIG.pairsPerBoard[level];
 }
+
+// ========================================
+// بازی کوییز سرعتی (Speed Quiz)
+// ========================================
+
+// ---- نوع سوال: کلمه (معنی فارسی) یا جمله (جاگذاری) ----
+export type SpeedQuizQuestionType = "WORD" | "SENTENCE";
+
+// ---- یک سوال کامل آمادهٔ نمایش ----
+export type SpeedQuizQuestion = {
+  id: number;
+  type: SpeedQuizQuestionType;
+  // کلمه انگلیسی (WORD) یا جمله با جای خالی ___ (SENTENCE)
+  prompt: string;
+  // ۴ گزینه شافل‌شده — یکی درست
+  options: string[];
+  // اندیس گزینه درست در options
+  correctIndex: number;
+  // معنی فارسی (راهنمای بعد از پاسخ)
+  translation: string;
+  category: string;
+  level: GameLevel;
+  // سطح CEFR سوال — از API برمی‌گردد
+  cefr?: CefrLevel;
+};
+
+// ---- قوانین امتیازدهی و دور کوییز سرعتی ----
+// سرعت پاسخ = امتیاز بیشتر؛ سختی سطح فقط از سختی کلمات (CEFR) می‌آید،
+// نه تعداد سوال و نه زمان بیشتر — زمان برای همه سطح‌ها یکسان است.
+export const SPEEDQUIZ_CONFIG = {
+  // تعداد سوال هر دور
+  questionsPerSession: 10,
+  // زمان هر سوال (ثانیه) — در همه سطح‌ها یکسان
+  secondsPerQuestion: 12,
+  // جان‌های بازی — با هر پاسخ غلط/تایم‌اوت یکی کم می‌شود
+  lives: 3,
+  // امتیاز پایه هر پاسخ درست
+  basePoints: 10,
+  // پاداش سرعت: هر ثانیه باقی‌مانده × ۲ امتیاز
+  timeBonusPerSecond: 2,
+  // پاداش کمبو: هر پاسخ درست پشت سر هم +۵ امتیاز بیشتر
+  comboStepBonus: 5,
+  // پاداش دور بی‌نقص (همه درست + جان کامل)
+  perfectSessionBonus: 50,
+  // زمان نمایش نتیجه هر سوال (میلی‌ثانیه)
+  feedbackMs: 1500,
+} as const;
+
+// ---- تنظیمات هر سطح برای کوییز سرعتی (سطح‌بندی CEFR) ----
+export const SPEEDQUIZ_LEVELS: GameLevelConfig[] = [
+  {
+    id: "EASY",
+    fa: "آسان",
+    desc: "کلمات و جملات پایه سطح A1 — گرم‌کردن مغزه با سرعت زیاد",
+    cefrLabel: "A1",
+    badge: "bg-emerald-100 text-emerald-700",
+    theme: "border-emerald-200 hover:border-emerald-400 bg-emerald-50/60",
+  },
+  {
+    id: "MEDIUM",
+    fa: "متوسط",
+    desc: "کلمات و جملات سطح A2 تا B1 — چالش واقعی واژگان و گرامر",
+    cefrLabel: "A2 - B1",
+    badge: "bg-orange-100 text-orange-700",
+    theme: "border-orange-200 hover:border-orange-400 bg-orange-50/60",
+  },
+  {
+    id: "HARD",
+    fa: "سخت",
+    desc: "کلمات و جملات پیشرفته B2 و C1 — سرعت + دانش = قهرمانی",
+    cefrLabel: "B2 - C1",
+    badge: "bg-red-100 text-red-700",
+    theme: "border-red-200 hover:border-red-400 bg-red-50/60",
+  },
+];

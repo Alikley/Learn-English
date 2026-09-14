@@ -5,15 +5,17 @@ import GameCard from "@/app/components/game/GameCard";
 import GameCardStats from "@/app/components/game/GameCardStats";
 import { useGameStats } from "@/app/hook/useGameStats";
 import { useMemoryStats } from "@/app/hook/useMemoryStats";
+import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
 
 // ========================================
 // هاب بازی‌ها — کارت هر بازی
-// هنگ‌من و حافظه کلمات فعال‌اند؛ بازی‌های بعدی «به‌زودی»
+// هنگ‌من، حافظه کلمات و کوییز سرعتی فعال‌اند
 // ========================================
 
 export default function GamePage() {
   const { stats: hangmanStats, streak: hangmanStreak } = useGameStats();
   const { stats: memoryStats, streak: memoryStreak } = useMemoryStats();
+  const { stats: speedQuizStats, streak: speedQuizStreak } = useSpeedQuizStats();
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
@@ -52,13 +54,18 @@ export default function GamePage() {
           }
         />
 
-        {/* ---- بازی‌های آینده ---- */}
         <GameCard
           title="کوییز سرعتی"
-          desc="با زمان محدود به سوال‌های چهارگزینه‌ای جواب بده"
+          desc="سریع جواب بده — سوال‌های کلمه و جمله از A1 تا C1"
           icon="/assets/icon_3_document_sign.svg"
-          href="#"
-          disabled
+          href="/game/speedquiz"
+          stats={
+            <GameCardStats
+              stats={speedQuizStats}
+              streak={speedQuizStreak}
+              inviteText="اولین کوییزت را شروع کن!"
+            />
+          }
         />
       </div>
 

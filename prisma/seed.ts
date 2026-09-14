@@ -1,6 +1,10 @@
 import { PrismaClient } from "@prisma/client";
 import { HANGMAN_WORDS } from "../data/hangman/words";
 import { MEMORY_WORDS } from "../data/memory/words";
+import {
+  SPEEDQUIZ_WORDS,
+  SPEEDQUIZ_SENTENCES,
+} from "../data/speedquiz/questions";
 const prisma = new PrismaClient();
 
 const courseData = [
@@ -362,12 +366,53 @@ async function seedMemoryWords() {
   );
 }
 
+async function seedSpeedQuizQuestions() {
+  console.log("⚡ Seeding speed quiz questions...");
+
+  // همیشه تازه‌سازی می‌کنیم تا سطح‌بندی و لیست سوال‌ها به‌روز شود
+  // (سوال‌های بازی داده سیستمی‌اند، نه تولید کاربر)
+  await prisma.speedQuizQuestion.deleteMany();
+
+  const wordRows = SPEEDQUIZ_WORDS.map((w) => ({
+    type: "WORD",
+    prompt: w.word,
+    answer: w.translation,
+    distractors: JSON.stringify(w.distractors),
+    translation: w.translation,
+    category: w.category,
+    level: w.level,
+    cefr: w.cefr,
+  }));
+
+  const sentenceRows = SPEEDQUIZ_SENTENCES.map((s) => ({
+    type: "SENTENCE",
+    prompt: s.sentence,
+    answer: s.answer,
+    distractors: JSON.stringify(s.distractors),
+    translation: s.translation,
+    category: s.category,
+    level: s.level,
+    cefr: s.cefr,
+  }));
+
+  await prisma.speedQuizQuestion.createMany({
+    data: [...wordRows, ...sentenceRows],
+  });
+
+  const levels = { EASY: 0, MEDIUM: 0, HARD: 0 };
+  for (const row of [...wordRows, ...sentenceRows]) levels[row.level]++;
+  console.log(
+    `  ✅ ${wordRows.length + sentenceRows.length} speed quiz questions seeded (EASY: ${levels.EASY} / MEDIUM: ${levels.MEDIUM} / HARD: ${levels.HARD})`,
+  );
+}
+
 async function main() {
   await seedCourses();
   await seedBooks();
   await seedListening();
   await seedGameWords();
   await seedMemoryWords();
+  await seedSpeedQuizQuestions();
   console.log("🎉 All done!");
 }
 
