@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { Brain, RotateCcw, XCircle, ArrowRight } from "lucide-react";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
+import GameOutcomeOverlay from "@/app/components/game/GameOutcomeOverlay";
 import LevelSelect from "@/app/components/game/LevelSelect";
-import SessionEndOverlay from "@/app/components/game/SessionEndOverlay";
 import MemoryBoard from "@/app/components/game/MemoryBoard";
 import MemoryTopBar from "@/app/components/game/MemoryTopBar";
 import MemoryRoundOverlay from "@/app/components/game/MemoryRoundOverlay";
@@ -19,13 +19,17 @@ import {
 // ========================================
 // صفحه بازی حافظه کلمات
 // منطق در useMemoryGame + useMemoryStats — اینجا فقط رندر
+// v1.0.0.6 — گام ۳: ۳ اشتباه = Game Over انیمیشنی، برد = مرحله بعد
+//   بدون نمایش شماره مرحله + جان‌ها در نوار بالا
+// v1.0.0.6 — گام ۱: آمار زنده + حذف کارت استریک از صفحه
 // ========================================
 
 export default function MemoryPage() {
-  const { stats, streak, submitting, isNewRecord, submitMatchResult, submitSession } =
+  const { stats, submitting, isNewRecord, submitSessionStart, submitMatchResult, submitSession } =
     useMemoryStats();
 
   const game = useMemoryGame({
+    onSessionStart: () => void submitSessionStart(),
     onPairMatch: () => void submitMatchResult(),
     onSessionFinish: (score, mistakes) => void submitSession(score, mistakes),
   });
@@ -33,22 +37,26 @@ export default function MemoryPage() {
   const {
     phase,
     level,
+    hideLevel,
     totalRounds,
     roundIndex,
     cards,
     wrongPair,
     score,
     combo,
-    roundMistakes,
     sessionMistakes,
     sessionMatches,
     roundInfo,
     totalPairs,
     matchedPairs,
     hasMoreRounds,
+    outcome,
+    lives,
+    maxLives,
     startGame,
     handleCardClick,
     handleNextRound,
+    handleNextLevel,
     handleRestart,
     handleBackToLevels,
   } = game;
@@ -88,8 +96,9 @@ export default function MemoryPage() {
         )}
       </div>
 
-      {/* ============ نوار آمار (فقط اینجا — گام ۶) ============ */}
-      <GameStatsBar stats={stats} streak={streak} winLabel="جفت‌های درست" />
+      {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
+      {/* اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
+      <GameStatsBar stats={stats} winLabel="جفت‌های درست" />
 
       {/* ================= انتخاب سطح ================= */}
       {phase === "levelSelect" && (
@@ -102,14 +111,21 @@ export default function MemoryPage() {
 
       {/* ================= کارت بازی ================= */}
       {phase !== "levelSelect" && (
-        <div className="relative bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          {/* ---- نوار بالای کارت ---- */}
+        <div
+          className={`relative bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden ${
+            // v1.0.0.6 — حداقل ارتفاع در پایان بازی تا اورلی نتیجه
+            // کاملاً داخل کارت جا شود و دکمه‌ها بریده نشوند
+            phase === "sessionEnd" ? "min-h-[30rem]" : ""
+          }`}
+        >
+          {/* ---- نوار بالای کارت: جان‌های کل دور (گام ۳) ---- */}
           <MemoryTopBar
             round={roundIndex}
             totalRounds={totalRounds}
             matchedPairs={matchedPairs}
             totalPairs={totalPairs}
-            roundMistakes={roundMistakes}
+            lives={lives}
+            maxLives={maxLives}
             combo={combo}
             score={score}
           />
@@ -119,7 +135,10 @@ export default function MemoryPage() {
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <div className="w-10 h-10 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
               <p className="text-sm text-slate-500">
-                در حال آماده‌سازی تخته سطح {levelFa}...
+                {/* گام ۳ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
+                {hideLevel
+                  ? "در حال آماده‌سازی مرحله بعدی..."
+                  : `در حال آماده‌سازی تخته سطح ${levelFa}...`}
               </p>
             </div>
           )}
@@ -161,21 +180,21 @@ export default function MemoryPage() {
             />
           )}
 
-          {/* ============ اورلی پایان بازی ============ */}
-          {phase === "sessionEnd" && (
-            <SessionEndOverlay
+          {/* ============ اورلی پایان بازی — GAME OVER / CONGRATULATIONS (گام ۳) ============ */}
+          {phase === "sessionEnd" && outcome && (
+            <GameOutcomeOverlay
+              outcome={outcome}
               submitting={submitting}
               score={score}
               wins={sessionMatches}
               losses={sessionMistakes}
               stats={stats}
-              streak={streak}
               isNewRecord={isNewRecord}
-              onRestart={handleRestart}
-              onChangeLevel={handleBackToLevels}
-              title="پایان بازی!"
               winLabel="جفت"
               lossLabel="اشتباه"
+              onRestart={handleRestart}
+              onBack={handleBackToLevels}
+              onNext={handleNextLevel}
             />
           )}
         </div>
@@ -184,13 +203,12 @@ export default function MemoryPage() {
       {/* راهنمای امتیازدهی */}
       {phase !== "levelSelect" && (
         <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-400 flex-wrap">
-          <span>سطح: {levelFa}</span>
-          <span className="text-slate-200">|</span>
           <span>هر جفت درست: +{MEMORY_CONFIG.pointsPerMatch}</span>
+          <span className="text-slate-200">|</span>
           <span>هر جفت پشت سر هم: +{MEMORY_CONFIG.comboStepBonus} بیشتر</span>
           <span>راند بی‌نقص: +{MEMORY_CONFIG.perfectRoundBonus}</span>
           <span>
-            هر بازی: {MEMORY_CONFIG.roundsPerSession} راند ×{" "}
+            جان‌ها: {MEMORY_CONFIG.maxSessionMistakes} | هر بازی: {MEMORY_CONFIG.roundsPerSession} راند ×{" "}
             {MEMORY_CONFIG.pairsPerBoard[level]} جفت
           </span>
         </div>

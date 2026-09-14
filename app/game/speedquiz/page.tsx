@@ -4,8 +4,8 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 import { Zap, RotateCcw, XCircle, ArrowRight } from "lucide-react";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
+import GameOutcomeOverlay from "@/app/components/game/GameOutcomeOverlay";
 import LevelSelect from "@/app/components/game/LevelSelect";
-import SessionEndOverlay from "@/app/components/game/SessionEndOverlay";
 import SpeedQuizTopBar from "@/app/components/game/SpeedQuizTopBar";
 import SpeedQuizTimer from "@/app/components/game/SpeedQuizTimer";
 import SpeedQuizQuestionCard from "@/app/components/game/SpeedQuizQuestionCard";
@@ -21,13 +21,17 @@ import {
 // ========================================
 // صفحه بازی کوییز سرعتی
 // منطق در useSpeedQuizGame + useSpeedQuizStats — اینجا فقط رندر
+// v1.0.0.6 — گام ۴: اتمام جان‌ها = GAME OVER قرمز، برد = CONGRATULATIONS سبز
+//   + دکمه «مرحله بعد» بدون نمایش شماره مرحله
+// v1.0.0.6 — گام ۱: آمار زنده + حذف کارت استریک از صفحه
 // ========================================
 
 export default function SpeedQuizPage() {
-  const { stats, streak, submitting, isNewRecord, submitAnswerResult, submitSession } =
+  const { stats, submitting, isNewRecord, submitSessionStart, submitAnswerResult, submitSession } =
     useSpeedQuizStats();
 
   const game = useSpeedQuizGame({
+    onSessionStart: () => void submitSessionStart(),
     onCorrectAnswer: () => void submitAnswerResult(),
     onSessionFinish: (score, correct, wrong) => void submitSession(score, wrong),
   });
@@ -35,6 +39,7 @@ export default function SpeedQuizPage() {
   const {
     phase,
     level,
+    hideLevel,
     questions,
     qIndex,
     score,
@@ -49,15 +54,16 @@ export default function SpeedQuizPage() {
     lastGained,
     gainKey,
     totalQuestions,
+    outcome,
     startGame,
     handleAnswer,
     handleRestart,
+    handleNextLevel,
     handleBackToLevels,
   } = game;
 
   const levelFa = getGameLevel(level).fa;
   const currentQuestion = questions[qIndex] ?? null;
-  const outOfLives = wrongCount > 0 && lives <= 0;
 
   return (
     <div className="relative p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
@@ -106,11 +112,12 @@ export default function SpeedQuizPage() {
         )}
       </div>
 
-      {/* ============ نوار آمار (فقط اینجا — گام ۶) ============ */}
+      {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
       {/* حین بازی مخفی می‌شود تا سوال و گزینه‌ها بدون اسکرول دیده شوند؛
-          امتیاز زنده در نوار بالای بازی است و آمار کامل در سطح‌بندی/پایان */}
+          امتیاز زنده در نوار بالای بازی است و آمار کامل در سطح‌بندی/پایان.
+          اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
       {(phase === "levelSelect" || phase === "sessionEnd") && (
-        <GameStatsBar stats={stats} streak={streak} winLabel="پاسخ‌های درست" />
+        <GameStatsBar stats={stats} winLabel="پاسخ‌های درست" />
       )}
 
       {/* ================= انتخاب سطح ================= */}
@@ -124,7 +131,13 @@ export default function SpeedQuizPage() {
 
       {/* ================= کارت بازی ================= */}
       {phase !== "levelSelect" && (
-        <div className="relative bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div
+          className={`relative bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden ${
+            // v1.0.0.6 — حداقل ارتفاع در پایان بازی تا اورلی نتیجه
+            // (که absolute است) کاملاً داخل کارت جا شود و دکمه‌ها بریده نشوند
+            phase === "sessionEnd" ? "min-h-[34rem]" : ""
+          }`}
+        >
           {/* ---- نوار بالای بازی: پیشرفت + جان + امتیاز ---- */}
           <SpeedQuizTopBar
             qIndex={Math.min(qIndex, totalQuestions - 1)}
@@ -154,7 +167,10 @@ export default function SpeedQuizPage() {
                 <Zap className="w-14 h-14 text-amber-400 fill-amber-200" />
               </motion.div>
               <p className="text-sm text-slate-500">
-                در حال آماده‌سازی سوال‌های سطح {levelFa}...
+                {/* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
+                {hideLevel
+                  ? "در حال آماده‌سازی سوال‌های مرحله بعدی..."
+                  : `در حال آماده‌سازی سوال‌های سطح ${levelFa}...`}
               </p>
             </div>
           )}
@@ -198,21 +214,21 @@ export default function SpeedQuizPage() {
             )}
           </AnimatePresence>
 
-          {/* ============ اورلی پایان بازی ============ */}
-          {phase === "sessionEnd" && (
-            <SessionEndOverlay
+          {/* ============ اورلی پایان بازی — GAME OVER / CONGRATULATIONS (گام ۴) ============ */}
+          {phase === "sessionEnd" && outcome && (
+            <GameOutcomeOverlay
+              outcome={outcome}
               submitting={submitting}
               score={score}
               wins={correctCount}
               losses={wrongCount}
               stats={stats}
-              streak={streak}
               isNewRecord={isNewRecord}
-              onRestart={handleRestart}
-              onChangeLevel={handleBackToLevels}
-              title={outOfLives ? "جان‌هایت تمام شد!" : "پایان کوییز!"}
               winLabel="درست"
               lossLabel="غلط"
+              onRestart={handleRestart}
+              onBack={handleBackToLevels}
+              onNext={handleNextLevel}
             />
           )}
         </div>
@@ -221,8 +237,9 @@ export default function SpeedQuizPage() {
       {/* راهنمای امتیازدهی */}
       {phase !== "levelSelect" && (
         <div className="mt-4 flex items-center justify-center gap-3 text-[11px] text-slate-400 flex-wrap">
-          <span>سطح: {levelFa}</span>
-          <span className="text-slate-200">|</span>
+          {/* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
+          {!hideLevel && <span>سطح: {levelFa}</span>}
+          {!hideLevel && <span className="text-slate-200">|</span>}
           <span>هر پاسخ درست: +{SPEEDQUIZ_CONFIG.basePoints}</span>
           <span>هر ثانیه باقی‌مانده: +{SPEEDQUIZ_CONFIG.timeBonusPerSecond}</span>
           <span>کمبو: +{SPEEDQUIZ_CONFIG.comboStepBonus} بیشتر</span>

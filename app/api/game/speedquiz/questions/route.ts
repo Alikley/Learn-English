@@ -174,46 +174,45 @@ export async function GET(req: NextRequest) {
       })
       .filter((r) => !level || r.level === level);
 
-    // ---- ۳. استخر سوال‌ها (DB + تکمیل از لیست ثابت) ----
+    // ---- ۳. استخر سوال‌ها: ادغام DB + لیست ثابت (v1.0.0.6) ----
+    // ردیف‌های DB با سوال‌های تازه‌ی لیست ثابت ادغام می‌شوند تا
+    // سوال‌های جدید حتی بدون اجرای دوباره seed هم در بازی بیایند.
     const pool: QuestionRow[] = [...dbPool];
 
-    if (pool.length < count) {
-      const existing = new Set(pool.map((r) => normKey(r.prompt)));
-      if (level) {
-        const staticWords = getSpeedQuizWordsByLevel(level);
-        const staticSentences = getSpeedQuizSentencesByLevel(level);
-        const staticPool = shuffle([...staticWords, ...staticSentences]);
-        for (const item of staticPool) {
-          if (pool.length >= count) break;
-          const prompt = "word" in item ? item.word : item.sentence;
-          if (existing.has(normKey(prompt))) continue;
-          existing.add(normKey(prompt));
-          pool.push(
-            "word" in item
-              ? {
-                  id: -(pool.length + 1),
-                  type: "WORD",
-                  prompt: item.word,
-                  answer: item.translation,
-                  distractors: JSON.stringify(item.distractors),
-                  translation: item.translation,
-                  category: item.category,
-                  level: item.level,
-                  cefr: item.cefr,
-                }
-              : {
-                  id: -(pool.length + 1),
-                  type: "SENTENCE",
-                  prompt: item.sentence,
-                  answer: item.answer,
-                  distractors: JSON.stringify(item.distractors),
-                  translation: item.translation,
-                  category: item.category,
-                  level: item.level,
-                  cefr: item.cefr,
-                },
-          );
-        }
+    const existing = new Set(pool.map((r) => normKey(r.prompt)));
+    if (level) {
+      const staticWords = getSpeedQuizWordsByLevel(level);
+      const staticSentences = getSpeedQuizSentencesByLevel(level);
+      const staticPool = shuffle([...staticWords, ...staticSentences]);
+      for (const item of staticPool) {
+        const prompt = "word" in item ? item.word : item.sentence;
+        if (existing.has(normKey(prompt))) continue;
+        existing.add(normKey(prompt));
+        pool.push(
+          "word" in item
+            ? {
+                id: -(pool.length + 1),
+                type: "WORD",
+                prompt: item.word,
+                answer: item.translation,
+                distractors: JSON.stringify(item.distractors),
+                translation: item.translation,
+                category: item.category,
+                level: item.level,
+                cefr: item.cefr,
+              }
+            : {
+                id: -(pool.length + 1),
+                type: "SENTENCE",
+                prompt: item.sentence,
+                answer: item.answer,
+                distractors: JSON.stringify(item.distractors),
+                translation: item.translation,
+                category: item.category,
+                level: item.level,
+                cefr: item.cefr,
+              },
+        );
       }
     }
 

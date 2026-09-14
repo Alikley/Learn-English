@@ -52,6 +52,16 @@ export const GAME_CONFIG = {
   pointsPerLife: 10,
 } as const;
 
+// ---- تایمر حدس حرف هنگ‌من (v1.0.0.6 — گام ۲) ----
+// زمان هر حدس بر اساس سطح: آسان ۵ / متوسط ۷ / سخت ۱۰ ثانیه.
+// اگر کاربر در این بازه حرفی حدس نزند، یک تکه از هنگ‌من تکمیل می‌شود
+// و تایمر دوباره از ابتدا شروع می‌شود؛ با تکمیل همه تکه‌ها بازی آن کلمه باخت است.
+export const HANGMAN_TIMER_SECONDS: Record<GameLevel, number> = {
+  EASY: 5,
+  MEDIUM: 7,
+  HARD: 10,
+} as const;
+
 // ---- تنظیمات هر سطح ----
 // سطح‌بندی بر اساس CEFR: آسان=A1 / متوسط=A2-B1 / سخت=B2-C1
 export type GameLevelConfig = {
@@ -115,6 +125,13 @@ export const CATEGORY_LABELS: Record<string, string> = {
   weather: "آب و هوا",
   celebration: "جشن‌ها",
   general: "عمومی",
+  // ---- افزودنی‌های v1.0.0.6 (دسته‌بندی واژه‌های سطح بالا) ----
+  health: "سلامت",
+  character: "شخصیت",
+  academic: "آکادمیک",
+  work: "کار",
+  feelings: "احساسات",
+  environment: "محیط زیست",
 };
 
 // ========================================
@@ -139,6 +156,9 @@ export const MEMORY_CONFIG = {
   // تعداد جفت روی هر تخته — در همه سطح‌ها یکسان است؛
   // سختی سطح فقط از سختی کلمات (CEFR) می‌آید نه تعداد کلمه
   pairsPerBoard: { EASY: 4, MEDIUM: 4, HARD: 4 } as Record<GameLevel, number>,
+  // حداکثر اشتباه مجاز کل دور (v1.0.0.6 — گام ۳):
+  // با سومین اشتباه بازی همان لحظه تمام می‌شود (Game Over)
+  maxSessionMistakes: 3,
   // امتیاز هر جفت درست
   pointsPerMatch: 20,
   // پاداش کمبو: هر جفت پشت سر هم بدون خطا +۵ امتیاز بیشتر

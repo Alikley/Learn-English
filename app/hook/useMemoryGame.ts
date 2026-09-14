@@ -9,8 +9,12 @@ import type { GameLevel, MemoryWordPair } from "@/types/game";
 // ماشین وضعیت: levelSelect → loading → playing → roundResult → sessionEnd
 // ساختار بازی: هر دور = چند راند (تخته) پشت سر هم؛
 // هر راند = جفت‌های انگلیسی-فارسی روی تخته که باید مچ شوند.
-// تمام منطق (فلیپ، مچ، کمبو، امتیاز، راند بعدی) اینجاست؛
-// صفحه فقط رندر می‌کند و با callback ها به useMemoryStats وصل می‌شود.
+//
+// v1.0.0.6 — گام ۳:
+//   • ۳ اشتباه در کل دور → بازی همان لحظه تمام می‌شود (Game Over)
+//   • برد (تمام‌کردن همه راندها) → دکمه «مرحله بعد» به سطح بعد می‌رود
+//     بدون نمایش شماره/نام مرحله (پیشرفت بی‌صدا، چرخه آسان→متوسط→سخت→آسان)
+// v1.0.0.6 — گام ۱: onSessionStart برای ثبت «دفعات بازی» هنگام شروع دور
 // ========================================
 
 export type MemoryPhase =
@@ -20,6 +24,9 @@ export type MemoryPhase =
   | "roundResult"
   | "sessionEnd"
   | "error";
+
+// نتیجه نهایی دور (v1.0.0.6 — گام ۳)
+export type MemoryOutcome = "win" | "gameover";
 
 // ---- یک کارت روی تخته ----
 export type MemoryCardItem = {
@@ -39,11 +46,16 @@ export type MemoryRoundInfo = {
 };
 
 type UseMemoryGameOptions = {
+  // شروع یک دور جدید (برای ثبت دفعات بازی — گام ۱)
+  onSessionStart?: () => void;
   // با هر جفت درست صدا زده می‌شود (برای ثبت استریک — گام ۷)
   onPairMatch?: () => void;
   // با پایان دور کامل صدا زده می‌شود (برای ثبت امتیاز)
   onSessionFinish?: (score: number, mistakes: number) => void;
 };
+
+// ترتیب سطوح برای «مرحله بعد» — چرخه‌ای تا پیشرفت بی‌پایان باشد
+const LEVEL_ORDER: GameLevel[] = ["EASY", "MEDIUM", "HARD"];
 
 // ========================================
 // ساخت تخته یک راند: جفت‌ها → کارت‌های شافل‌شده
@@ -86,6 +98,7 @@ function buildBoard(
 }
 
 export function useMemoryGame({
+  onSessionStart,
   onPairMatch,
   onSessionFinish,
 }: UseMemoryGameOptions = {}) {
@@ -107,6 +120,11 @@ export function useMemoryGame({
   const [sessionMatches, setSessionMatches] = useState(0);
   const [roundInfo, setRoundInfo] = useState<MemoryRoundInfo | null>(null);
 
+  // ---- نتیجه نهایی دور (گام ۳) ----
+  const [outcome, setOutcome] = useState<MemoryOutcome | null>(null);
+  // ---- مخفی‌کردن نام سطح بعد از «مرحله بعد» (گام ۳) ----
+  const [hideLevel, setHideLevel] = useState(false);
+
   // ---- کلید ری‌استارت دور (بازخوانی کلمات) ----
   const [sessionKey, setSessionKey] = useState(0);
 
@@ -125,11 +143,14 @@ export function useMemoryGame({
 
   // ========================================
   // شروع بازی با سطح انتخابی
+  // hideLevel=true یعنی از مسیر «مرحله بعد» آمده‌ایم —
+  // نام/شماره سطح هیچ‌جا نشان داده نمی‌شود (گام ۳)
   // ========================================
   const startGame = useCallback(
-    (selected: GameLevel) => {
+    (selected: GameLevel, opts?: { hideLevel?: boolean }) => {
       clearTimers();
       setLevel(selected);
+      setHideLevel(Boolean(opts?.hideLevel));
       setPairs([]);
       setCards([]);
       setFlipped([]);
@@ -140,12 +161,15 @@ export function useMemoryGame({
       setSessionMistakes(0);
       setSessionMatches(0);
       setRoundInfo(null);
+      setOutcome(null);
       setRoundIndex(0);
       setTotalRounds(MEMORY_CONFIG.roundsPerSession);
       setPhase("loading");
       setSessionKey((k) => k + 1);
+      // ثبت دفعات بازی (گام ۱)
+      onSessionStart?.();
     },
-    [clearTimers],
+    [clearTimers, onSessionStart],
   );
 
   // ========================================
@@ -206,6 +230,9 @@ export function useMemoryGame({
   const matchedPairs =
     cards.filter((c) => c.state === "matched").length / 2;
   const hasMoreRounds = roundIndex + 1 < totalRounds;
+  // جان‌های کل دور — با سومین اشتباه صفر می‌شود (گام ۳)
+  const maxLives = MEMORY_CONFIG.maxSessionMistakes;
+  const lives = Math.max(0, maxLives - sessionMistakes);
 
   // ========================================
   // پایان یک راند (همه جفت‌ها مچ شدند)
@@ -222,6 +249,19 @@ export function useMemoryGame({
     });
     setPhase("roundResult");
   }, [roundIndex, roundMistakes]);
+
+  // ========================================
+  // پایان کل دور — برد یا Game Over (گام ۳)
+  // ========================================
+  const finishSession = useCallback(
+    (result: MemoryOutcome, finalScore: number, finalMistakes: number) => {
+      clearTimers();
+      setOutcome(result);
+      setPhase("sessionEnd");
+      onSessionFinish?.(finalScore, finalMistakes);
+    },
+    [onSessionFinish, clearTimers],
+  );
 
   // ========================================
   // کلیک روی یک کارت
@@ -291,8 +331,9 @@ export function useMemoryGame({
       } else {
         // ❌ ناهمسان — برگشت بعد از مکث
         setCombo(0);
+        const newSessionMistakes = sessionMistakes + 1;
         setRoundMistakes((m) => m + 1);
-        setSessionMistakes((m) => m + 1);
+        setSessionMistakes(newSessionMistakes);
         setWrongPair([firstId, secondId]);
 
         const t = window.setTimeout(() => {
@@ -307,20 +348,40 @@ export function useMemoryGame({
           setWrongPair(null);
         }, MEMORY_CONFIG.flipBackDelayMs);
         addTimer(t);
+
+        // 🛑 گام ۳ — با سومین اشتباه بازی همان لحظه تمام می‌شود
+        if (newSessionMistakes >= MEMORY_CONFIG.maxSessionMistakes) {
+          const t3 = window.setTimeout(() => {
+            finishSession("gameover", score, newSessionMistakes);
+          }, MEMORY_CONFIG.flipBackDelayMs + 400);
+          addTimer(t3);
+        }
       }
     },
-    [phase, flipped, wrongPair, cards, combo, onPairMatch, addTimer, finishRound],
+    [
+      phase,
+      flipped,
+      wrongPair,
+      cards,
+      combo,
+      sessionMistakes,
+      score,
+      onPairMatch,
+      addTimer,
+      finishRound,
+      finishSession,
+    ],
   );
 
   // ========================================
-  // راند بعدی / پایان دور
+  // راند بعدی / پایان دور (برد)
   // ========================================
   const handleNextRound = useCallback(() => {
     clearTimers();
 
     if (roundIndex + 1 >= totalRounds) {
-      setPhase("sessionEnd");
-      onSessionFinish?.(score, sessionMistakes);
+      // ✅ همه راندها کامل شد — برد! (گام ۳)
+      finishSession("win", score, sessionMistakes);
     } else {
       const next = roundIndex + 1;
       setRoundIndex(next);
@@ -339,9 +400,19 @@ export function useMemoryGame({
     level,
     score,
     sessionMistakes,
-    onSessionFinish,
     clearTimers,
+    finishSession,
   ]);
+
+  // ========================================
+  // مرحله بعد — سطح بعدی بدون نمایش شماره (گام ۳)
+  // چرخه: آسان → متوسط → سخت → آسان (پیشرفت بی‌پایان)
+  // ========================================
+  const handleNextLevel = useCallback(() => {
+    const idx = LEVEL_ORDER.indexOf(level);
+    const next = LEVEL_ORDER[(idx + 1) % LEVEL_ORDER.length];
+    startGame(next, { hideLevel: true });
+  }, [level, startGame]);
 
   // ========================================
   // بازی مجدد با همان سطح
@@ -357,10 +428,13 @@ export function useMemoryGame({
     setSessionMistakes(0);
     setSessionMatches(0);
     setRoundInfo(null);
+    setOutcome(null);
     setRoundIndex(0);
     setPhase("loading");
     setSessionKey((k) => k + 1);
-  }, [clearTimers]);
+    // ثبت دفعات بازی برای دور جدید (گام ۱)
+    onSessionStart?.();
+  }, [clearTimers, onSessionStart]);
 
   // ========================================
   // بازگشت به انتخاب سطح
@@ -377,7 +451,9 @@ export function useMemoryGame({
     setSessionMistakes(0);
     setSessionMatches(0);
     setRoundInfo(null);
+    setOutcome(null);
     setRoundIndex(0);
+    setHideLevel(false);
     setPhase("levelSelect");
   }, [clearTimers]);
 
@@ -385,6 +461,7 @@ export function useMemoryGame({
     // وضعیت
     phase,
     level,
+    hideLevel,
     pairs,
     totalRounds,
     roundIndex,
@@ -400,10 +477,15 @@ export function useMemoryGame({
     totalPairs,
     matchedPairs,
     hasMoreRounds,
+    // نتیجه و جان‌ها (گام ۳)
+    outcome,
+    lives,
+    maxLives,
     // عملیات
     startGame,
     handleCardClick,
     handleNextRound,
+    handleNextLevel,
     handleRestart,
     handleBackToLevels,
   };

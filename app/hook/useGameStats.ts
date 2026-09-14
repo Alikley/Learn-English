@@ -6,9 +6,12 @@ import type { GameStats, StreakInfo } from "@/types/game";
 // ========================================
 // هوک آمار و استریک بازی
 // - GET  آمار بازی + استریک یادگیری
-// - POST نتیجه هر کلمه (آپدیت استریک)
+// - POST شروع دور (ثبت دفعات بازی — v1.0.0.6 گام ۱)
+// - POST نتیجه هر کلمه (آپدیت استریک + آمار زنده)
 // - POST پایان دور (ثبت بهترین امتیاز)
 // فقط در صفحه بازی‌ها استفاده می‌شود (گام ۶)
+// آمار به‌صورت خوش‌بینانه فوری آپدیت می‌شود و پاسخ سرور
+// مقدار قطعی را جایگزین می‌کند — کارت‌ها همزمان با بازی تغییر می‌کنند.
 // ========================================
 
 export function useGameStats() {
@@ -38,8 +41,39 @@ export function useGameStats() {
     return () => clearTimeout(id);
   }, [load]);
 
-  // ---- ثبت نتیجه یک کلمه + آپدیت استریک (گام ۷) ----
+  // ---- شروع دور: دفعات بازی +۱ (v1.0.0.6 — گام ۱) ----
+  const submitSessionStart = useCallback(async () => {
+    // آپدیت خوش‌بینانه — عدد همان لحظه تغییر می‌کند
+    setStats((s) =>
+      s ? { ...s, sessionsPlayed: s.sessionsPlayed + 1 } : s,
+    );
+    try {
+      const res = await fetch("/api/game/hangman/result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) setStats(data.stats);
+      }
+    } catch {
+      /* بی‌خیال — بازی ادامه دارد */
+    }
+  }, []);
+
+  // ---- ثبت نتیجه یک کلمه + آپدیت استریک و آمار زنده (گام ۷) ----
   const submitWordResult = useCallback(async (won: boolean) => {
+    // آپدیت خوش‌بینانه — «کلمات برده» همان لحظه تغییر می‌کند
+    setStats((s) =>
+      s
+        ? {
+            ...s,
+            totalWins: s.totalWins + (won ? 1 : 0),
+            totalLosses: s.totalLosses + (won ? 0 : 1),
+          }
+        : s,
+    );
     try {
       const res = await fetch("/api/game/hangman/result", {
         method: "POST",
@@ -48,6 +82,7 @@ export function useGameStats() {
       });
       if (res.ok) {
         const data = await res.json();
+        if (data.stats) setStats(data.stats);
         if (data.streak) setStreak(data.streak);
       }
     } catch {
@@ -81,6 +116,7 @@ export function useGameStats() {
     streak,
     submitting,
     isNewRecord,
+    submitSessionStart,
     submitWordResult,
     submitSession,
     reload: load,

@@ -1,12 +1,14 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Zap, XCircle, Flame } from "lucide-react";
-import { MEMORY_CONFIG } from "@/types/game";
+import { Zap, Heart, Flame } from "lucide-react";
 
 // ========================================
-// نوار بالای کارت بازی حافظه
-// شماره راند + نقاط پیشرفت جفت‌ها + اشتباهات + کمبو + امتیاز
+// نوار بالای کارت بازی حافظه کلمات
+// شماره راند + نقاط پیشرفت جفت‌ها + جان‌های کل دور + کمبو + امتیاز
+//
+// v1.0.0.6 — گام ۳: به‌جای شمارنده اشتباهِ راند، جان‌های کل دور
+// نمایش داده می‌شود (۳ قلب — با سومین اشتباه بازی تمام می‌شود)
 // ========================================
 
 export default function MemoryTopBar({
@@ -14,7 +16,8 @@ export default function MemoryTopBar({
   totalRounds,
   matchedPairs,
   totalPairs,
-  roundMistakes,
+  lives,
+  maxLives,
   combo,
   score,
 }: {
@@ -22,7 +25,9 @@ export default function MemoryTopBar({
   totalRounds: number;
   matchedPairs: number;
   totalPairs: number;
-  roundMistakes: number;
+  // جان‌های باقی‌مانده کل دور (گام ۳)
+  lives: number;
+  maxLives: number;
   combo: number;
   score: number;
 }) {
@@ -56,18 +61,30 @@ export default function MemoryTopBar({
       </div>
 
       <div className="flex items-center gap-2.5">
-        {/* اشتباهات راند */}
-        <div className="flex items-center gap-1 bg-red-50 rounded-full px-2.5 py-1">
-          <XCircle className="h-3.5 w-3.5 text-red-400" />
-          <motion.span
-            key={roundMistakes}
-            initial={{ scale: 1.35 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 12 }}
-            className="text-xs font-bold text-red-500"
-          >
-            {roundMistakes}
-          </motion.span>
+        {/* جان‌های کل دور — با هر اشتباه یکی با انیمیشن کم می‌شود (گام ۳) */}
+        <div className="flex items-center gap-0.5 bg-red-50 rounded-full px-2 py-1" dir="ltr">
+          {Array.from({ length: maxLives }).map((_, i) => {
+            const alive = i < lives;
+            return (
+              <motion.span
+                key={i}
+                initial={false}
+                animate={
+                  alive
+                    ? { scale: 1, opacity: 1 }
+                    : { scale: 0.7, opacity: 0.35, y: 2 }
+                }
+                transition={{ type: "spring", stiffness: 420, damping: 14 }}
+                className="flex items-center justify-center"
+              >
+                <Heart
+                  className={`h-3.5 w-3.5 ${
+                    alive ? "text-red-500 fill-red-400" : "text-slate-300"
+                  }`}
+                />
+              </motion.span>
+            );
+          })}
         </div>
 
         {/* کمبو */}

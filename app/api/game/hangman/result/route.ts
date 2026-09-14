@@ -42,13 +42,31 @@ export async function GET() {
 // ========================================
 // POST /api/game/hangman/result
 //
+// body: { action: "start" }
+//   → شروع یک دور جدید: ثبت دفعات بازی + lastPlayedAt (v1.0.0.6 — گام ۱)
+//
 // body: { action: "word", won: boolean }
 //   → ثبت نتیجه یک کلمه + آپدیت استریک یادگیری
 //     (شاید کاربر روزش رو با بازی شروع کنه!)
+//     پاسخ شامل آمار به‌روز است تا کارت‌ها زنده تغییر کنند
 //
 // body: { action: "session", score: number }
 //   → پایان یک دور کامل + ثبت بهترین امتیاز
 // ========================================
+function statsPayload(stats: {
+  bestScore: number;
+  totalWins: number;
+  totalLosses: number;
+  sessionsPlayed: number;
+}) {
+  return {
+    bestScore: stats.bestScore,
+    totalWins: stats.totalWins,
+    totalLosses: stats.totalLosses,
+    sessionsPlayed: stats.sessionsPlayed,
+  };
+}
+
 export async function POST(req: NextRequest) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
@@ -58,6 +76,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const action = body?.action;
 
+    // ---- شروع دور جدید: دفعات بازی +۱ (گام ۱) ----
+    if (action === "start") {
+      const existing = await prisma.gameScore.findUnique({
+        where: { userId_game: { userId, game: GAME_KEY } },
+      });
+
+      const stats = existing
+        ? await prisma.gameScore.update({
+            where: { id: existing.id },
+            data: {
+              sessionsPlayed: existing.sessionsPlayed + 1,
+              lastPlayedAt: new Date(),
+            },
+          })
+        : await prisma.gameScore.create({
+            data: { userId, game: GAME_KEY, sessionsPlayed: 1 },
+          });
+
+      return ok({ stats: statsPayload(stats) });
+    }
+
     // ---- ثبت نتیجه یک کلمه + آپدیت استریک ----
     if (action === "word") {
       const won = body.won === true;
@@ -66,30 +105,30 @@ export async function POST(req: NextRequest) {
         where: { userId_game: { userId, game: GAME_KEY } },
       });
 
-      if (existing) {
-        await prisma.gameScore.update({
-          where: { id: existing.id },
-          data: {
-            totalWins: existing.totalWins + (won ? 1 : 0),
-            totalLosses: existing.totalLosses + (won ? 0 : 1),
-            lastPlayedAt: new Date(),
-          },
-        });
-      } else {
-        await prisma.gameScore.create({
-          data: {
-            userId,
-            game: GAME_KEY,
-            totalWins: won ? 1 : 0,
-            totalLosses: won ? 0 : 1,
-          },
-        });
-      }
+      // آمار به‌روز به کارت‌ها برمی‌گردد تا زنده تغییر کنند (گام ۱)
+      const stats = existing
+        ? await prisma.gameScore.update({
+            where: { id: existing.id },
+            data: {
+              totalWins: existing.totalWins + (won ? 1 : 0),
+              totalLosses: existing.totalLosses + (won ? 0 : 1),
+              lastPlayedAt: new Date(),
+            },
+          })
+        : await prisma.gameScore.create({
+            data: {
+              userId,
+              game: GAME_KEY,
+              totalWins: won ? 1 : 0,
+              totalLosses: won ? 0 : 1,
+            },
+          });
 
       // ✅ اتصال بازی به روزهای متوالی یادگیری
       const streak = await updateStreak(userId);
 
       return ok({
+        stats: statsPayload(stats),
         streak: { current: streak.current, longest: streak.longest },
       });
     }
@@ -131,12 +170,7 @@ export async function POST(req: NextRequest) {
       }
 
       return ok({
-        stats: {
-          bestScore: stats.bestScore,
-          totalWins: stats.totalWins,
-          totalLosses: stats.totalLosses,
-          sessionsPlayed: stats.sessionsPlayed,
-        },
+        stats: statsPayload(stats),
         isNewRecord,
       });
     }

@@ -6,9 +6,12 @@ import type { GameStats, StreakInfo } from "@/types/game";
 // ========================================
 // هوک آمار و استریک بازی حافظه کلمات
 // - GET  آمار بازی + استریک یادگیری
-// - POST نتیجه هر جفت درست (آپدیت استریک)
+// - POST شروع دور (ثبت دفعات بازی — v1.0.0.6 گام ۱)
+// - POST نتیجه هر جفت درست (آپدیت استریک + آمار زنده)
 // - POST پایان دور (ثبت بهترین امتیاز + اشتباهات)
 // فقط در صفحه بازی‌ها استفاده می‌شود (گام ۶)
+// آمار به‌صورت خوش‌بینانه فوری آپدیت می‌شود و پاسخ سرور
+// مقدار قطعی را جایگزین می‌کند — کارت‌ها همزمان با بازی تغییر می‌کنند.
 // ========================================
 
 export function useMemoryStats() {
@@ -38,8 +41,33 @@ export function useMemoryStats() {
     return () => clearTimeout(id);
   }, [load]);
 
-  // ---- ثبت یک جفت درست + آپدیت استریک (گام ۷) ----
+  // ---- شروع دور: دفعات بازی +۱ (v1.0.0.6 — گام ۱) ----
+  const submitSessionStart = useCallback(async () => {
+    // آپدیت خوش‌بینانه — عدد همان لحظه تغییر می‌کند
+    setStats((s) =>
+      s ? { ...s, sessionsPlayed: s.sessionsPlayed + 1 } : s,
+    );
+    try {
+      const res = await fetch("/api/game/memory/result", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start" }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) setStats(data.stats);
+      }
+    } catch {
+      /* بی‌خیال — بازی ادامه دارد */
+    }
+  }, []);
+
+  // ---- ثبت یک جفت درست + آپدیت استریک و آمار زنده (گام ۷) ----
   const submitMatchResult = useCallback(async () => {
+    // آپدیت خوش‌بینانه — «جفت‌های درست» همان لحظه تغییر می‌کند
+    setStats((s) =>
+      s ? { ...s, totalWins: s.totalWins + 1 } : s,
+    );
     try {
       const res = await fetch("/api/game/memory/result", {
         method: "POST",
@@ -48,6 +76,7 @@ export function useMemoryStats() {
       });
       if (res.ok) {
         const data = await res.json();
+        if (data.stats) setStats(data.stats);
         if (data.streak) setStreak(data.streak);
       }
     } catch {
@@ -81,6 +110,7 @@ export function useMemoryStats() {
     streak,
     submitting,
     isNewRecord,
+    submitSessionStart,
     submitMatchResult,
     submitSession,
     reload: load,

@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { Gamepad2, Lightbulb, RotateCcw, XCircle, ArrowRight } from "lucide-react";
 import HangmanFigure from "@/app/components/game/HangmanFigure";
+import HangmanTimer from "@/app/components/game/HangmanTimer";
 import Keyboard from "@/app/components/game/Keyboard";
 import WordDisplay from "@/app/components/game/WordDisplay";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
@@ -13,18 +14,26 @@ import WordResultOverlay from "@/app/components/game/WordResultOverlay";
 import SessionEndOverlay from "@/app/components/game/SessionEndOverlay";
 import { useHangmanGame } from "@/app/hook/useHangmanGame";
 import { useGameStats } from "@/app/hook/useGameStats";
-import { CATEGORY_LABELS, GAME_CONFIG, getGameLevel } from "@/types/game";
+import {
+  CATEGORY_LABELS,
+  GAME_CONFIG,
+  HANGMAN_TIMER_SECONDS,
+  getGameLevel,
+} from "@/types/game";
 
 // ========================================
 // صفحه بازی هنگ‌من
 // منطق در useHangmanGame + useGameStats — اینجا فقط رندر
+// v1.0.0.6 — گام ۲: تایمر حدس بر اساس سطح (۵/۷/۱۰ ثانیه)
+// v1.0.0.6 — گام ۱: آمار زنده + حذف کارت استریک از صفحه
 // ========================================
 
 export default function HangmanPage() {
-  const { stats, streak, submitting, isNewRecord, submitWordResult, submitSession } =
+  const { stats, submitting, isNewRecord, submitSessionStart, submitWordResult, submitSession } =
     useGameStats();
 
   const game = useHangmanGame({
+    onSessionStart: () => void submitSessionStart(),
     onWordFinish: (won) => void submitWordResult(won),
     onSessionFinish: (score) => void submitSession(score),
   });
@@ -46,6 +55,9 @@ export default function HangmanPage() {
     sessionWins,
     sessionLosses,
     hasMoreWords,
+    timeLeftMs,
+    timerTotalMs,
+    levelSeconds,
     startGame,
     handleGuess,
     handleNextWord,
@@ -88,8 +100,9 @@ export default function HangmanPage() {
         )}
       </div>
 
-      {/* ============ نوار آمار (فقط اینجا — گام ۶) ============ */}
-      <GameStatsBar stats={stats} streak={streak} />
+      {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
+      {/* اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
+      <GameStatsBar stats={stats} />
 
       {/* ================= انتخاب سطح ================= */}
       {phase === "levelSelect" && <LevelSelect onSelect={startGame} />}
@@ -105,6 +118,18 @@ export default function HangmanPage() {
             lives={lives}
             score={score}
           />
+
+          {/* ---- تایمر حدس بر اساس سطح (گام ۲) ---- */}
+          {(phase === "playing" || phase === "wordResult") && (
+            <div className="pt-3">
+              <HangmanTimer
+                timeLeftMs={timeLeftMs}
+                totalMs={timerTotalMs}
+                levelSeconds={levelSeconds}
+                frozen={phase !== "playing"}
+              />
+            </div>
+          )}
 
           {/* ---- بدنه بازی ---- */}
           {phase === "loading" && (
@@ -215,7 +240,6 @@ export default function HangmanPage() {
               wins={sessionWins}
               losses={sessionLosses}
               stats={stats}
-              streak={streak}
               isNewRecord={isNewRecord}
               onRestart={handleRestart}
               onChangeLevel={handleBackToLevels}
@@ -228,6 +252,8 @@ export default function HangmanPage() {
       {phase !== "levelSelect" && (
         <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-400 flex-wrap">
           <span>سطح: {levelFa}</span>
+          <span className="text-slate-200">|</span>
+          <span>زمان هر حدس: {HANGMAN_TIMER_SECONDS[level]} ثانیه</span>
           <span className="text-slate-200">|</span>
           <span>هر حرف درست: +{GAME_CONFIG.pointsPerLetter}</span>
           <span>

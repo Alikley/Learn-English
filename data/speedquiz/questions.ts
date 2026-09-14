@@ -102,6 +102,33 @@ export const SPEEDQUIZ_WORDS: SpeedQuizWordData[] = [
   { word: "read", translation: "خواندن", distractors: ["نوشتن", "گفتن", "شنیدن"], category: "verbs", level: "EASY", cefr: "A1" },
   { word: "write", translation: "نوشتن", distractors: ["خواندن", "کشیدن", "ترجمه کردن"], category: "verbs", level: "EASY", cefr: "A1" },
 
+  // ---- افزودنی‌های v1.0.0.6 — حیوانات بیشتر ----
+  { word: "tiger", translation: "ببر", distractors: ["گربه", "خرس", "سگ"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "mouse", translation: "موش", distractors: ["خرگوش", "سنجاب", "خرس"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "snake", translation: "مار", distractors: ["ماهی", "پرنده", "قورباغه"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "cow", translation: "گاو", distractors: ["اسب", "گوسفند", "بز"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "pig", translation: "خوک", distractors: ["گاو", "سگ", "خر"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "goat", translation: "بز", distractors: ["گوسفند", "گاو", "اسب"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "bee", translation: "زنبور", distractors: ["مگس", "مورچه", "پروانه"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "ant", translation: "مورچه", distractors: ["مگس", "زنبور", "کرم"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "spider", translation: "عنکبوت", distractors: ["مگس", "زنبور", "مورچه"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "fox", translation: "روباه", distractors: ["گرگ", "سگ", "خرگوش"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "deer", translation: "آهو", distractors: ["اسب", "گاو", "خرگوش"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "camel", translation: "شتر", distractors: ["اسب", "الاغ", "گاو"], category: "animals", level: "EASY", cefr: "A1" },
+  { word: "donkey", translation: "الاغ", distractors: ["اسب", "شتر", "گاو"], category: "animals", level: "EASY", cefr: "A1" },
+
+  // ---- افزودنی‌های v1.0.0.6 — خوراکی‌های بیشتر ----
+  { word: "honey", translation: "عسل", distractors: ["شکر", "مربا", "کره"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "sugar", translation: "شکر", distractors: ["نمک", "آرد", "برنج"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "juice", translation: "آبمیوه", distractors: ["شیر", "چای", "آب"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "cookie", translation: "کوکی", distractors: ["کیک", "نان", "شیرینی"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "candy", translation: "آب‌نبات", distractors: ["کیک", "شکلات", "بستنی"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "grape", translation: "انگور", distractors: ["سیب", "پرتقال", "موز"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "peach", translation: "هلو", distractors: ["سیب", "پرتقال", "گیلاس"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "cherry", translation: "آلبالو", distractors: ["گیلاس", "انگور", "هلو"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "lemon", translation: "لیمو", distractors: ["پرتقال", "سیب", "هلو"], category: "food", level: "EASY", cefr: "A1" },
+  { word: "tomato", translation: "گوجه", distractors: ["پیاز", "سیب‌زمینی", "هویج"], category: "food", level: "EASY", cefr: "A1" },
+
   // ================= متوسط (A2 - B1) =================
   // ---- خانه و زندگی روزمره ----
   { word: "kitchen", translation: "آشپزخانه", distractors: ["اتاق خواب", "حمام", "راهرو"], category: "house", level: "MEDIUM", cefr: "A2" },
@@ -158,6 +185,33 @@ export const SPEEDQUIZ_WORDS: SpeedQuizWordData[] = [
   { word: "culture", translation: "فرهنگ", distractors: ["زبان", "سنت", "نژاد"], category: "general", level: "MEDIUM", cefr: "A2" },
   { word: "dangerous", translation: "خطرناک", distractors: ["امن", "بی‌خطر", "آرام"], category: "general", level: "MEDIUM", cefr: "A2" },
 
+  // ---- افزودنی‌های v1.0.0.6 — افعال و واژه‌های متوسط بیشتر ----
+  { word: "accept", translation: "پذیرفتن", distractors: ["رد کردن", "انکار کردن", "مخالفت کردن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "advise", translation: "توصیه کردن", distractors: ["دستور دادن", "اجبار کردن", "یاد دادن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "argue", translation: "بحث کردن", distractors: ["توافق کردن", "سکوت کردن", "تسلیم شدن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "arrive", translation: "رسیدن", distractors: ["رفتن", "حرکت کردن", "ترک کردن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "rent", translation: "اجاره کردن", distractors: ["خریدن", "فروختن", "هدیه دادن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "cancel", translation: "لغو کردن", distractors: ["تایید کردن", "عقب انداختن", "انجام دادن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "carry", translation: "حمل کردن", distractors: ["انداختن", "رها کردن", "کشیدن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "cause", translation: "باعث شدن", distractors: ["جلوگیری کردن", "حل کردن", "نتیجه گرفتن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "climb", translation: "بالا رفتن", distractors: ["پایین آمدن", "پریدن", "دویدن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "complain", translation: "شکایت کردن", distractors: ["تشکر کردن", "تعریف کردن", "تحسین کردن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "create", translation: "ایجاد کردن", distractors: ["خراب کردن", "حذف کردن", "کپی کردن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "choose", translation: "انتخاب کردن", distractors: ["رد کردن", "اجبار کردن", "گم کردن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "deliver", translation: "تحویل دادن", distractors: ["دریافت کردن", "نگه داشتن", "جمع کردن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "earn", translation: "کسب کردن", distractors: ["خرج کردن", "باختن", "هدر دادن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "enjoy", translation: "لذت بردن", distractors: ["رنج بردن", "بیزار بودن", "خسته شدن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "escape", translation: "فرار کردن", distractors: ["ماندن", "دستگیر شدن", "تسلیم شدن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "explain", translation: "توضیح دادن", distractors: ["گیج کردن", "پنهان کردن", "ساکت ماندن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "promise", translation: "قول دادن", distractors: ["انکار کردن", "فراموش کردن", "دروغ گفتن"], category: "verbs", level: "MEDIUM", cefr: "A2" },
+  { word: "compare", translation: "مقایسه کردن", distractors: ["ترکیب کردن", "جدا کردن", "تکرار کردن"], category: "verbs", level: "MEDIUM", cefr: "B1" },
+  { word: "compete", translation: "رقابت کردن", distractors: ["همکاری کردن", "تسلیم شدن", "تماشا کردن"], category: "verbs", level: "MEDIUM", cefr: "B1" },
+  { word: "destroy", translation: "نابود کردن", distractors: ["ساختن", "تعمیر کردن", "محافظت کردن"], category: "verbs", level: "MEDIUM", cefr: "B1" },
+  { word: "develop", translation: "توسعه دادن", distractors: ["متوقف کردن", "کوچک کردن", "فراموش کردن"], category: "verbs", level: "MEDIUM", cefr: "B1" },
+  { word: "discover", translation: "کشف کردن", distractors: ["پنهان کردن", "گم کردن", "فراموش کردن"], category: "verbs", level: "MEDIUM", cefr: "B1" },
+  { word: "prepare", translation: "آماده کردن", distractors: ["به هم زدن", "فراموش کردن", "عقب انداختن"], category: "verbs", level: "MEDIUM", cefr: "B1" },
+  { word: "solve", translation: "حل کردن", distractors: ["ایجاد کردن", "پیچیده کردن", "نادیده گرفتن"], category: "verbs", level: "MEDIUM", cefr: "B1" },
+
   // ================= سخت (B2 - C1) =================
   // ---- افعال پیشرفته ----
   { word: "accomplish", translation: "به سرانجام رساندن", distractors: ["شروع کردن", "رها کردن", "به تأخیر انداختن"], category: "verbs", level: "HARD", cefr: "B2" },
@@ -195,6 +249,29 @@ export const SPEEDQUIZ_WORDS: SpeedQuizWordData[] = [
   { word: "breakthrough", translation: "پیشرفت چشمگیر", distractors: ["شکست", "رکود", "بن‌بست"], category: "general", level: "HARD", cefr: "B2" },
   { word: "dilemma", translation: "دوراهی", distractors: ["راه‌حل", "اتفاق", "مزیت"], category: "general", level: "HARD", cefr: "B2" },
   { word: "sustainable", translation: "پایدار", distractors: ["موقتی", "آلاینده", "پرمصرف"], category: "environment", level: "HARD", cefr: "B2" },
+
+  // ---- افزودنی‌های v1.0.0.6 — واژه‌های سخت بیشتر ----
+  { word: "anxiety", translation: "اضطراب", distractors: ["آرامش", "شادی", "شور"], category: "health", level: "HARD", cefr: "B2" },
+  { word: "apologize", translation: "عذرخواهی کردن", distractors: ["مقصر دانستن", "تبریک گفتن", "شکایت کردن"], category: "character", level: "HARD", cefr: "B2" },
+  { word: "apparent", translation: "بدیهی", distractors: ["مبهم", "پنهان", "پیچیده"], category: "general", level: "HARD", cefr: "B2" },
+  { word: "approach", translation: "رویکرد", distractors: ["نتیجه", "هدف", "اتفاق"], category: "academic", level: "HARD", cefr: "B2" },
+  { word: "approve", translation: "تایید کردن", distractors: ["رد کردن", "ممنوع کردن", "تردید کردن"], category: "work", level: "HARD", cefr: "B2" },
+  { word: "artificial", translation: "مصنوعی", distractors: ["طبیعی", "اصیل", "نادر"], category: "environment", level: "HARD", cefr: "B2" },
+  { word: "analyze", translation: "تحلیل کردن", distractors: ["نادیده گرفتن", "جمع کردن", "تکرار کردن"], category: "academic", level: "HARD", cefr: "B2" },
+  { word: "attitude", translation: "نگرش", distractors: ["مهارت", "دانش", "احساس"], category: "character", level: "HARD", cefr: "B2" },
+  { word: "attract", translation: "جذب کردن", distractors: ["دفع کردن", "از دست دادن", "نادیده گرفتن"], category: "general", level: "HARD", cefr: "B2" },
+  { word: "available", translation: "در دسترس", distractors: ["نایاب", "تمام‌شده", "رزروشده"], category: "general", level: "HARD", cefr: "B2" },
+  { word: "candidate", translation: "نامزد", distractors: ["کارفرما", "مدیر", "رأی"], category: "work", level: "HARD", cefr: "B2" },
+  { word: "capacity", translation: "ظرفیت", distractors: ["کمبود", "ضعف", "فقدان"], category: "academic", level: "HARD", cefr: "B2" },
+  { word: "collaborate", translation: "همکاری کردن", distractors: ["رقابت کردن", "مخالفت کردن", "جدا شدن"], category: "work", level: "HARD", cefr: "B2" },
+  { word: "deadline", translation: "مهلت پایانی", distractors: ["تعطیلی", "حقوق", "جلسه"], category: "work", level: "HARD", cefr: "B2" },
+  { word: "deceive", translation: "فریب دادن", distractors: ["راست گفتن", "کمک کردن", "اعتماد کردن"], category: "character", level: "HARD", cefr: "B2" },
+  { word: "desperate", translation: "ناامید", distractors: ["امیدوار", "آرام", "خوشحال"], category: "feelings", level: "HARD", cefr: "B2" },
+  { word: "eliminate", translation: "از میان بردن", distractors: ["افزودن", "حفظ کردن", "تقویت کردن"], category: "general", level: "HARD", cefr: "B2" },
+  { word: "enhance", translation: "ارتقا دادن", distractors: ["تضعیف کردن", "کاهش دادن", "نادیده گرفتن"], category: "academic", level: "HARD", cefr: "B2" },
+  { word: "establish", translation: "برقرار کردن", distractors: ["از بین بردن", "به تأخیر انداختن", "فراموش کردن"], category: "work", level: "HARD", cefr: "B2" },
+  { word: "justify", translation: "توجیه کردن", distractors: ["محکوم کردن", "انکار کردن", "رد کردن"], category: "character", level: "HARD", cefr: "B2" },
+  { word: "hesitant", translation: "مردد", distractors: ["قاطع", "مطمئن", "شجاع"], category: "character", level: "HARD", cefr: "B2" },
 ];
 
 export const SPEEDQUIZ_SENTENCES: SpeedQuizSentenceData[] = [
@@ -225,6 +302,13 @@ export const SPEEDQUIZ_SENTENCES: SpeedQuizSentenceData[] = [
   { sentence: "Can I have ___ water, please?", answer: "some", distractors: ["a", "an", "many"], translation: "می‌توانم کمی آب بگیرم لطفاً؟", category: "quantifiers", level: "EASY", cefr: "A1" },
   { sentence: "We are ___ a film now.", answer: "watching", distractors: ["watch", "watches", "watched"], translation: "ما الان فیلم تماشا می‌کنیم.", category: "tenses", level: "EASY", cefr: "A1" },
 
+  // ---- افزودنی‌های v1.0.0.6 — جملات آسان بیشتر ----
+  { sentence: "I ___ a new book yesterday.", answer: "bought", distractors: ["buy", "buys", "buying"], translation: "من دیروز یک کتاب جدید خریدم.", category: "past", level: "EASY", cefr: "A1" },
+  { sentence: "There are three ___ on the table.", answer: "cups", distractors: ["cup", "glass", "plate"], translation: "سه فنجان روی میز است.", category: "plurals", level: "EASY", cefr: "A1" },
+  { sentence: "She ___ happy today.", answer: "is", distractors: ["are", "am", "be"], translation: "او امروز خوشحال است.", category: "verbbe", level: "EASY", cefr: "A1" },
+  { sentence: "We drink ___ in the morning.", answer: "milk", distractors: ["bread", "egg", "rice"], translation: "ما صبح شیر می‌نوشیم.", category: "vocab", level: "EASY", cefr: "A1" },
+  { sentence: "My sister ___ to school every day.", answer: "goes", distractors: ["go", "going", "went"], translation: "خواهرم هر روز به مدرسه می‌رود.", category: "tenses", level: "EASY", cefr: "A1" },
+
   // ================= متوسط (A2 - B1) =================
   { sentence: "If it ___ tomorrow, we will stay home.", answer: "rains", distractors: ["rain", "will rain", "rained"], translation: "اگر فردا باران بیاید، خانه می‌مانیم.", category: "conditionals", level: "MEDIUM", cefr: "A2" },
   { sentence: "I have ___ this movie twice.", answer: "seen", distractors: ["saw", "see", "seeing"], translation: "من این فیلم را دو بار دیده‌ام.", category: "presentperfect", level: "MEDIUM", cefr: "A2" },
@@ -252,6 +336,13 @@ export const SPEEDQUIZ_SENTENCES: SpeedQuizSentenceData[] = [
   { sentence: "He denied ___ the money.", answer: "stealing", distractors: ["to steal", "steal", "stole"], translation: "او دزدیدن پول را انکار کرد.", category: "gerund", level: "MEDIUM", cefr: "B1" },
   { sentence: "We had our house ___ last month.", answer: "repainted", distractors: ["repaint", "repainting", "to repaint"], translation: "ماه گذشته خانه‌مان را دوباره رنگ‌آمیزی کردیم.", category: "verbpatterns", level: "MEDIUM", cefr: "B1" },
 
+  // ---- افزودنی‌های v1.0.0.6 — جملات متوسط بیشتر ----
+  { sentence: "He suggested ___ a taxi.", answer: "taking", distractors: ["to take", "take", "took"], translation: "او پیشنهاد داد تاکسی بگیریم.", category: "gerund", level: "MEDIUM", cefr: "B1" },
+  { sentence: "This shirt is ___ expensive than that one.", answer: "less", distractors: ["least", "little", "lesser"], translation: "این پیراهن از آن یکی کمتر گران است.", category: "comparison", level: "MEDIUM", cefr: "B1" },
+  { sentence: "I'm not used to ___ up early.", answer: "waking", distractors: ["wake", "woke", "woken"], translation: "من به بیدار شدن زود عادت ندارم.", category: "gerund", level: "MEDIUM", cefr: "A2" },
+  { sentence: "The homework ___ by the teacher tomorrow.", answer: "will be checked", distractors: ["will check", "is checking", "checked"], translation: "تکالیف فردا توسط معلم بررسی می‌شود.", category: "passive", level: "MEDIUM", cefr: "B1" },
+  { sentence: "Neither of the answers ___ correct.", answer: "is", distractors: ["are", "be", "being"], translation: "هیچ‌کدام از پاسخ‌ها درست نیست.", category: "tenses", level: "MEDIUM", cefr: "B1" },
+
   // ================= سخت (B2 - C1) =================
   { sentence: "Had I known about the meeting, I ___ attended.", answer: "would have", distractors: ["will have", "had", "would"], translation: "اگر از جلسه باخبر بودم، شرکت می‌کردم.", category: "conditionals", level: "HARD", cefr: "C1" },
   { sentence: "Rarely ___ such dedication in young researchers.", answer: "do we see", distractors: ["we see", "we do see", "seen"], translation: "به‌ندرت چنین تعهدی در پژوهشگران جوان دیده می‌شود.", category: "inversion", level: "HARD", cefr: "C1" },
@@ -273,6 +364,13 @@ export const SPEEDQUIZ_SENTENCES: SpeedQuizSentenceData[] = [
   { sentence: "The results were far ___ satisfactory; in fact, they were disappointing.", answer: "from", distractors: ["of", "away", "beyond"], translation: "نتایج به‌هیچ‌وجه رضایت‌بخش نبودند؛ در واقع ناامیدکننده بودند.", category: "idioms", level: "HARD", cefr: "C1" },
   { sentence: "The government has implemented policies to ___ unemployment.", answer: "reduce", distractors: ["raise", "enlarge", "ignore"], translation: "دولت سیاست‌هایی برای کاهش بیکاری اجرا کرده است.", category: "vocab", level: "HARD", cefr: "B2" },
   { sentence: "The report highlights the ___ of climate change on agriculture.", answer: "impact", distractors: ["benefit", "delay", "cost"], translation: "گزارش اثر تغییرات اقلیم بر کشاورزی را برجسته می‌کند.", category: "vocab", level: "HARD", cefr: "B2" },
+
+  // ---- افزودنی‌های v1.0.0.6 — جملات سخت بیشتر ----
+  { sentence: "The manager put ___ the meeting until Friday.", answer: "off", distractors: ["on", "up", "away"], translation: "مدیر جلسه را به جمعه موکول کرد.", category: "idioms", level: "HARD", cefr: "B2" },
+  { sentence: "Little ___ know that the secret had already been revealed.", answer: "did she", distractors: ["she did", "she", "does she"], translation: "او اصلاً نمی‌دانست که راز هم‌اکنون فاش شده است.", category: "inversion", level: "HARD", cefr: "C1" },
+  { sentence: "The proposal was turned ___ by the board.", answer: "down", distractors: ["up", "in", "over"], translation: "هیئت مدیره پیشنهاد را رد کرد.", category: "idioms", level: "HARD", cefr: "B2" },
+  { sentence: "Were the economy to ___, unemployment would rise.", answer: "worsen", distractors: ["improve", "improved", "improving"], translation: "اگر اقتصاد بدتر شود، بیکاری افزایش می‌یابد.", category: "conditionals", level: "HARD", cefr: "C1" },
+  { sentence: "The findings ___ previous research on the topic.", answer: "corroborate", distractors: ["contradict", "ignore", "delay"], translation: "یافته‌ها تحقیقات قبلی در این موضوع را تأیید می‌کنند.", category: "vocab", level: "HARD", cefr: "C1" },
 ];
 
 // ---- برچسب فارسی دسته‌بندی‌ها (کلمه‌ای + جمله‌ای) ----

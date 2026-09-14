@@ -1,11 +1,13 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Trophy, CheckCircle2, Gamepad2, Flame } from "lucide-react";
-import type { GameStats, StreakInfo } from "@/types/game";
+import { Trophy, CheckCircle2, Gamepad2 } from "lucide-react";
+import type { GameStats } from "@/types/game";
 
 // ========================================
 // چیپ آمار (فقط در صفحه بازی‌ها — گام ۶)
+// v1.0.0.6 — گام ۱: کارت «روزهای متوالی» حذف شد
+// (فقط کارت حذف شده؛ اتصال استریک در پس‌زمینه کماکان فعال است)
 // ========================================
 
 function StatChip({
@@ -37,20 +39,20 @@ function StatChip({
 }
 
 // ========================================
-// نوار آمار بازی — بهترین امتیاز / بردها / دفعات / استریک
-// winLabel قابل سفارشی‌سازی است (هنگ‌من: «کلمات برده» / حافظه: «جفت‌های درست»)
+// نوار آمار بازی — بهترین امتیاز / بردها / دفعات بازی
+// اعداد همزمان با بازی زنده تغییر می‌کنند (v1.0.0.6 — گام ۱)
+// winLabel قابل سفارشی‌سازی است
+// (هنگ‌من: «کلمات برده» / حافظه: «جفت‌های درست» / کوییز: «پاسخ‌های درست»)
 // ========================================
 export default function GameStatsBar({
   stats,
-  streak,
   winLabel = "کلمات برده",
 }: {
   stats: GameStats | null;
-  streak: StreakInfo | null;
   winLabel?: string;
 }) {
   return (
-    <div className="grid grid-cols-4 gap-2 mt-4 mb-5">
+    <div className="grid grid-cols-3 gap-2 mt-4 mb-5">
       <StatChip
         icon={Trophy}
         label="بهترین امتیاز"
@@ -68,12 +70,6 @@ export default function GameStatsBar({
         label="دفعات بازی"
         value={stats?.sessionsPlayed ?? 0}
         classes="bg-blue-50 border-blue-100 text-blue-600"
-      />
-      <StatChip
-        icon={Flame}
-        label="روز متوالی"
-        value={streak?.current ?? 0}
-        classes="bg-orange-50 border-orange-100 text-orange-600"
       />
     </div>
   );

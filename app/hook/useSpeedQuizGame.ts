@@ -21,6 +21,10 @@ export type SpeedQuizPhase =
   | "sessionEnd"
   | "error";
 
+// ---- نتیجه نهایی دور (v1.0.0.6 — گام ۴) ----
+// gameover = هر ۳ جان تمام شد / win = همه سوال‌ها با جانِ مانده جواب شد
+export type SpeedQuizOutcome = "win" | "gameover";
+
 // ---- نتیجه نمایش‌داده‌شده بعد از هر پاسخ ----
 export type SpeedQuizFeedback = {
   correct: boolean;
@@ -39,13 +43,19 @@ const TICK_MS = 100;
 const TOTAL_MS = SPEEDQUIZ_CONFIG.secondsPerQuestion * 1000;
 
 type UseSpeedQuizGameOptions = {
+  // شروع یک دور جدید (برای ثبت دفعات بازی — v1.0.0.6 گام ۱)
+  onSessionStart?: () => void;
   // با هر پاسخ درست صدا زده می‌شود (برای ثبت استریک — گام ۷)
   onCorrectAnswer?: () => void;
   // با پایان دور کامل صدا زده می‌شود (برای ثبت امتیاز)
   onSessionFinish?: (score: number, correct: number, wrong: number) => void;
 };
 
+// ترتیب سطوح برای «مرحله بعد» — چرخه‌ای تا پیشرفت بی‌پایان باشد
+const LEVEL_ORDER: GameLevel[] = ["EASY", "MEDIUM", "HARD"];
+
 export function useSpeedQuizGame({
+  onSessionStart,
   onCorrectAnswer,
   onSessionFinish,
 }: UseSpeedQuizGameOptions = {}) {
@@ -65,6 +75,11 @@ export function useSpeedQuizGame({
   const [lastGained, setLastGained] = useState(0);
   const [gainKey, setGainKey] = useState(0);
 
+  // ---- نتیجه نهایی دور (گام ۴) ----
+  const [outcome, setOutcome] = useState<SpeedQuizOutcome | null>(null);
+  // ---- مخفی‌کردن نام سطح بعد از «مرحله بعد» (گام ۴) ----
+  const [hideLevel, setHideLevel] = useState(false);
+
   // ---- قفل جلوگیری از پاسخ تکراری در یک سوال ----
   const lockedRef = useRef(false);
   // ---- مدیریت تایمرها (تیک تایمر + انتقال به سوال بعد) ----
@@ -78,44 +93,53 @@ export function useSpeedQuizGame({
   useEffect(() => clearTimers, [clearTimers]);
 
   // ---- شروع یک دور جدید ----
-  const startGame = useCallback(async (lvl: GameLevel) => {
-    clearTimers();
-    lockedRef.current = false;
-    setLevel(lvl);
-    setPhase("loading");
-    setQuestions([]);
-    setQIndex(0);
-    setScore(0);
-    setCombo(0);
-    setLives(SPEEDQUIZ_CONFIG.lives);
-    setCorrectCount(0);
-    setWrongCount(0);
-    setFeedback(null);
-    setLastGained(0);
-    setTimeLeftMs(TOTAL_MS);
+  // hideLevel=true یعنی از مسیر «مرحله بعد» آمده‌ایم — نام سطح مخفی است
+  const startGame = useCallback(
+    async (lvl: GameLevel, opts?: { hideLevel?: boolean }) => {
+      clearTimers();
+      lockedRef.current = false;
+      setLevel(lvl);
+      setHideLevel(Boolean(opts?.hideLevel));
+      setPhase("loading");
+      setQuestions([]);
+      setQIndex(0);
+      setScore(0);
+      setCombo(0);
+      setLives(SPEEDQUIZ_CONFIG.lives);
+      setCorrectCount(0);
+      setWrongCount(0);
+      setFeedback(null);
+      setLastGained(0);
+      setTimeLeftMs(TOTAL_MS);
+      setOutcome(null);
 
-    try {
-      const res = await fetch(
-        `/api/game/speedquiz/questions?count=${SPEEDQUIZ_CONFIG.questionsPerSession}&level=${lvl}`,
-      );
-      if (!res.ok) {
+      // ثبت دفعات بازی (گام ۱)
+      onSessionStart?.();
+
+      try {
+        const res = await fetch(
+          `/api/game/speedquiz/questions?count=${SPEEDQUIZ_CONFIG.questionsPerSession}&level=${lvl}`,
+        );
+        if (!res.ok) {
+          setPhase("error");
+          return;
+        }
+        const data = await res.json();
+        const qs: SpeedQuizQuestion[] = Array.isArray(data.questions)
+          ? data.questions
+          : [];
+        if (qs.length === 0) {
+          setPhase("error");
+          return;
+        }
+        setQuestions(qs);
+        setPhase("playing");
+      } catch {
         setPhase("error");
-        return;
       }
-      const data = await res.json();
-      const qs: SpeedQuizQuestion[] = Array.isArray(data.questions)
-        ? data.questions
-        : [];
-      if (qs.length === 0) {
-        setPhase("error");
-        return;
-      }
-      setQuestions(qs);
-      setPhase("playing");
-    } catch {
-      setPhase("error");
-    }
-  }, [clearTimers]);
+    },
+    [clearTimers, onSessionStart],
+  );
 
   // ---- جواب به سوال فعلی (index=null → تایم‌اوت) ----
   const handleAnswer = useCallback(
@@ -183,6 +207,9 @@ export function useSpeedQuizGame({
               const finalScore =
                 newScore + (perfect ? SPEEDQUIZ_CONFIG.perfectSessionBonus : 0);
               setScore(finalScore);
+              // نتیجه نهایی دور (گام ۴):
+              // اتمام جان‌ها → Game Over / اتمام سوال‌ها → برد
+              setOutcome(outOfLives ? "gameover" : "win");
               setPhase("sessionEnd");
               onSessionFinish?.(finalScore, newCorrect, newWrong);
             } else {
@@ -239,6 +266,8 @@ export function useSpeedQuizGame({
     lockedRef.current = false;
     setQuestions([]);
     setFeedback(null);
+    setOutcome(null);
+    setHideLevel(false);
     setPhase("levelSelect");
   }, [clearTimers]);
 
@@ -247,10 +276,19 @@ export function useSpeedQuizGame({
     void startGame(level);
   }, [level, startGame]);
 
+  // ---- مرحله بعد — سطح بعدی بدون نمایش شماره (گام ۴) ----
+  // چرخه: آسان → متوسط → سخت → آسان (پیشرفت بی‌پایان)
+  const handleNextLevel = useCallback(() => {
+    const idx = LEVEL_ORDER.indexOf(level);
+    const next = LEVEL_ORDER[(idx + 1) % LEVEL_ORDER.length];
+    void startGame(next, { hideLevel: true });
+  }, [level, startGame]);
+
   return {
     // وضعیت
     phase,
     level,
+    hideLevel,
     questions,
     qIndex,
     score,
@@ -265,10 +303,13 @@ export function useSpeedQuizGame({
     lastGained,
     gainKey,
     totalQuestions: SPEEDQUIZ_CONFIG.questionsPerSession,
+    // نتیجه نهایی (گام ۴)
+    outcome,
     // عملیات
     startGame,
     handleAnswer,
     handleRestart,
+    handleNextLevel,
     handleBackToLevels,
   };
 }

@@ -109,29 +109,27 @@ export async function GET(req: NextRequest) {
       })
       .filter((w) => !level || w.level === level);
 
-    // ---- ۳. استخر جفت‌ها (DB + تکمیل از لیست ثابت) ----
+    // ---- ۳. استخر کلمات: ادغام DB + لیست ثابت (v1.0.0.6) ----
+    // ردیف‌های DB با کلمات تازه‌ی لیست ثابت ادغام می‌شوند تا
+    // کلمات جدید حتی بدون اجرای دوباره seed هم در بازی بیایند.
     const pool: PairRow[] = dbPool.map((w) => ({
       ...w,
       word: w.word.toLowerCase(),
     }));
 
-    // اگه دیتابیس برای این سطح کافی نبود، از لیست ثابت اضافه می‌کنیم
-    if (pool.length < count) {
-      const existing = new Set(pool.map((w) => w.word));
-      for (const w of MEMORY_WORDS) {
-        if (pool.length >= count) break;
-        if (level && w.level !== level) continue;
-        if (existing.has(w.word.toLowerCase())) continue;
-        existing.add(w.word.toLowerCase());
-        pool.push({
-          id: -(pool.length + 1),
-          word: w.word.toLowerCase(),
-          translation: w.translation,
-          category: w.category,
-          level: w.level,
-          cefr: w.cefr,
-        });
-      }
+    const existing = new Set(pool.map((w) => w.word));
+    for (const w of MEMORY_WORDS) {
+      if (level && w.level !== level) continue;
+      if (existing.has(w.word.toLowerCase())) continue;
+      existing.add(w.word.toLowerCase());
+      pool.push({
+        id: -(pool.length + 1),
+        word: w.word.toLowerCase(),
+        translation: w.translation,
+        category: w.category,
+        level: w.level,
+        cefr: w.cefr,
+      });
     }
 
     // ---- ۴. شافل تصادفی (Fisher–Yates) ----

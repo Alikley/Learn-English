@@ -1,14 +1,16 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Trophy, Flame, Play, Layers } from "lucide-react";
-import type { GameStats, StreakInfo } from "@/types/game";
+import { Trophy, Play, Layers } from "lucide-react";
+import type { GameStats } from "@/types/game";
 import Confetti from "./Confetti";
 
 // ========================================
 // اورلی پایان دور — نتیجه نهایی + ثبت امتیاز
 // title / winLabel / lossLabel قابل سفارشی‌سازی‌اند
-// (هنگ‌من: «پایان دور!» برد/باخت — حافظه: «پایان بازی!» جفت/اشتباه)
+// (هنگ‌من: «پایان دور!» برد/باخت)
+// v1.0.0.6 — گام ۱: نمایش استریک از صفحه بازی‌ها حذف شد
+// (ثبت استریک در پس‌زمینه کماکان فعال است)
 // ========================================
 
 export default function SessionEndOverlay({
@@ -17,7 +19,6 @@ export default function SessionEndOverlay({
   wins,
   losses,
   stats,
-  streak,
   isNewRecord,
   onRestart,
   onChangeLevel,
@@ -30,7 +31,6 @@ export default function SessionEndOverlay({
   wins: number;
   losses: number;
   stats: GameStats | null;
-  streak: StreakInfo | null;
   isNewRecord: boolean;
   onRestart: () => void;
   onChangeLevel: () => void;
@@ -98,12 +98,6 @@ export default function SessionEndOverlay({
               <span>
                 بهترین امتیاز: <b className="text-slate-700">{stats?.bestScore ?? 0}</b>
               </span>
-              {streak && (
-                <span className="flex items-center gap-1">
-                  <Flame className="h-3.5 w-3.5 text-orange-500" />
-                  <b className="text-slate-700">{streak.current}</b> روز متوالی
-                </span>
-              )}
             </div>
 
             <div className="flex gap-2">
