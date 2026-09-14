@@ -226,3 +226,26 @@ model MemoryWord {
   level       String  @default("EASY")
   isActive    Boolean @default(true)
 }
+
+// ========================================
+// بازی کوییز سرعتی (Speed Quiz)
+// ========================================
+
+/// سوال‌های بازی کوییز سرعتی — منبع: data/speedquiz/questions.ts (seed)
+/// type=WORD → prompt=کلمه انگلیسی، گزینه‌ها=معنی فارسی
+/// type=SENTENCE → prompt=جمله با جای خالی ___، گزینه‌ها=کلمه انگلیسی
+/// distractors = JSON آرایه ۳ گزینه اشتباه
+model SpeedQuizQuestion {
+  id          Int     @id @default(autoincrement())
+  type        String  @default("WORD")
+  prompt      String
+  answer      String
+  distractors String  @default("[]")
+  translation String  @default("")
+  category    String  @default("general")
+  level       String  @default("EASY")
+  cefr        String  @default("A1")
+  isActive    Boolean @default(true)
+
+  @@index([level, isActive])
+}

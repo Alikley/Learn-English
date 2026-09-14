@@ -19,6 +19,8 @@ import {
 // ========================================
 // صفحه بازی حافظه کلمات
 // منطق در useMemoryGame + useMemoryStats — اینجا فقط رندر
+// v1.0.0.7 — گام ۱: جان‌های پویا (جفت درست +۱ / اشتباه −۱) در نوار بالا
+// v1.0.0.7 — گام ۳: خروج وسط دور هم امتیاز را ثبت می‌کند
 // v1.0.0.6 — گام ۳: ۳ اشتباه = Game Over انیمیشنی، برد = مرحله بعد
 //   بدون نمایش شماره مرحله + جان‌ها در نوار بالا
 // v1.0.0.6 — گام ۱: آمار زنده + حذف کارت استریک از صفحه
@@ -208,7 +210,7 @@ export default function MemoryPage() {
           <span>هر جفت پشت سر هم: +{MEMORY_CONFIG.comboStepBonus} بیشتر</span>
           <span>راند بی‌نقص: +{MEMORY_CONFIG.perfectRoundBonus}</span>
           <span>
-            جان‌ها: {MEMORY_CONFIG.maxSessionMistakes} | هر بازی: {MEMORY_CONFIG.roundsPerSession} راند ×{" "}
+            جان‌ها: {MEMORY_CONFIG.startLives} (هر جفت درست +۱ تا سقف {MEMORY_CONFIG.maxLives}) | هر بازی: {MEMORY_CONFIG.roundsPerSession} راند ×{" "}
             {MEMORY_CONFIG.pairsPerBoard[level]} جفت
           </span>
         </div>

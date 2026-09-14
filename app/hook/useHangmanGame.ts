@@ -293,6 +293,11 @@ export function useHangmanGame({
   // بازگشت به انتخاب سطح
   // ========================================
   const handleBackToLevels = useCallback(() => {
+    // v1.0.0.7 — گام ۳: امتیاز دورِ نیمه‌تمام قبل از ریست ثبت می‌شود
+    const midSession = phase === "playing" || phase === "wordResult";
+    if (midSession && score > 0) {
+      onSessionFinish?.(score);
+    }
     setWords([]);
     setWordIndex(0);
     setGuessedLetters([]);
@@ -302,7 +307,7 @@ export function useHangmanGame({
     setTimeLeftMs(HANGMAN_TIMER_SECONDS[level] * 1000);
     setTimeoutStrikes(0);
     setPhase("levelSelect");
-  }, [level]);
+  }, [phase, score, onSessionFinish, level]);
 
   // ========================================
   // پشتیبانی کیبورد فیزیکی

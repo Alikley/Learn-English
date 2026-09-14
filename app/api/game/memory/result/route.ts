@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
           data: {
             bestScore: Math.max(existing.bestScore, score),
             totalLosses: existing.totalLosses + mistakes,
-            sessionsPlayed: existing.sessionsPlayed + 1,
+            // v1.0.0.7 — دفعات بازی فقط با action="start" ثبت می‌شود (رفع شمارش دوباره)
             lastPlayedAt: new Date(),
           },
         });

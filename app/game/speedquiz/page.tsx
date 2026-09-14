@@ -21,6 +21,8 @@ import {
 // ========================================
 // صفحه بازی کوییز سرعتی
 // منطق در useSpeedQuizGame + useSpeedQuizStats — اینجا فقط رندر
+// v1.0.0.7 — گام ۲: UI یکسان با بقیه بازی‌ها — حذف گوی‌های نورانی،
+//   نوار آمار همیشه نمایان، لودر اسپینر ساده
 // v1.0.0.6 — گام ۴: اتمام جان‌ها = GAME OVER قرمز، برد = CONGRATULATIONS سبز
 //   + دکمه «مرحله بعد» بدون نمایش شماره مرحله
 // v1.0.0.6 — گام ۱: آمار زنده + حذف کارت استریک از صفحه
@@ -66,25 +68,11 @@ export default function SpeedQuizPage() {
   const currentQuestion = questions[qIndex] ?? null;
 
   return (
-    <div className="relative p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
-      {/* ============ افکت پس‌زمینه: گوی‌های نورانی شناور ============ */}
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute -top-4 -right-10 w-60 h-60 rounded-full bg-amber-200/50 blur-3xl"
-        animate={{ y: [0, 26, 0], scale: [1, 1.1, 1] }}
-        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        aria-hidden
-        className="pointer-events-none absolute top-40 -left-12 w-56 h-56 rounded-full bg-emerald-200/40 blur-3xl"
-        animate={{ y: [0, -22, 0], scale: [1, 1.08, 1] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
-      />
-
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
       {/* ================= هدر ================= */}
-      <div className="relative flex items-center gap-3 mb-2">
+      <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-          <Zap className="w-5 h-5 text-amber-500 fill-amber-300" />
+          <Zap className="w-5 h-5 text-amber-500" />
         </div>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">کوییز سرعتی</h1>
@@ -113,12 +101,9 @@ export default function SpeedQuizPage() {
       </div>
 
       {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
-      {/* حین بازی مخفی می‌شود تا سوال و گزینه‌ها بدون اسکرول دیده شوند؛
-          امتیاز زنده در نوار بالای بازی است و آمار کامل در سطح‌بندی/پایان.
+      {/* v1.0.0.7 — گام ۲: مثل دو بازی دیگر، نوار آمار همیشه نمایان است؛
           اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
-      {(phase === "levelSelect" || phase === "sessionEnd") && (
-        <GameStatsBar stats={stats} winLabel="پاسخ‌های درست" />
-      )}
+      <GameStatsBar stats={stats} winLabel="پاسخ‌های درست" />
 
       {/* ================= انتخاب سطح ================= */}
       {phase === "levelSelect" && (
@@ -159,13 +144,8 @@ export default function SpeedQuizPage() {
 
           {/* ---- بدنه بازی ---- */}
           {phase === "loading" && (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <motion.div
-                animate={{ scale: [1, 1.18, 1], rotate: [0, -10, 10, 0] }}
-                transition={{ repeat: Infinity, duration: 1 }}
-              >
-                <Zap className="w-14 h-14 text-amber-400 fill-amber-200" />
-              </motion.div>
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <div className="w-10 h-10 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
               <p className="text-sm text-slate-500">
                 {/* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
                 {hideLevel

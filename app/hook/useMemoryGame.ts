@@ -10,10 +10,11 @@ import type { GameLevel, MemoryWordPair } from "@/types/game";
 // ساختار بازی: هر دور = چند راند (تخته) پشت سر هم؛
 // هر راند = جفت‌های انگلیسی-فارسی روی تخته که باید مچ شوند.
 //
-// v1.0.0.6 — گام ۳:
-//   • ۳ اشتباه در کل دور → بازی همان لحظه تمام می‌شود (Game Over)
-//   • برد (تمام‌کردن همه راندها) → دکمه «مرحله بعد» به سطح بعد می‌رود
-//     بدون نمایش شماره/نام مرحله (پیشرفت بی‌صدا، چرخه آسان→متوسط→سخت→آسان)
+// v1.0.0.7 — گام ۱: جان‌های پویا — هر جفت درست +۱ جان (تا سقف ۵)،
+//   هر اشتباه −۱ جان؛ صفر شدن جان‌ها = Game Over (به‌جای «۳ اشتباه کل دور»)
+// v1.0.0.7 — گام ۳: خروج وسط دور هم امتیاز را ثبت می‌کند
+//   (قبلاً امتیاز دور نیمه‌تمام بی‌خیال می‌شد و کارت رکورد ۰ می‌ماند)
+// v1.0.0.6 — گام ۳: برد (تمام‌کردن همه راندها) → دکمه «مرحله بعد» بدون شماره
 // v1.0.0.6 — گام ۱: onSessionStart برای ثبت «دفعات بازی» هنگام شروع دور
 // ========================================
 
@@ -125,6 +126,10 @@ export function useMemoryGame({
   // ---- مخفی‌کردن نام سطح بعد از «مرحله بعد» (گام ۳) ----
   const [hideLevel, setHideLevel] = useState(false);
 
+  // ---- جان‌های پویا (v1.0.0.7 — گام ۱) ----
+  // شروع با startLives (۳)؛ هر جفت درست +۱ (تا سقف maxLives)، هر اشتباه −۱
+  const [lives, setLives] = useState<number>(MEMORY_CONFIG.startLives);
+
   // ---- کلید ری‌استارت دور (بازخوانی کلمات) ----
   const [sessionKey, setSessionKey] = useState(0);
 
@@ -162,6 +167,7 @@ export function useMemoryGame({
       setSessionMatches(0);
       setRoundInfo(null);
       setOutcome(null);
+      setLives(MEMORY_CONFIG.startLives);
       setRoundIndex(0);
       setTotalRounds(MEMORY_CONFIG.roundsPerSession);
       setPhase("loading");
@@ -230,9 +236,8 @@ export function useMemoryGame({
   const matchedPairs =
     cards.filter((c) => c.state === "matched").length / 2;
   const hasMoreRounds = roundIndex + 1 < totalRounds;
-  // جان‌های کل دور — با سومین اشتباه صفر می‌شود (گام ۳)
-  const maxLives = MEMORY_CONFIG.maxSessionMistakes;
-  const lives = Math.max(0, maxLives - sessionMistakes);
+  // جان‌های پویا (v1.0.0.7 — گام ۱) — state واقعی، نه مشتق‌شده
+  const maxLives = MEMORY_CONFIG.maxLives;
 
   // ========================================
   // پایان یک راند (همه جفت‌ها مچ شدند)
@@ -298,6 +303,8 @@ export function useMemoryGame({
         setScore((s) => s + gained);
         setCombo(nextCombo);
         setSessionMatches((m) => m + 1);
+        // v1.0.0.7 — گام ۱: پاداش جفت درست — +۱ جان تا سقف maxLives
+        setLives((l) => Math.min(MEMORY_CONFIG.maxLives, l + 1));
 
         // ثبت استریک با هر جفت درست (گام ۷)
         onPairMatch?.();
@@ -334,6 +341,8 @@ export function useMemoryGame({
         const newSessionMistakes = sessionMistakes + 1;
         setRoundMistakes((m) => m + 1);
         setSessionMistakes(newSessionMistakes);
+        const newLives = lives - 1;
+        setLives(newLives);
         setWrongPair([firstId, secondId]);
 
         const t = window.setTimeout(() => {
@@ -349,8 +358,8 @@ export function useMemoryGame({
         }, MEMORY_CONFIG.flipBackDelayMs);
         addTimer(t);
 
-        // 🛑 گام ۳ — با سومین اشتباه بازی همان لحظه تمام می‌شود
-        if (newSessionMistakes >= MEMORY_CONFIG.maxSessionMistakes) {
+        // 🛑 گام ۱ (v1.0.0.7) — جان‌ها صفر شد → همان لحظه Game Over
+        if (newLives <= 0) {
           const t3 = window.setTimeout(() => {
             finishSession("gameover", score, newSessionMistakes);
           }, MEMORY_CONFIG.flipBackDelayMs + 400);
@@ -364,6 +373,7 @@ export function useMemoryGame({
       wrongPair,
       cards,
       combo,
+      lives,
       sessionMistakes,
       score,
       onPairMatch,
@@ -429,6 +439,7 @@ export function useMemoryGame({
     setSessionMatches(0);
     setRoundInfo(null);
     setOutcome(null);
+    setLives(MEMORY_CONFIG.startLives);
     setRoundIndex(0);
     setPhase("loading");
     setSessionKey((k) => k + 1);
@@ -440,6 +451,11 @@ export function useMemoryGame({
   // بازگشت به انتخاب سطح
   // ========================================
   const handleBackToLevels = useCallback(() => {
+    // v1.0.0.7 — گام ۳: امتیاز دورِ نیمه‌تمام قبل از ریست ثبت می‌شود
+    const midSession = phase === "playing" || phase === "roundResult";
+    if (midSession && (score > 0 || sessionMistakes > 0)) {
+      onSessionFinish?.(score, sessionMistakes);
+    }
     clearTimers();
     setPairs([]);
     setCards([]);
@@ -452,10 +468,11 @@ export function useMemoryGame({
     setSessionMatches(0);
     setRoundInfo(null);
     setOutcome(null);
+    setLives(MEMORY_CONFIG.startLives);
     setRoundIndex(0);
     setHideLevel(false);
     setPhase("levelSelect");
-  }, [clearTimers]);
+  }, [clearTimers, phase, score, sessionMistakes, onSessionFinish]);
 
   return {
     // وضعیت

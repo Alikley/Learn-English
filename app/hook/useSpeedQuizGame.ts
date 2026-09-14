@@ -262,6 +262,10 @@ export function useSpeedQuizGame({
 
   // ---- بازگشت به صفحه انتخاب سطح ----
   const handleBackToLevels = useCallback(() => {
+    // v1.0.0.7 — گام ۳: امتیاز دورِ نیمه‌تمام قبل از ریست ثبت می‌شود
+    if (phase === "playing" && (score > 0 || wrongCount > 0)) {
+      onSessionFinish?.(score, correctCount, wrongCount);
+    }
     clearTimers();
     lockedRef.current = false;
     setQuestions([]);
@@ -269,7 +273,7 @@ export function useSpeedQuizGame({
     setOutcome(null);
     setHideLevel(false);
     setPhase("levelSelect");
-  }, [clearTimers]);
+  }, [clearTimers, phase, score, correctCount, wrongCount, onSessionFinish]);
 
   // ---- تلاش مجدد (همان سطح، سوال‌های تازه) ----
   const handleRestart = useCallback(() => {
