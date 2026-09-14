@@ -71,8 +71,9 @@ export default function LevelSelect({
                   <span className="font-extrabold text-slate-800 text-base">
                     سطح {lvl.fa}
                   </span>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/70 text-slate-500 font-medium">
-                    {lvl.lengthLabel}
+                  {/* بج CEFR — مبنای سطح‌بندی کلمات */}
+                  <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-800 text-white font-bold tracking-wide">
+                    {lvl.cefrLabel}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1 leading-5">{lvl.desc}</p>

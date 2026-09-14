@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Brain, RotateCcw, XCircle, ArrowRight } from "lucide-react";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
 import LevelSelect from "@/app/components/game/LevelSelect";
@@ -67,8 +68,16 @@ export default function MemoryPage() {
             کارت‌ها را باز کن و جفت کلمه انگلیسی + معنی فارسی را پیدا کن!
           </p>
         </div>
-        {/* بازگشت به هاب بازی‌ها */}
-        {phase !== "levelSelect" && (
+        {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
+        {phase === "levelSelect" ? (
+          <Link
+            href="/game"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+            بازگشت
+          </Link>
+        ) : (
           <button
             onClick={handleBackToLevels}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"

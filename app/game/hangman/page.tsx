@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Link from "next/link";
 import { Gamepad2, Lightbulb, RotateCcw, XCircle, ArrowRight } from "lucide-react";
 import HangmanFigure from "@/app/components/game/HangmanFigure";
 import Keyboard from "@/app/components/game/Keyboard";
@@ -67,8 +68,16 @@ export default function HangmanPage() {
             حروف را حدس بزن و کلمه را نجات بده!
           </p>
         </div>
-        {/* بازگشت به هاب بازی‌ها */}
-        {phase !== "levelSelect" && (
+        {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
+        {phase === "levelSelect" ? (
+          <Link
+            href="/game"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
+          >
+            <ArrowRight className="w-3.5 h-3.5" />
+            بازگشت
+          </Link>
+        ) : (
           <button
             onClick={handleBackToLevels}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"
@@ -144,7 +153,7 @@ export default function HangmanPage() {
                         <span className="font-medium">راهنما:</span>
                         <span className="font-bold">{currentWord.hint}</span>
                       </p>
-                      <div className="flex items-center gap-1.5 mt-2.5">
+                      <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
                           {CATEGORY_LABELS[currentWord.category] ?? currentWord.category}
                         </span>
@@ -153,6 +162,12 @@ export default function HangmanPage() {
                         >
                           سطح {getGameLevel(currentWord.level).fa}
                         </span>
+                        {/* بج CEFR کلمه */}
+                        {currentWord.cefr && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-white font-bold tracking-wide">
+                            {currentWord.cefr}
+                          </span>
+                        )}
                       </div>
                     </motion.div>
 

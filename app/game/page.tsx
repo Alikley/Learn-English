@@ -34,7 +34,7 @@ export default function GamePage() {
       <div className="mt-6 space-y-3">
         <GameCard
           title="بازی هنگ کلمه"
-          desc="حروف را حدس بزن و کلمه را نجات بده! سه سطح: آسان، متوسط و سخت"
+          desc="حروف را حدس بزن و کلمه را نجات بده! کلمات از A1 تا C1"
           icon="/assets/icon_2_hangman.svg"
           href="/game/hangman"
           stats={
@@ -44,7 +44,7 @@ export default function GamePage() {
 
         <GameCard
           title="بازی حافظه کلمات"
-          desc="کارت‌ها را باز کن و جفت کلمات انگلیسی-فارسی را پیدا کن"
+          desc="کارت‌ها را باز کن و جفت کلمات انگلیسی-فارسی را پیدا کن — از A1 تا C1"
           icon="/assets/icon_1_abc_blocks.svg"
           href="/game/memory"
           stats={

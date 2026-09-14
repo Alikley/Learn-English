@@ -2,22 +2,23 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/Prisma client";
 import { NextRequest } from "next/server";
 import { HANGMAN_WORDS } from "@/data/hangman/words";
-import type { GameLevel } from "@/types/game";
+import type { CefrLevel, GameLevel } from "@/types/game";
 
 // ========================================
 // GET /api/game/hangman/words?count=10&level=EASY|MEDIUM|HARD
 // دریافت کلمات تصادفی برای بازی هنگ‌من (با سطح انتخابی)
 //
+// سطح‌بندی بر اساس CEFR است (آسان=A1 / متوسط=A2-B1 / سخت=B2-C1).
 // اولویت با دیتابیس است؛ اگه برای سطح خواسته‌شده کافی نبود
 // از لیست ثابت تکمیل می‌شود.
-// نکته: سطح‌های قدیمی (BEGINNER/ELEMENTARY/INTERMEDIATE از
-// نسخه‌های قبل seed شده‌اند) به سطح جدید نگاشت می‌شوند تا
-// بازی روی هر وضعیت دیتابیسی کار کند.
+// نکته مقاوم‌سازی: لیست ثابت مرجع کانونی سطح هر کلمه است؛
+// هر ردیف DB که در لیست باشد با سطح CEFR کانونی بازتقییم می‌شود
+// تا بازی روی هر وضعیت DB (سطح‌بندی قدیمی/قدیمی‌تر) درست کار کند.
 // ========================================
 
 const VALID_LEVELS = new Set(["EASY", "MEDIUM", "HARD"]);
 
-// نگاشت سطح‌های قدیمی → سطح‌های جدید سه‌گانه
+// نگاشت سطح‌های قدیمی → سطح‌های سه‌گانه (برای کلمات ناشناخته در لیست)
 const LEGACY_LEVEL_MAP: Record<string, GameLevel> = {
   BEGINNER: "EASY",
   ELEMENTARY: "MEDIUM",
@@ -26,12 +27,38 @@ const LEGACY_LEVEL_MAP: Record<string, GameLevel> = {
   UPPER_INTERMEDIATE: "HARD",
 };
 
-type WordRow = { id: number; word: string; hint: string; category: string; level: string };
+// نقشه کانونی: متن کلمه → (سطح CEFR، سطح بازی) از لیست ثابت
+const CANONICAL: Map<string, { level: GameLevel; cefr: CefrLevel }> = new Map(
+  HANGMAN_WORDS.map((w) => [w.word.toLowerCase(), { level: w.level, cefr: w.cefr }]),
+);
 
-// سطح هر ردیف را به مقدار استاندارد جدید تبدیل می‌کند
-function normalizeLevel(raw: string): GameLevel {
-  if (raw === "EASY" || raw === "MEDIUM" || raw === "HARD") return raw;
-  return LEGACY_LEVEL_MAP[raw] ?? "EASY";
+// CEFR تخمینی برای کلماتی که در لیست کانونی نیستند
+const LEVEL_TO_CEFR: Record<GameLevel, CefrLevel> = {
+  EASY: "A1",
+  MEDIUM: "B1",
+  HARD: "B2",
+};
+
+type WordRow = {
+  id: number;
+  word: string;
+  hint: string;
+  category: string;
+  level: string;
+  cefr?: CefrLevel;
+};
+
+// سطح هر ردیف را به مقدار استاندارد تبدیل می‌کند + بازتقییت CEFR کانونی
+function normalizeLevel(raw: string, word: string): { level: GameLevel; cefr: CefrLevel } {
+  // ۱) کلمه شناخته‌شده؟ سطح کانونی CEFR معیار است
+  const canon = CANONICAL.get(word.toLowerCase());
+  if (canon) return canon;
+  // ۲) کلمه ناشناخته — سطح DB را نرمال می‌کنیم
+  if (raw === "EASY" || raw === "MEDIUM" || raw === "HARD") {
+    return { level: raw, cefr: LEVEL_TO_CEFR[raw] };
+  }
+  const legacy = LEGACY_LEVEL_MAP[raw] ?? "EASY";
+  return { level: legacy, cefr: LEVEL_TO_CEFR[legacy] };
 }
 
 export async function GET(req: NextRequest) {
@@ -72,9 +99,12 @@ export async function GET(req: NextRequest) {
       // اگه جدول هنوز ساخته نشده بود، از لیست ثابت استفاده می‌کنیم
     }
 
-    // ---- ۲. نرمال‌سازی سطح‌ها + فیلتر سطح خواسته‌شده ----
+    // ---- ۲. بازتقییت CEFR کانونی + فیلتر سطح خواسته‌شده ----
     const dbPool: WordRow[] = dbWords
-      .map((w) => ({ ...w, level: normalizeLevel(w.level) }))
+      .map((w) => {
+        const norm = normalizeLevel(w.level, w.word);
+        return { ...w, level: norm.level, cefr: norm.cefr };
+      })
       .filter((w) => !level || w.level === level);
 
     // ---- ۳. استخر کلمات (DB + تکمیل از لیست ثابت) ----
@@ -97,6 +127,7 @@ export async function GET(req: NextRequest) {
           hint: w.hint,
           category: w.category,
           level: w.level,
+          cefr: w.cefr,
         });
       }
     }

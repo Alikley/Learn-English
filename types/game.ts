@@ -5,12 +5,30 @@
 // ---- سطح difficulty بازی هنگ‌من ----
 export type GameLevel = "EASY" | "MEDIUM" | "HARD";
 
+// ---- سطح CEFR کلمه (استاندارد اروپایی) ----
+// سطح‌بندی کلمات بر اساس سخت‌گیری واژگانی است، نه تعداد/طول کلمه:
+//   EASY   = A1        (پایه)
+//   MEDIUM = A2 - B1   (متوسط)
+//   HARD   = B2 - C1   (پیشرفته)
+export type CefrLevel = "A1" | "A2" | "B1" | "B2" | "C1";
+
+// نگاشت سطح CEFR → سطح بازی
+export const CEFR_TO_LEVEL: Record<CefrLevel, GameLevel> = {
+  A1: "EASY",
+  A2: "MEDIUM",
+  B1: "MEDIUM",
+  B2: "HARD",
+  C1: "HARD",
+};
+
 export type HangmanWord = {
   id: number;
   word: string;
   hint: string;
   category: string;
   level: GameLevel;
+  // سطح CEFR کلمه (A1..C1) — از API برمی‌گردد
+  cefr?: CefrLevel;
 };
 
 export type GameStats = {
@@ -35,11 +53,12 @@ export const GAME_CONFIG = {
 } as const;
 
 // ---- تنظیمات هر سطح ----
+// سطح‌بندی بر اساس CEFR: آسان=A1 / متوسط=A2-B1 / سخت=B2-C1
 export type GameLevelConfig = {
   id: GameLevel;
   fa: string;
   desc: string;
-  lengthLabel: string;
+  cefrLabel: string;
   badge: string;
   theme: string;
 };
@@ -48,24 +67,24 @@ export const GAME_LEVELS: GameLevelConfig[] = [
   {
     id: "EASY",
     fa: "آسان",
-    desc: "کلمات کوتاه و پرکاربرد — برای گرم کردن و یادگیری پایه",
-    lengthLabel: "۳ تا ۵ حرف",
+    desc: "کلمات پایه سطح A1 — برای شروع و یادگیری اصولی",
+    cefrLabel: "A1",
     badge: "bg-emerald-100 text-emerald-700",
     theme: "border-emerald-200 hover:border-emerald-400 bg-emerald-50/60",
   },
   {
     id: "MEDIUM",
     fa: "متوسط",
-    desc: "کلمات متوسط — چالش واقعی برای تقویت واژگان",
-    lengthLabel: "۶ تا ۸ حرف",
+    desc: "کلمات سطح A2 تا B1 — چالش واقعی برای تقویت واژگان",
+    cefrLabel: "A2 - B1",
     badge: "bg-orange-100 text-orange-700",
     theme: "border-orange-200 hover:border-orange-400 bg-orange-50/60",
   },
   {
     id: "HARD",
     fa: "سخت",
-    desc: "کلمات بلند و پیشرفته — مخصوص حرفه‌ای‌ها",
-    lengthLabel: "۹ حرف و بیشتر",
+    desc: "کلمات پیشرفته سطح B2 و C1 — مخصوص حرفه‌ای‌ها",
+    cefrLabel: "B2 - C1",
     badge: "bg-red-100 text-red-700",
     theme: "border-red-200 hover:border-red-400 bg-red-50/60",
   },
@@ -109,14 +128,17 @@ export type MemoryWordPair = {
   translation: string;
   category: string;
   level: GameLevel;
+  // سطح CEFR کلمه (A1..C1) — از API برمی‌گردد
+  cefr?: CefrLevel;
 };
 
 // ---- قوانین امتیازدهی و ساختار بازی حافظه ----
 export const MEMORY_CONFIG = {
   // هر دور کامل = ۳ تخته (راند) پشت سر هم
   roundsPerSession: 3,
-  // تعداد جفت روی هر تخته بر اساس سطح
-  pairsPerBoard: { EASY: 3, MEDIUM: 4, HARD: 6 } as Record<GameLevel, number>,
+  // تعداد جفت روی هر تخته — در همه سطح‌ها یکسان است؛
+  // سختی سطح فقط از سختی کلمات (CEFR) می‌آید نه تعداد کلمه
+  pairsPerBoard: { EASY: 4, MEDIUM: 4, HARD: 4 } as Record<GameLevel, number>,
   // امتیاز هر جفت درست
   pointsPerMatch: 20,
   // پاداش کمبو: هر جفت پشت سر هم بدون خطا +۵ امتیاز بیشتر
@@ -127,29 +149,29 @@ export const MEMORY_CONFIG = {
   flipBackDelayMs: 900,
 } as const;
 
-// ---- تنظیمات هر سطح برای بازی حافظه ----
+// ---- تنظیمات هر سطح برای بازی حافظه (سطح‌بندی CEFR) ----
 export const MEMORY_LEVELS: GameLevelConfig[] = [
   {
     id: "EASY",
     fa: "آسان",
-    desc: "کلمات ساده و پرکاربرد — تخته کوچک برای گرم کردن حافظه",
-    lengthLabel: "۳ جفت • ۶ کارت",
+    desc: "کلمات پایه سطح A1 — شروع ملایم برای گرم کردن حافظه (۴ جفت در هر راند)",
+    cefrLabel: "A1",
     badge: "bg-emerald-100 text-emerald-700",
     theme: "border-emerald-200 hover:border-emerald-400 bg-emerald-50/60",
   },
   {
     id: "MEDIUM",
     fa: "متوسط",
-    desc: "کلمات متوسط — چالش واقعی برای تقویت واژگان",
-    lengthLabel: "۴ جفت • ۸ کارت",
+    desc: "کلمات سطح A2 تا B1 — چالش واقعی برای تقویت واژگان (۴ جفت در هر راند)",
+    cefrLabel: "A2 - B1",
     badge: "bg-orange-100 text-orange-700",
     theme: "border-orange-200 hover:border-orange-400 bg-orange-50/60",
   },
   {
     id: "HARD",
     fa: "سخت",
-    desc: "کلمات بلند و پیشرفته — تخته بزرگ مخصوص حرفه‌ای‌ها",
-    lengthLabel: "۶ جفت • ۱۲ کارت",
+    desc: "کلمات پیشرفته سطح B2 و C1 — بزرگ‌ترین چالش واژگان (۴ جفت در هر راند)",
+    cefrLabel: "B2 - C1",
     badge: "bg-red-100 text-red-700",
     theme: "border-red-200 hover:border-red-400 bg-red-50/60",
   },
