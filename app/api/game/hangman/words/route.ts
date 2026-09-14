@@ -7,10 +7,32 @@ import type { GameLevel } from "@/types/game";
 // ========================================
 // GET /api/game/hangman/words?count=10&level=EASY|MEDIUM|HARD
 // دریافت کلمات تصادفی برای بازی هنگ‌من (با سطح انتخابی)
-// اولویت با دیتابیس است؛ اگه خالی بود fallback روی لیست ثابت
+//
+// اولویت با دیتابیس است؛ اگه برای سطح خواسته‌شده کافی نبود
+// از لیست ثابت تکمیل می‌شود.
+// نکته: سطح‌های قدیمی (BEGINNER/ELEMENTARY/INTERMEDIATE از
+// نسخه‌های قبل seed شده‌اند) به سطح جدید نگاشت می‌شوند تا
+// بازی روی هر وضعیت دیتابیسی کار کند.
 // ========================================
 
 const VALID_LEVELS = new Set(["EASY", "MEDIUM", "HARD"]);
+
+// نگاشت سطح‌های قدیمی → سطح‌های جدید سه‌گانه
+const LEGACY_LEVEL_MAP: Record<string, GameLevel> = {
+  BEGINNER: "EASY",
+  ELEMENTARY: "MEDIUM",
+  INTERMEDIATE: "HARD",
+  ADVANCED: "HARD",
+  UPPER_INTERMEDIATE: "HARD",
+};
+
+type WordRow = { id: number; word: string; hint: string; category: string; level: string };
+
+// سطح هر ردیف را به مقدار استاندارد جدید تبدیل می‌کند
+function normalizeLevel(raw: string): GameLevel {
+  if (raw === "EASY" || raw === "MEDIUM" || raw === "HARD") return raw;
+  return LEGACY_LEVEL_MAP[raw] ?? "EASY";
+}
 
 export async function GET(req: NextRequest) {
   const auth = await requireAuth();
@@ -32,13 +54,12 @@ export async function GET(req: NextRequest) {
     }
     const level = levelParam as GameLevel | null;
 
-    // ---- ۱. دریافت از دیتابیس ----
-    let dbWords: { id: number; word: string; hint: string; category: string; level: string }[] = [];
+    // ---- ۱. دریافت همه کلمات فعال از دیتابیس ----
+    // (فیلتر سطح در کد انجام می‌شود تا سطح‌های قدیمی هم پوشش داده شوند)
+    let dbWords: WordRow[] = [];
     try {
       dbWords = await prisma.gameWord.findMany({
-        where: level
-          ? { isActive: true, level }
-          : { isActive: true },
+        where: { isActive: true },
         select: {
           id: true,
           word: true,
@@ -47,26 +68,40 @@ export async function GET(req: NextRequest) {
           level: true,
         },
       });
-    } catch (e) {
+    } catch {
       // اگه جدول هنوز ساخته نشده بود، از لیست ثابت استفاده می‌کنیم
-      console.warn("GameWord table not available, using static list:", e);
     }
 
-    // ---- ۲. ساخت استخر کلمات (DB یا ثابت) ----
-    const pool: { id: number; word: string; hint: string; category: string; level: string }[] =
-      dbWords.length > 0
-        ? dbWords.map((w) => ({ ...w, word: w.word.toLowerCase() }))
-        : HANGMAN_WORDS
-            .filter((w) => !level || w.level === level)
-            .map((w, i) => ({
-              id: -(i + 1),
-              word: w.word.toLowerCase(),
-              hint: w.hint,
-              category: w.category,
-              level: w.level,
-            }));
+    // ---- ۲. نرمال‌سازی سطح‌ها + فیلتر سطح خواسته‌شده ----
+    const dbPool: WordRow[] = dbWords
+      .map((w) => ({ ...w, level: normalizeLevel(w.level) }))
+      .filter((w) => !level || w.level === level);
 
-    // ---- ۳. شافل تصادفی (Fisher–Yates) ----
+    // ---- ۳. استخر کلمات (DB + تکمیل از لیست ثابت) ----
+    const pool: WordRow[] = dbPool.map((w) => ({
+      ...w,
+      word: w.word.toLowerCase(),
+    }));
+
+    // اگه دیتابیس برای این سطح کافی نبود، از لیست ثابت کلماتِ جدید اضافه می‌کنیم
+    if (pool.length < count) {
+      const existing = new Set(pool.map((w) => w.word));
+      for (const w of HANGMAN_WORDS) {
+        if (pool.length >= count) break;
+        if (level && w.level !== level) continue;
+        if (existing.has(w.word.toLowerCase())) continue;
+        existing.add(w.word.toLowerCase());
+        pool.push({
+          id: -(pool.length + 1),
+          word: w.word.toLowerCase(),
+          hint: w.hint,
+          category: w.category,
+          level: w.level,
+        });
+      }
+    }
+
+    // ---- ۴. شافل تصادفی (Fisher–Yates) ----
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
@@ -74,7 +109,7 @@ export async function GET(req: NextRequest) {
 
     return ok({
       words: pool.slice(0, count),
-      source: dbWords.length > 0 ? "db" : "static",
+      source: dbPool.length >= count ? "db" : "mixed",
       level: level ?? "ALL",
       totalAvailable: pool.length,
     });

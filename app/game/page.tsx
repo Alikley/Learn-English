@@ -1,6 +1,6 @@
 "use client";
 
-import { Gamepad2, Trophy, Flame } from "lucide-react";
+import { Gamepad2, Trophy, Flame, Sparkles } from "lucide-react";
 import GameCard from "@/app/components/game/GameCard";
 import { useGameStats } from "@/app/hook/useGameStats";
 
@@ -11,6 +11,48 @@ import { useGameStats } from "@/app/hook/useGameStats";
 
 export default function GamePage() {
   const { stats, streak } = useGameStats();
+
+  // ---- چیپ‌های آمار روی کارت هنگ‌من ----
+  // کاربر بازی کرده؟ (بهترین امتیاز + استریک)
+  // کاربر استریک درس دارد اما بازی نکرده؟ (استریک + دعوت به بازی)
+  // کاربر تازه‌وارد؟ (دعوت شروع اولین دور)
+  let hangmanStats: React.ReactNode = null;
+  if (stats && (stats.sessionsPlayed > 0 || stats.bestScore > 0)) {
+    hangmanStats = (
+      <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-bold">
+          <Trophy className="w-3 h-3" />
+          بهترین: {stats.bestScore}
+        </span>
+        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-bold">
+          <Flame className="w-3 h-3" />
+          {streak?.current ?? 0} روز متوالی
+        </span>
+      </div>
+    );
+  } else if ((streak?.current ?? 0) > 0) {
+    hangmanStats = (
+      <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-bold">
+          <Flame className="w-3 h-3" />
+          {streak?.current} روز متوالی
+        </span>
+        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold">
+          <Sparkles className="w-3 h-3" />
+          اولین دورت را شروع کن!
+        </span>
+      </div>
+    );
+  } else {
+    hangmanStats = (
+      <div className="flex items-center gap-2 mt-2.5">
+        <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold">
+          <Sparkles className="w-3 h-3" />
+          هنوز بازی نکرده‌ای — اولین دور را شروع کن!
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
@@ -34,20 +76,7 @@ export default function GamePage() {
           desc="حروف را حدس بزن و کلمه را نجات بده! سه سطح: آسان، متوسط و سخت"
           icon="/assets/icon_2_hangman.svg"
           href="/game/hangman"
-          stats={
-            stats && (stats.sessionsPlayed > 0 || stats.bestScore > 0) ? (
-              <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-bold">
-                  <Trophy className="w-3 h-3" />
-                  بهترین: {stats.bestScore}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-bold">
-                  <Flame className="w-3 h-3" />
-                  {streak?.current ?? 0} روز متوالی
-                </span>
-              </div>
-            ) : null
-          }
+          stats={hangmanStats}
         />
 
         {/* ---- بازی‌های آینده ---- */}

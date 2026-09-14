@@ -2,6 +2,8 @@
 CREATE TABLE `user` (
     `id` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NULL,
+    `nickname` VARCHAR(191) NULL,
+    `phone` VARCHAR(191) NULL,
     `email` VARCHAR(191) NULL,
     `image` VARCHAR(191) NULL,
     `password` VARCHAR(191) NULL,
@@ -112,6 +114,69 @@ CREATE TABLE `Book` (
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- CreateTable
+CREATE TABLE `ListeningEpisode` (
+    `id` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NOT NULL,
+    `titleEn` VARCHAR(191) NOT NULL,
+    `titleFa` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NOT NULL,
+    `audioUrl` VARCHAR(191) NOT NULL,
+    `level` VARCHAR(191) NOT NULL DEFAULT 'BEGINNER',
+    `duration` INTEGER NOT NULL DEFAULT 0,
+    `xp` INTEGER NOT NULL DEFAULT 30,
+    `order` INTEGER NOT NULL DEFAULT 0,
+    `isPublished` BOOLEAN NOT NULL DEFAULT true,
+    `transcript` LONGTEXT NOT NULL,
+    `gaps` JSON NOT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `ListeningProgress` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `episodeId` VARCHAR(191) NOT NULL,
+    `stars` INTEGER NOT NULL DEFAULT 0,
+    `score` INTEGER NOT NULL DEFAULT 0,
+    `xpEarned` INTEGER NOT NULL DEFAULT 0,
+    `completedAt` DATETIME(3) NULL,
+
+    UNIQUE INDEX `ListeningProgress_userId_episodeId_key`(`userId`, `episodeId`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `GameWord` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `word` VARCHAR(191) NOT NULL,
+    `hint` VARCHAR(191) NOT NULL,
+    `category` VARCHAR(191) NOT NULL DEFAULT 'general',
+    `level` VARCHAR(191) NOT NULL DEFAULT 'BEGINNER',
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `GameScore` (
+    `id` VARCHAR(191) NOT NULL,
+    `userId` VARCHAR(191) NOT NULL,
+    `game` VARCHAR(191) NOT NULL DEFAULT 'hangman',
+    `bestScore` INTEGER NOT NULL DEFAULT 0,
+    `totalWins` INTEGER NOT NULL DEFAULT 0,
+    `totalLosses` INTEGER NOT NULL DEFAULT 0,
+    `sessionsPlayed` INTEGER NOT NULL DEFAULT 0,
+    `lastPlayedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `GameScore_userId_game_key`(`userId`, `game`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- AddForeignKey
 ALTER TABLE `lesson` ADD CONSTRAINT `lesson_courseId_fkey` FOREIGN KEY (`courseId`) REFERENCES `course`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -132,3 +197,12 @@ ALTER TABLE `streak` ADD CONSTRAINT `streak_userId_fkey` FOREIGN KEY (`userId`) 
 
 -- AddForeignKey
 ALTER TABLE `exercise` ADD CONSTRAINT `exercise_lessonId_fkey` FOREIGN KEY (`lessonId`) REFERENCES `lesson`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ListeningProgress` ADD CONSTRAINT `ListeningProgress_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `ListeningProgress` ADD CONSTRAINT `ListeningProgress_episodeId_fkey` FOREIGN KEY (`episodeId`) REFERENCES `ListeningEpisode`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `GameScore` ADD CONSTRAINT `GameScore_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `user`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
