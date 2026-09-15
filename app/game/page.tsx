@@ -25,8 +25,7 @@ import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
 export default function GamePage() {
   const { stats: hangmanStats, streak: hangmanStreak } = useGameStats();
   const { stats: memoryStats, streak: memoryStreak } = useMemoryStats();
-  const { stats: speedQuizStats, streak: speedQuizStreak } =
-    useSpeedQuizStats();
+  const { stats: speedQuizStats, streak: speedQuizStreak } = useSpeedQuizStats();
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
@@ -63,7 +62,9 @@ export default function GamePage() {
             desc="کارت‌ها را باز کن و جفت کلمات انگلیسی-فارسی را پیدا کن — از A1 تا C1"
             icon="/assets/icon_1_abc_blocks.svg"
             href="/game/memory"
-            stats={<GameCardStats stats={memoryStats} streak={memoryStreak} />}
+            stats={
+              <GameCardStats stats={memoryStats} streak={memoryStreak} />
+            }
           />
 
           <GameCard
@@ -92,6 +93,9 @@ export default function GamePage() {
         {/* در موبایل زیر بازی‌ها می‌آید؛ چشم‌ها موس را دنبال می‌کنند */}
         <div className="flex flex-col items-center justify-center">
           <MascotCharacter />
+          <p className="mt-3 text-center text-xs text-slate-400">
+            چشم‌هایم به موس توست — بازی کن!
+          </p>
         </div>
       </div>
     </div>

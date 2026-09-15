@@ -5,7 +5,22 @@ import { ArrowRight } from "lucide-react";
 import LessonCard from "@/app/components/course/LessonCard";
 import EmptyState from "@/app/components/course/EmptyState";
 import { LEVEL_LABEL } from "@/types/course";
+import { getCourseTheme } from "@/lib/course-theme";
 import { useCourseDetail } from "@/app/hook/useCourseDetail";
+
+// ========================================
+// صفحه جزئیات دوره — v1.0.1.0
+//
+// درس‌ها به‌صورت کارت‌های نردبانی نمایش داده می‌شوند
+// و پس‌زمینه صفحه به رنگ بخش دوره رنگ می‌شود:
+//   گرامر آبی / مکالمه سبز / لغات بنفش / لیسنینگ نارنجی
+// (تم از lib/course-theme.ts می‌آید و از titleEn دوره
+//  تشخیص داده می‌شود — همان منطق API دسته‌بندی‌ها.)
+//
+// هدر سفیدِ نیمه‌شفاف روی گرادیان رنگی نشسته تا رنگ
+// بخش در کل صفحه حس شود. بج سطح، نوار پیشرفت و
+// آمار هم‌رنگ بخش شده‌اند.
+// ========================================
 
 export default function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -35,14 +50,35 @@ export default function CourseDetailPage() {
     );
   }
 
+  // تم رنگی بر اساس بخش دوره (گرامر/مکالمه/لغات/لیسنینگ)
+  const theme = getCourseTheme(course.titleEn);
+
   return (
-    <div className="w-full min-h-full bg-[#fbfbfb]" dir="rtl">
-      {/* هدر */}
-      <div className="bg-white border-b border-slate-100">
+    <div
+      className={`relative w-full min-h-full overflow-hidden ${theme.pageBg}`}
+      dir="rtl"
+    >
+      {/* ابرهای نرم — طبق عکس مرجع: دایره‌های سفید محو روی گرادیان بخش */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      >
+        <div className="absolute -top-16 -right-10 w-72 h-72 rounded-full bg-white/40 blur-3xl" />
+        <div className="absolute top-24 -left-16 w-64 h-64 rounded-full bg-white/30 blur-3xl" />
+        <div className="absolute top-[42%] right-[12%] w-40 h-40 rounded-full bg-white/25 blur-2xl" />
+        <div className="absolute bottom-[18%] -left-10 w-72 h-72 rounded-full bg-white/30 blur-3xl" />
+        <div className="absolute -bottom-20 right-[28%] w-80 h-80 rounded-full bg-white/35 blur-3xl" />
+        <div className="absolute top-[64%] left-[38%] w-24 h-24 rounded-full bg-white/20 blur-2xl" />
+      </div>
+
+      {/* هدر — سفید نیمه‌شفاف روی گرادیان رنگی بخش */}
+      <div
+        className={`relative z-10 border-b ${theme.headerBg} ${theme.headerBorder}`}
+      >
         <div className="px-4 md:px-6 py-4">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1 text-slate-500 hover:text-blue-600 text-sm mb-4 transition-colors"
+            className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-4 transition-colors"
           >
             <ArrowRight size={16} />
             بازگشت به دوره‌ها
@@ -51,7 +87,14 @@ export default function CourseDetailPage() {
           <div className="flex flex-col md:flex-row md:items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-medium bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${theme.badge}`}
+                >
+                  {theme.label}
+                </span>
+                <span
+                  className={`text-xs font-medium px-2 py-0.5 rounded-full bg-white/70 text-slate-500`}
+                >
                   {LEVEL_LABEL[course.level] ?? course.level}
                 </span>
                 {course.titleEn && (
@@ -79,7 +122,7 @@ export default function CourseDetailPage() {
                   <div className="text-xs text-slate-400">درس تکمیل شده</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-500">
+                  <div className="text-2xl font-bold text-amber-500">
                     {stats.earnedXp}
                   </div>
                   <div className="text-xs text-slate-400">XP کسب شده</div>
@@ -97,9 +140,9 @@ export default function CourseDetailPage() {
                   باقیمانده
                 </span>
               </div>
-              <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+              <div className="h-2 rounded-full bg-white/80 overflow-hidden shadow-inner">
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${course.color ?? "bg-blue-500"}`}
+                  className={`h-full rounded-full transition-all duration-500 ${theme.progress}`}
                   style={{ width: `${course.progress}%` }}
                 />
               </div>
@@ -108,17 +151,19 @@ export default function CourseDetailPage() {
         </div>
       </div>
 
-      {/* لیست درس‌ها */}
-      <div className="px-4 md:px-6 py-6">
+      {/* لیست درس‌ها — کارت‌های نردبانی */}
+      <div className="relative z-10 px-4 md:px-6 py-6 pb-10">
         {course.lessons.length === 0 ? (
           <EmptyState type="lessons" />
         ) : (
-          <div className="space-y-3 max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto space-y-4">
             {course.lessons.map((lesson, index) => (
               <LessonCard
                 key={lesson.id}
                 lesson={lesson}
                 index={index}
+                total={course.lessons.length}
+                theme={theme}
                 isEnrolled={course.isEnrolled}
                 courseId={courseId}
                 completing={completing}
