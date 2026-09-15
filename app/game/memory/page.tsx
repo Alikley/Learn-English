@@ -179,6 +179,7 @@ export default function MemoryPage() {
               matchedPairs={totalPairs}
               hasNext={hasMoreRounds}
               onNext={handleNextRound}
+              score={score}
             />
           )}
 

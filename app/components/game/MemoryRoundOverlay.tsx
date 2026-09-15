@@ -8,6 +8,8 @@ import { MEMORY_CONFIG } from "@/types/game";
 // ========================================
 // اورلی پایان یک راند (تخته کامل شد)
 // نتیجه راند + دکمه راند بعدی / نتیجه نهایی
+// v1.0.0.8 — امتیاز کل دور هم روی همین کارت دیده می‌شود
+//   (قبلاً چیپ امتیاز پشت بلورِ اورلی پنهان می‌ماند)
 // ========================================
 
 export default function MemoryRoundOverlay({
@@ -15,11 +17,14 @@ export default function MemoryRoundOverlay({
   matchedPairs,
   hasNext,
   onNext,
+  score,
 }: {
   info: MemoryRoundInfo;
   matchedPairs: number;
   hasNext: boolean;
   onNext: () => void;
+  // امتیاز کل دور تا پایان این راند — v1.0.0.8
+  score: number;
 }) {
   return (
     <motion.div
@@ -68,6 +73,24 @@ export default function MemoryRoundOverlay({
           هر <b className="text-emerald-600">{matchedPairs} جفت</b> را پیدا کردی
           با <b className="text-red-500">{info.mistakes} اشتباه</b>
         </p>
+
+        {/* v1.0.0.8 — امتیاز کل دور روی همین کارت */}
+        <motion.p
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.35 }}
+          className="text-sm text-slate-500"
+        >
+          امتیاز کل:{" "}
+          <motion.b
+            initial={{ scale: 1.4 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.35, type: "spring", stiffness: 380, damping: 14 }}
+            className="inline-block text-emerald-600 font-extrabold text-lg"
+          >
+            {score}
+          </motion.b>
+        </motion.p>
 
         <motion.button
           onClick={onNext}

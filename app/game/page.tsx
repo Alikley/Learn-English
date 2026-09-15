@@ -3,6 +3,7 @@
 import { Gamepad2 } from "lucide-react";
 import GameCard from "@/app/components/game/GameCard";
 import GameCardStats from "@/app/components/game/GameCardStats";
+import MascotCharacter from "@/app/components/game/MascotCharacter";
 import { useGameStats } from "@/app/hook/useGameStats";
 import { useMemoryStats } from "@/app/hook/useMemoryStats";
 import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
@@ -10,6 +11,12 @@ import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
 // ========================================
 // هاب بازی‌ها — کارت هر بازی
 // هنگ‌من، حافظه کلمات و کوییز سرعتی فعال‌اند
+//
+// v1.0.0.8 — چیدمان دوستونه:
+//   جدول بازی‌ها سمت راست + کاراکتر متحرک سمت چپ
+//   (چشم‌های کاراکتر موس را دنبال می‌کنند — منطق در
+//    useGaze / useBlink، رندر در MascotCharacter)
+//   پس‌زمینه صفحه بدون تغییر است.
 // ========================================
 
 export default function GamePage() {
@@ -18,7 +25,7 @@ export default function GamePage() {
   const { stats: speedQuizStats, streak: speedQuizStreak } = useSpeedQuizStats();
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -32,49 +39,60 @@ export default function GamePage() {
         </div>
       </div>
 
-      {/* ================= لیست بازی‌ها ================= */}
-      <div className="mt-6 space-y-3">
-        <GameCard
-          title="بازی هنگ کلمه"
-          desc="حروف را حدس بزن و کلمه را نجات بده! کلمات از A1 تا C1"
-          icon="/assets/icon_2_hangman.svg"
-          href="/game/hangman"
-          stats={
-            <GameCardStats stats={hangmanStats} streak={hangmanStreak} />
-          }
-        />
+      {/* ============ چیدمان دوستونه (v1.0.0.8) ============ */}
+      {/* در RTL ستون اول سمت راست است: بازی‌ها راست، کاراکتر چپ */}
+      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_290px]">
+        {/* ================= جدول بازی‌ها — سمت راست ================= */}
+        <div className="space-y-3">
+          <GameCard
+            title="بازی هنگ کلمه"
+            desc="حروف را حدس بزن و کلمه را نجات بده! کلمات از A1 تا C1"
+            icon="/assets/icon_2_hangman.svg"
+            href="/game/hangman"
+            stats={
+              <GameCardStats stats={hangmanStats} streak={hangmanStreak} />
+            }
+          />
 
-        <GameCard
-          title="بازی حافظه کلمات"
-          desc="کارت‌ها را باز کن و جفت کلمات انگلیسی-فارسی را پیدا کن — از A1 تا C1"
-          icon="/assets/icon_1_abc_blocks.svg"
-          href="/game/memory"
-          stats={
-            <GameCardStats stats={memoryStats} streak={memoryStreak} />
-          }
-        />
+          <GameCard
+            title="بازی حافظه کلمات"
+            desc="کارت‌ها را باز کن و جفت کلمات انگلیسی-فارسی را پیدا کن — از A1 تا C1"
+            icon="/assets/icon_1_abc_blocks.svg"
+            href="/game/memory"
+            stats={
+              <GameCardStats stats={memoryStats} streak={memoryStreak} />
+            }
+          />
 
-        <GameCard
-          title="کوییز سرعتی"
-          desc="سریع جواب بده — سوال‌های کلمه و جمله از A1 تا C1"
-          icon="/assets/icon_3_document_sign.svg"
-          href="/game/speedquiz"
-          stats={
-            <GameCardStats
-              stats={speedQuizStats}
-              streak={speedQuizStreak}
-              inviteText="اولین کوییزت را شروع کن!"
-            />
-          }
-        />
+          <GameCard
+            title="کوییز سرعتی"
+            desc="سریع جواب بده — سوال‌های کلمه و جمله از A1 تا C1"
+            icon="/assets/icon_3_document_sign.svg"
+            href="/game/speedquiz"
+            stats={
+              <GameCardStats
+                stats={speedQuizStats}
+                streak={speedQuizStreak}
+                inviteText="اولین کوییزت را شروع کن!"
+              />
+            }
+          />
+
+          {/* نکته */}
+          <p className="pt-2 text-center text-[11px] text-slate-400 leading-5">
+            بازی‌های جدید به‌مرور اضافه می‌شوند
+            <br />
+            هر بازی که شروع کنی، روز یادگیری‌ات هم ثبت می‌شود
+          </p>
+        </div>
+
+        {/* ================= کاراکتر متحرک — سمت چپ ================= */}
+        {/* در موبایل زیر بازی‌ها می‌آید؛ چشم‌ها موس را دنبال می‌کنند */}
+        <div className="justify-center lg:pt-6">
+          <MascotCharacter />
+         
+        </div>
       </div>
-
-      {/* ================= نکته ================= */}
-      <p className="mt-6 text-center text-[11px] text-slate-400 leading-5">
-        بازی‌های جدید به‌مرور اضافه می‌شوند
-        <br />
-        هر بازی که شروع کنی، روز یادگیری‌ات هم ثبت می‌شود
-      </p>
     </div>
   );
 }

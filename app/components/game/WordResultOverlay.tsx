@@ -6,6 +6,9 @@ import Confetti from "./Confetti";
 
 // ========================================
 // اورلی نتیجه یک کلمه (برد/باخت)
+// v1.0.0.8 — امتیاز کل دور همیشه روی همین کارت دیده می‌شود
+//   (قبلاً فقط پاداشِ همین کلمه نشان داده می‌شد و چیپ امتیاز
+//    پشت بلورِ اورلی پنهان می‌ماند)
 // ========================================
 
 export default function WordResultOverlay({
@@ -15,6 +18,7 @@ export default function WordResultOverlay({
   hint,
   hasNext,
   onNext,
+  score,
 }: {
   won: boolean;
   bonus: number;
@@ -22,6 +26,8 @@ export default function WordResultOverlay({
   hint: string;
   hasNext: boolean;
   onNext: () => void;
+  // امتیاز کل دور تا این لحظه — چه برد چه باخت نمایش داده می‌شود
+  score: number;
 }) {
   return (
     <motion.div
@@ -71,6 +77,24 @@ export default function WordResultOverlay({
             +{bonus} امتیاز پاداش
           </motion.p>
         )}
+
+        {/* v1.0.0.8 — امتیاز کل دور؛ هم روی برد هم روی باخت دیده می‌شود */}
+        <motion.p
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: won ? 0.42 : 0.3 }}
+          className="text-sm text-slate-500 pt-0.5"
+        >
+          امتیاز کل:{" "}
+          <motion.b
+            initial={{ scale: 1.4 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: won ? 0.42 : 0.3, type: "spring", stiffness: 380, damping: 14 }}
+            className="inline-block text-emerald-600 font-extrabold text-lg"
+          >
+            {score}
+          </motion.b>
+        </motion.p>
         <motion.button
           onClick={onNext}
           autoFocus

@@ -6,17 +6,12 @@ import { useEffect } from "react";
 
 const publicPaths = ["/login", "/register"];
 
-// صفحات همیشه عمومی — حتی برای کاربر وارد‌شده هم بدون ریدایرکت باز می‌مانند
-const alwaysPublicPaths = ["/downloads"];
-
 export function useIsPublicPath() {
   const pathname = usePathname();
   // صفحات عمومی (login, register) و صفحات خواندن کتاب
   if (publicPaths.some((p) => pathname.startsWith(p))) return true;
   // صفحه خواندن کتاب بدون داشبورد
   if (/^\/library\/\d+\/read$/.test(pathname)) return true;
-  // مرکز دانلود — همیشه در دسترس
-  if (alwaysPublicPaths.some((p) => pathname.startsWith(p))) return true;
   return false;
 }
 

@@ -229,6 +229,7 @@ export default function HangmanPage() {
               hint={currentWord?.hint ?? ""}
               hasNext={hasMoreWords}
               onNext={handleNextWord}
+              score={score}
             />
           )}
 
