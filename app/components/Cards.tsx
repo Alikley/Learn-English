@@ -7,7 +7,7 @@ import { useCategories } from "../hook/useCategories";
 
 const exercises = [
   {
-    title: "بازی حافظه کلمات",
+    title: "Match Card",
     description: "کارت‌ها را باز کن و جفت کلمات را پیدا کن",
     bgColor: "bg-purple-50",
     btnColor: "bg-purple-200 text-purple-700",
@@ -16,16 +16,16 @@ const exercises = [
     href: "/game/memory",
   },
   {
-    title: "بازی هنگ کلمه",
+    title: "Hangman",
     description: "کلمات را حدس بزن و امتیاز بگیر",
     bgColor: "bg-green-50",
     btnColor: "bg-green-200 text-green-700",
     icon: "/assets/icon_2_hangman.svg",
     btnLabel: "شروع بازی",
-    href: "/game",
+    href: "/game/hangman",
   },
   {
-    title: "کوییز سرعتی",
+    title: "Quiz Hot",
     description: "سریع به سوال‌های کلمه و جمله جواب بده",
     bgColor: "bg-amber-50",
     btnColor: "bg-amber-200 text-amber-700",

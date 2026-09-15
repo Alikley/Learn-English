@@ -75,7 +75,7 @@ export default function SpeedQuizPage() {
           <Zap className="w-5 h-5 text-amber-500" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">کوییز سرعتی</h1>
+          <h1 className="text-xl font-bold text-slate-800">Quiz Hot</h1>
           <p className="text-sm text-slate-500">
             سریع جواب بده — هر ثانیه که می‌گذره، امتیاز کمتره!
           </p>

@@ -10,19 +10,23 @@ import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
 
 // ========================================
 // هاب بازی‌ها — کارت هر بازی
-// هنگ‌من، حافظه کلمات و کوییز سرعتی فعال‌اند
+// Hangman، Match Card و Quiz Hot فعال‌اند
 //
-// v1.0.0.8 — چیدمان دوستونه:
-//   جدول بازی‌ها سمت راست + کاراکتر متحرک سمت چپ
-//   (چشم‌های کاراکتر موس را دنبال می‌کنند — منطق در
-//    useGaze / useBlink، رندر در MascotCharacter)
+// v1.0.0.9 — نام بازی‌ها انگلیسی شد + کاراکتر
+//   بزرگ‌تر شد و نیمهٔ چپ صفحه را گرفت:
+//   چیدمان ۵۰/۵۰ (بازی‌ها راست، کاراکتر چپ)
+//
+// v1.0.0.8 — کاراکتر انسان‌نما با چشم‌های موس‌گیر
+//   (منطق در useGaze / useBlink، رندر در
+//   MascotCharacter) + چیدمان دوستونه اضافه شد.
 //   پس‌زمینه صفحه بدون تغییر است.
 // ========================================
 
 export default function GamePage() {
   const { stats: hangmanStats, streak: hangmanStreak } = useGameStats();
   const { stats: memoryStats, streak: memoryStreak } = useMemoryStats();
-  const { stats: speedQuizStats, streak: speedQuizStreak } = useSpeedQuizStats();
+  const { stats: speedQuizStats, streak: speedQuizStreak } =
+    useSpeedQuizStats();
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
@@ -39,13 +43,13 @@ export default function GamePage() {
         </div>
       </div>
 
-      {/* ============ چیدمان دوستونه (v1.0.0.8) ============ */}
+      {/* ============ چیدمان دوستونه ۵۰/۵۰ (v1.0.0.9) ============ */}
       {/* در RTL ستون اول سمت راست است: بازی‌ها راست، کاراکتر چپ */}
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_290px]">
+      <div className="mt-6 grid items-center gap-8 lg:grid-cols-2">
         {/* ================= جدول بازی‌ها — سمت راست ================= */}
         <div className="space-y-3">
           <GameCard
-            title="بازی هنگ کلمه"
+            title="Hangman"
             desc="حروف را حدس بزن و کلمه را نجات بده! کلمات از A1 تا C1"
             icon="/assets/icon_2_hangman.svg"
             href="/game/hangman"
@@ -55,17 +59,15 @@ export default function GamePage() {
           />
 
           <GameCard
-            title="بازی حافظه کلمات"
+            title="Match Card"
             desc="کارت‌ها را باز کن و جفت کلمات انگلیسی-فارسی را پیدا کن — از A1 تا C1"
             icon="/assets/icon_1_abc_blocks.svg"
             href="/game/memory"
-            stats={
-              <GameCardStats stats={memoryStats} streak={memoryStreak} />
-            }
+            stats={<GameCardStats stats={memoryStats} streak={memoryStreak} />}
           />
 
           <GameCard
-            title="کوییز سرعتی"
+            title="Quiz Hot"
             desc="سریع جواب بده — سوال‌های کلمه و جمله از A1 تا C1"
             icon="/assets/icon_3_document_sign.svg"
             href="/game/speedquiz"
@@ -86,11 +88,10 @@ export default function GamePage() {
           </p>
         </div>
 
-        {/* ================= کاراکتر متحرک — سمت چپ ================= */}
+        {/* ================= کاراکتر متحرک — نیمهٔ چپ صفحه ================= */}
         {/* در موبایل زیر بازی‌ها می‌آید؛ چشم‌ها موس را دنبال می‌کنند */}
-        <div className="justify-center lg:pt-6">
+        <div className="flex flex-col items-center justify-center">
           <MascotCharacter />
-         
         </div>
       </div>
     </div>

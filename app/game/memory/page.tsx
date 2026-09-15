@@ -73,7 +73,7 @@ export default function MemoryPage() {
           <Brain className="w-5 h-5 text-violet-600" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">بازی حافظه کلمات</h1>
+          <h1 className="text-xl font-bold text-slate-800">Match Card</h1>
           <p className="text-sm text-slate-500">
             کارت‌ها را باز کن و جفت کلمه انگلیسی + معنی فارسی را پیدا کن!
           </p>

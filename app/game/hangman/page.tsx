@@ -75,7 +75,7 @@ export default function HangmanPage() {
           <Gamepad2 className="w-5 h-5 text-emerald-600" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">بازی هنگ کلمه</h1>
+          <h1 className="text-xl font-bold text-slate-800">Hangman</h1>
           <p className="text-sm text-slate-500">
             حروف را حدس بزن و کلمه را نجات بده!
           </p>
