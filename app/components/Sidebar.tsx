@@ -19,11 +19,11 @@ import { useStreak } from "@/app/hook/useStreak";
 
 const menuItems = [
   { label: "داشبورد", icon: Home, href: "/dashboard" },
+  { label: "دوره‌های من", icon: BookOpen, href: "/courses" },
   { label: "تمرین‌ها", icon: Pencil, href: "/training" },
   { label: "بازی‌ها", icon: Gamepad2, href: "/game" },
   { label: "کتابخانه", icon: LibraryBig, href: "/library" },
   { label: "لغت‌نامه", icon: Library, href: "/vocab" },
-  { label: "دوره‌های من", icon: BookOpen, href: "/courses" },
   { label: "پیام‌ها", icon: MessageCircle, href: "/chat" },
 ];
 
