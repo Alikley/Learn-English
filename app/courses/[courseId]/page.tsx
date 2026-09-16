@@ -77,8 +77,10 @@ export default function CourseDetailPage() {
         className={`relative z-10 border-b ${theme.headerBg} ${theme.headerBorder}`}
       >
         <div className="px-4 md:px-6 py-4">
+          {/* v1.0.1.3 — مقصد قطعی به‌جای router.back() تا بعد از تکمیل درس،
+              بازگشت دیگر وارد درسِ تمام‌شده نشود و همیشه لیست دوره‌ها بیاید */}
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/courses")}
             className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-4 transition-colors"
           >
             <ArrowRight size={16} />

@@ -111,8 +111,9 @@ export default function LessonPage() {
         body: JSON.stringify({ lessonId: lesson.id, score }),
       });
       if (res.ok) {
-        // بازگشت به صفحه دوره با پیشرفت ثبت‌شده
-        router.push(`/courses/${courseId}`);
+        // v1.0.1.3 — replace به‌جای push: درسِ تکمیل‌شده از تاریخچه حذف می‌شود
+        // تا دکمه «بازگشت» دیگر کاربر را به همان درسِ تمام‌شده برنگرداند
+        router.replace(`/courses/${courseId}`);
       }
     } catch (e) {
       console.error(e);
@@ -176,6 +177,7 @@ export default function LessonPage() {
             subtitle={`${courseTitle}${cefrLabel ? " · " + cefrLabel : ""}`}
             xp={lesson.xp}
             cefr={cefrLabel ?? undefined}
+            backHref={`/courses/${courseId}`}
           />
 
           <div className="max-w-2xl mx-auto px-4 py-6 pb-12">

@@ -8,16 +8,31 @@ import {
   Play,
   Square,
   RotateCcw,
-  Mic,
+  BookOpen,
   MessageCircle,
   CheckCircle2,
-  XCircle,
   Volume2,
+  Mic,
+  ArrowLeft,
 } from "lucide-react";
 import type { ConversationLesson } from "@/data/lessons/types";
 import { convLineAudio, playLine, canSpeak } from "@/lib/lesson-audio";
 import ContinueButton from "../ContinueButton";
 import ProgressStepper from "../ProgressStepper";
+
+// ========================================
+// تمرین مکالمه — v1.0.1.3 (بازطراحی کامل)
+//
+// طبق بازخورد کاربر:
+//  - فقط «قرمز» صحبت می‌کند: خطوط سایت با صدا
+//    پخش می‌شوند و خطوط آبی هیچ‌وقت از طرف سایت
+//    خوانده نمی‌شوند.
+//  - جریان پله‌پله: خط قرمز پخش می‌شود → خط آبی
+//    ظاهر می‌شود → کاربر آن را «برای خودش» می‌خواند →
+//    دکمه «خواندم، جمله بعدی» را می‌زند → جمله بعدی.
+//  - تعداد جمله‌ها بیشتر شده (۲۰+ خط در هر درس).
+//  - نوار پیشرفت «جمله X از Y» همیشه دیده می‌شود.
+// ========================================
 
 type Props = {
   lesson: ConversationLesson;
@@ -26,6 +41,8 @@ type Props = {
 };
 
 const STEPS = ["گفت‌وگو", "آزمونک"];
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export default function ConversationView({
   lesson,
@@ -36,13 +53,13 @@ export default function ConversationView({
   const quiz = lesson.quiz;
 
   const [step, setStep] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [activeLine, setActiveLine] = useState<number | null>(null);
+  const [running, setRunning] = useState(false);
+  const [current, setCurrent] = useState<number | null>(null);
   const [typing, setTyping] = useState(false);
-  const [rolePlay, setRolePlay] = useState(false);
   const [waitingUser, setWaitingUser] = useState(false);
-  const [listened, setListened] = useState(false);
-  const [revealed, setRevealed] = useState(lines.length);
+  const [revealed, setRevealed] = useState(0);
+  const [finished, setFinished] = useState(false);
+  const [pausedAt, setPausedAt] = useState<number | null>(null);
 
   // آزمونک
   const [qIndex, setQIndex] = useState(0);
@@ -51,7 +68,7 @@ export default function ConversationView({
 
   const stopRef = useRef<(() => void) | null>(null);
   const cancelRef = useRef(false);
-  const waitingUserRef = useRef(false);
+  const waitingRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const currentQ = quiz[qIndex];
 
@@ -59,6 +76,7 @@ export default function ConversationView({
   useEffect(() => {
     return () => {
       cancelRef.current = true;
+      waitingRef.current = false;
       stopRef.current?.();
       if (canSpeak()) window.speechSynthesis.cancel();
     };
@@ -73,90 +91,102 @@ export default function ConversationView({
     });
   };
 
-  const playFrom = async (start: number) => {
+  // ---------- جریان پله‌پله ----------
+  // خط قرمز (سایت): تایپ → پخش صدا → رفتن به خط بعدی
+  // خط آبی (کاربر): نمایش → کاربر خودش می‌خواند → دکمه ادامه
+  const runFrom = async (start: number) => {
     cancelRef.current = false;
-    setPlaying(true);
+    setRunning(true);
+    setPausedAt(null);
     for (let i = start; i < lines.length; i++) {
       if (cancelRef.current) break;
       const line = lines[i];
-      setActiveLine(i);
+      setCurrent(i);
       setRevealed((r) => Math.max(r, i + 1));
       scrollToBottom();
 
-      // حالت تمرین: نوبت کاربر — خودش می‌خواند
-      if (rolePlay && line.speaker === "user") {
+      if (line.speaker === "site") {
+        // انیمیشن تایپ قبل از حرف‌های سایت
+        setTyping(true);
+        await sleep(750);
+        setTyping(false);
+        if (cancelRef.current) break;
+
+        // فقط سایت صحبت می‌کند — هیچ خط آبی صدا ندارد
+        const { promise, stop } = playLine(
+          convLineAudio(lesson.slug, i),
+          line.en,
+          { voiceHint: "site", rate: 0.95 },
+        );
+        stopRef.current = stop;
+        await promise;
+        stopRef.current = null;
+        if (cancelRef.current) break;
+        await sleep(300);
+      } else {
+        // نوبت کاربر: خودش برای خودش می‌خواند، بعد دکمه می‌زند
         setWaitingUser(true);
-        waitingUserRef.current = true;
+        waitingRef.current = true;
         await new Promise<void>((resolve) => {
           const check = setInterval(() => {
-            if (cancelRef.current || !waitingUserRef.current) {
+            if (cancelRef.current || !waitingRef.current) {
               clearInterval(check);
               resolve();
             }
-          }, 150);
+          }, 120);
         });
         setWaitingUser(false);
         if (cancelRef.current) break;
-        continue;
       }
-
-      // انیمیشن تایپ قبل از حرف‌های سایت
-      if (line.speaker === "site") {
-        setTyping(true);
-        await new Promise((r) => setTimeout(r, 750));
-        setTyping(false);
-        if (cancelRef.current) break;
-      }
-
-      const { promise, stop } = playLine(
-        convLineAudio(lesson.slug, i),
-        line.en,
-        { voiceHint: line.speaker, rate: 0.95 },
-      );
-      stopRef.current = stop;
-      await promise;
-      stopRef.current = null;
-      if (cancelRef.current) break;
-
-      // مکث کوتاه بین خطوط
-      await new Promise((r) => setTimeout(r, 350));
     }
     if (!cancelRef.current) {
-      setListened(true);
-      setActiveLine(null);
-      setPlaying(false);
+      setFinished(true);
+      setCurrent(null);
+      setRunning(false);
     }
   };
 
-  const continueAfterUser = () => {
-    waitingUserRef.current = false;
+  const userReadIt = () => {
+    waitingRef.current = false;
     setWaitingUser(false);
   };
 
   const stopAll = () => {
     cancelRef.current = true;
-    waitingUserRef.current = false;
+    waitingRef.current = false;
     stopRef.current?.();
     if (canSpeak()) window.speechSynthesis.cancel();
-    setPlaying(false);
+    setRunning(false);
     setTyping(false);
     setWaitingUser(false);
-    setActiveLine(null);
+    // از همان خط نیمه‌کاره ادامه می‌دهیم
+    setPausedAt((p) => p ?? current ?? 0);
+    setCurrent(null);
   };
 
+  const restart = () => {
+    setRevealed(0);
+    setFinished(false);
+    setPausedAt(null);
+    setCurrent(null);
+    runFrom(0);
+  };
+
+  // پخش مجدد فقط برای خطوط قرمز (سایت)
   const replayLine = async (i: number) => {
-    if (playing) return;
+    if (running) return;
     const line = lines[i];
-    setActiveLine(i);
+    if (line.speaker !== "site") return;
+    setCurrent(i);
     const { promise, stop } = playLine(
       convLineAudio(lesson.slug, i),
       line.en,
-      { voiceHint: line.speaker, rate: 0.95 },
+      { voiceHint: "site", rate: 0.95 },
     );
     stopRef.current = stop;
     await promise;
     stopRef.current = null;
-    if (activeLine === i) setActiveLine(null);
+    setCurrent((c) => (c === i ? null : c));
   };
 
   const handleSelect = (i: number) => {
@@ -174,12 +204,14 @@ export default function ConversationView({
     }
   };
 
+  const progressPct = Math.round((revealed / lines.length) * 100);
+
   return (
     <div className="space-y-4">
       <ProgressStepper sections={STEPS} currentIndex={step} />
 
       <AnimatePresence mode="wait">
-        {/* ---------- گام ۱: گفت‌وگو ---------- */}
+        {/* ---------- گام ۱: گفت‌وگوی پله‌پله ---------- */}
         {step === 0 && (
           <motion.div
             key="chat"
@@ -188,7 +220,7 @@ export default function ConversationView({
             exit={{ opacity: 0, y: -12 }}
             className="space-y-4"
           >
-            {/* موقعیت */}
+            {/* موقعیت + راهنمای رنگ‌ها */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -203,26 +235,60 @@ export default function ConversationView({
               <p className="text-slate-600 text-sm leading-7">
                 {lesson.situation}
               </p>
-              <div className="flex items-center gap-4 mt-3 text-[11px] text-slate-400">
+              <div className="flex flex-wrap items-center gap-4 mt-3 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-                  قرمز = سایت (طرف مقابل)
+                  قرمز = سایت صحبت می‌کند (با صدا)
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />
-                  آبی = نقش شما
+                  آبی = نقش شما؛ خودتان بخوانید و دکمه را بزنید
                 </span>
               </div>
             </motion.div>
+
+            {/* نوار پیشرفت جمله‌ها */}
+            <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3 shadow-sm">
+              <div className="flex items-center justify-between text-xs mb-2">
+                <span className="font-bold text-teal-700">
+                  جمله {Math.min(revealed, lines.length)} از {lines.length}
+                </span>
+                <span className="text-slate-400">{progressPct}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-l from-teal-600 to-teal-400"
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.4 }}
+                />
+              </div>
+            </div>
 
             {/* ناحیه چت */}
             <div
               ref={scrollRef}
               className="bg-white border border-slate-100 rounded-2xl shadow-sm h-[380px] overflow-y-auto p-4 space-y-3 scroll-smooth"
             >
+              {revealed === 0 && !running && (
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ duration: 2.5, repeat: Infinity }}
+                    className="w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white shadow-lg"
+                  >
+                    <Bot size={28} />
+                  </motion.div>
+                  <p className="text-sm text-slate-500 leading-7 max-w-xs">
+                    سایت شروع می‌کند و صحبت می‌کند؛ وقتی نوبت شما شد، جمله آبی
+                    را برای خودتان بخوانید و دکمه ادامه را بزنید.
+                  </p>
+                </div>
+              )}
+
               {lines.slice(0, revealed).map((line, i) => {
                 const isSite = line.speaker === "site";
-                const isActive = i === activeLine;
+                const isActive = i === current;
+                const isWaitingHere = isActive && waitingUser;
                 return (
                   <motion.div
                     key={i}
@@ -241,15 +307,20 @@ export default function ConversationView({
                         isSite
                           ? "bg-gradient-to-br from-rose-500 to-red-600"
                           : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                      } ${isActive ? "ring-4 ring-offset-1 " + (isSite ? "ring-red-200" : "ring-blue-200") : ""}`}
+                      } ${
+                        isActive
+                          ? "ring-4 ring-offset-1 " +
+                            (isSite ? "ring-red-200" : "ring-blue-200")
+                          : ""
+                      }`}
                     >
                       {isSite ? <Bot size={16} /> : <UserIcon size={16} />}
                     </div>
                     {/* حباب */}
                     <div
-                      className={`max-w-[78%] rounded-2xl px-4 py-2.5 cursor-pointer transition-shadow ${
+                      className={`max-w-[78%] rounded-2xl px-4 py-2.5 transition-shadow ${
                         isSite
-                          ? "bg-gradient-to-br from-rose-50 to-red-50 border border-red-200 rounded-tr-sm"
+                          ? "bg-gradient-to-br from-rose-50 to-red-50 border border-red-200 rounded-tr-sm cursor-pointer"
                           : "bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-tl-sm"
                       } ${
                         isActive
@@ -258,7 +329,7 @@ export default function ConversationView({
                             : "shadow-[0_0_0_3px_rgba(59,130,246,0.25)]"
                           : "shadow-sm"
                       }`}
-                      onClick={() => replayLine(i)}
+                      onClick={() => void replayLine(i)}
                     >
                       <p
                         dir="ltr"
@@ -271,22 +342,33 @@ export default function ConversationView({
                       <p className="text-[11px] text-slate-400 leading-5 mt-0.5">
                         {line.fa}
                       </p>
-                      <div className="flex justify-start mt-1">
-                        <span
-                          className={`flex items-center gap-1 text-[10px] ${
-                            isSite ? "text-red-300" : "text-blue-300"
-                          } hover:text-red-400`}
-                        >
-                          <Volume2 size={12} />
-                          پخش مجدد
-                        </span>
-                      </div>
+                      {/* پخش مجدد فقط برای خطوط قرمز سایت */}
+                      {isSite && (
+                        <div className="flex justify-start mt-1">
+                          <span
+                            className={`flex items-center gap-1 text-[10px] ${
+                              isActive ? "text-red-400" : "text-red-300"
+                            } hover:text-red-400`}
+                          >
+                            <Volume2 size={12} />
+                            پخش مجدد
+                          </span>
+                        </div>
+                      )}
+                      {!isSite && isWaitingHere && (
+                        <div className="flex justify-start mt-1">
+                          <span className="flex items-center gap-1 text-[10px] text-blue-400">
+                            <BookOpen size={12} />
+                            این جمله را شما بخوانید
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 );
               })}
 
-              {/* نشانگر تایپ */}
+              {/* نشانگر تایپ سایت */}
               {typing && (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
@@ -318,14 +400,32 @@ export default function ConversationView({
             {/* نوار کنترل */}
             <div className="bg-white border border-slate-100 rounded-2xl p-3 shadow-sm space-y-3">
               <div className="flex items-center gap-2">
-                {!playing ? (
+                {!running ? (
                   <motion.button
                     whileTap={{ scale: 0.96 }}
-                    onClick={() => playFrom(0)}
+                    onClick={() =>
+                      finished
+                        ? restart()
+                        : runFrom(pausedAt ?? revealed)
+                    }
                     className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-l from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600 text-white font-bold py-3 rounded-xl transition-all"
                   >
-                    <Play size={18} />
-                    {listened ? "پخش مجدد مکالمه" : "پخش مکالمه"}
+                    {finished ? (
+                      <>
+                        <RotateCcw size={18} />
+                        تمرین مجدد مکالمه
+                      </>
+                    ) : revealed === 0 ? (
+                      <>
+                        <Play size={18} />
+                        شروع مکالمه
+                      </>
+                    ) : (
+                      <>
+                        <Play size={18} />
+                        ادامه مکالمه
+                      </>
+                    )}
                   </motion.button>
                 ) : (
                   <motion.button
@@ -337,24 +437,19 @@ export default function ConversationView({
                     توقف
                   </motion.button>
                 )}
-                <button
-                  onClick={() => {
-                    stopAll();
-                    setRolePlay((r) => !r);
-                  }}
-                  className={`flex items-center gap-1.5 px-3 py-3 rounded-xl text-xs font-bold border-2 transition-all ${
-                    rolePlay
-                      ? "bg-amber-50 border-amber-300 text-amber-700"
-                      : "bg-white border-slate-200 text-slate-400"
-                  }`}
-                  title="در این حالت نوبت‌های آبی را خودتان بلند می‌خوانید"
-                >
-                  <Mic size={16} />
-                  حالت تمرین
-                </button>
+                {!running && revealed > 0 && !finished && (
+                  <button
+                    onClick={restart}
+                    className="flex items-center gap-1.5 px-3 py-3 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-400 hover:text-slate-600 transition-all"
+                    title="شروع دوباره از جمله اول"
+                  >
+                    <RotateCcw size={16} />
+                    از اول
+                  </button>
+                )}
               </div>
 
-              {/* منتظر خواندن کاربر */}
+              {/* منتظر خواندن کاربر — پله‌پله */}
               <AnimatePresence>
                 {waitingUser && (
                   <motion.div
@@ -371,28 +466,49 @@ export default function ConversationView({
                         >
                           <Mic size={18} />
                         </motion.span>
-                        نوبت شماست — این خط را بلند بخوانید
+                        نوبت شماست — این جمله را برای خودتان بخوانید
                       </div>
-                      <button
-                        onClick={continueAfterUser}
-                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg shrink-0"
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={userReadIt}
+                        className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg shrink-0 flex items-center gap-1.5"
                       >
-                        خواندم، ادامه
-                      </button>
+                        خواندم، جمله بعدی
+                        <ArrowLeft size={14} />
+                      </motion.button>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <button
-                onClick={() => {
-                  stopAll();
-                  setStep(1);
-                }}
-                className="w-full text-center text-xs text-slate-400 hover:text-teal-600 font-medium py-1"
-              >
-                رفتن به آزمونک ←
-              </button>
+              {/* پایان مکالمه */}
+              <AnimatePresence>
+                {finished && !running && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <ContinueButton
+                      onClick={() => setStep(1)}
+                      label="شروع آزمونک"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {!finished && (
+                <button
+                  onClick={() => {
+                    stopAll();
+                    setStep(1);
+                  }}
+                  className="w-full text-center text-xs text-slate-400 hover:text-teal-600 font-medium py-1"
+                >
+                  رفتن به آزمونک ←
+                </button>
+              )}
             </div>
           </motion.div>
         )}
@@ -491,14 +607,14 @@ export default function ConversationView({
         )}
       </AnimatePresence>
 
-      {listened && step === 0 && !playing && (
+      {finished && step === 0 && !running && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex items-center justify-center gap-1 text-xs text-green-600 font-bold"
         >
           <CheckCircle2 size={14} />
-          مکالمه کامل پخش شد — حالا آزمونک را انجام دهید
+          مکالمه کامل شد — حالا آزمونک را انجام دهید
         </motion.div>
       )}
     </div>

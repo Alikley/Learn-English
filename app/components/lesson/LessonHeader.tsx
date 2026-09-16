@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BookOpen, Star } from "lucide-react";
+import { ArrowRight, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 type Props = {
@@ -9,17 +9,27 @@ type Props = {
   xp?: number;
   index?: number;
   cefr?: string;
+  /** v1.0.1.3 — مقصد قطعی دکمه بازگشت؛ اگر نبود router.back() */
+  backHref?: string;
 };
 
-export default function LessonHeader({ title, subtitle, xp, index, cefr }: Props) {
+export default function LessonHeader({
+  title,
+  subtitle,
+  xp,
+  index,
+  cefr,
+  backHref,
+}: Props) {
   const router = useRouter();
 
   return (
     <div className="bg-white/80 backdrop-blur-sm border-b border-slate-100">
       <div className="px-4 md:px-6 py-4">
-        {/* Back */}
+        {/* Back — v1.0.1.3: مقصد قطعی تا بعد از تکمیل درس،
+            بازگشت دیگر وارد درسِ تمام‌شده نشود */}
         <button
-          onClick={() => router.back()}
+          onClick={() => (backHref ? router.push(backHref) : router.back())}
           className="flex items-center gap-2 text-slate-500 hover:text-blue-600 text-sm mb-4"
         >
           <ArrowRight size={16} />

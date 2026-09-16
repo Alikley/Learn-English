@@ -54,22 +54,37 @@ export type GrammarMistake = {
   note: string;
 };
 
+// v1.0.1.3 — بخش آموزشی مفهومی: هر درس گرامر
+// به‌جای یک پاراگراف مختصر، چند بخش عمیق دارد
+export type GrammarSection = {
+  /** تیتر بخش (فارسی) */
+  title: string;
+  /** پاراگراف‌های آموزشی (فارسی، هر کدام ۳+ جمله با توضیح مفهومی) */
+  paragraphs: string[];
+  /** مثال‌های اختصاصی همین بخش */
+  examples?: GrammarExample[];
+};
+
 export type GrammarLesson = {
   kind: "grammar";
   slug: string;
   titleFa: string;
   titleEn: string;
   cefr: Cefr;
-  /** مقدمه فارسی (۲-۳ جمله) */
+  /** مقدمه فارسی — چرا این درس مهم است (۳+ جمله) */
   intro: string;
-  /** توضیح کامل قانون (فارسی، ۴-۶ جمله) */
+  /** بخش‌های آموزشی مفهومی و عمیق (۳-۴ بخش) */
+  sections: GrammarSection[];
+  /** خلاصه قانون در یک نگاه (جعبه طلایی) */
   rule: string;
   /** جدول ساختار */
   form: GrammarFormRow[];
-  /** مثال‌ها */
+  /** مثال‌ها (۸+) */
   examples: GrammarExample[];
-  /** اشتباهات رایج */
+  /** اشتباهات رایج (۴) */
   mistakes: GrammarMistake[];
+  /** نکته‌های طلایی یادگیری (۴+) */
+  tips: string[];
   /** آزمونک */
   quiz: QuizQuestion[];
 };
@@ -94,7 +109,7 @@ export type ConversationLesson = {
   cefr: Cefr;
   /** شرح موقعیت (فارسی) */
   situation: string;
-  /** خطوط مکالمه (۱۴-۱۶ خط) */
+  /** خطوط مکالمه (۲۱-۲۶ خط) */
   lines: ConversationLine[];
   /** آزمونک درباره مکالمه */
   quiz: QuizQuestion[];
