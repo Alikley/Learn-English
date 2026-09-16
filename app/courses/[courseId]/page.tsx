@@ -9,13 +9,14 @@ import { getCourseTheme } from "@/lib/course-theme";
 import { useCourseDetail } from "@/app/hook/useCourseDetail";
 
 // ========================================
-// صفحه جزئیات دوره — v1.0.1.0
+// صفحه جزئیات دوره — v1.0.1.1
 //
-// درس‌ها به‌صورت کارت‌های نردبانی نمایش داده می‌شوند
-// و پس‌زمینه صفحه به رنگ بخش دوره رنگ می‌شود:
-//   گرامر آبی / مکالمه سبز / لغات بنفش / لیسنینگ نارنجی
-// (تم از lib/course-theme.ts می‌آید و از titleEn دوره
-//  تشخیص داده می‌شود — همان منطق API دسته‌بندی‌ها.)
+// طبق بازخورد کاربر:
+//  - کارت‌های درس به طرح اصلی/قبلی برگشتند (بدون نردبان)
+//  - تم رنگی پس‌زمینه که پسندید حفظ شد:
+//     گرامر آبی / مکالمه سبز / لغات بنفش / لیسنینگ نارنجی
+//    (تم از lib/course-theme.ts می‌آید و از titleEn دوره
+//     تشخیص داده می‌شود — همان منطق API دسته‌بندی‌ها.)
 //
 // هدر سفیدِ نیمه‌شفاف روی گرادیان رنگی نشسته تا رنگ
 // بخش در کل صفحه حس شود. بج سطح، نوار پیشرفت و
@@ -151,19 +152,17 @@ export default function CourseDetailPage() {
         </div>
       </div>
 
-      {/* لیست درس‌ها — کارت‌های نردبانی */}
+      {/* لیست درس‌ها — طرح اصلی کارت‌ها (حفظ‌شده طبق بازخورد) */}
       <div className="relative z-10 px-4 md:px-6 py-6 pb-10">
         {course.lessons.length === 0 ? (
           <EmptyState type="lessons" />
         ) : (
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="max-w-2xl mx-auto space-y-3">
             {course.lessons.map((lesson, index) => (
               <LessonCard
                 key={lesson.id}
                 lesson={lesson}
                 index={index}
-                total={course.lessons.length}
-                theme={theme}
                 isEnrolled={course.isEnrolled}
                 courseId={courseId}
                 completing={completing}

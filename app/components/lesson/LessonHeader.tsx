@@ -8,13 +8,14 @@ type Props = {
   subtitle?: string;
   xp?: number;
   index?: number;
+  cefr?: string;
 };
 
-export default function LessonHeader({ title, subtitle, xp, index }: Props) {
+export default function LessonHeader({ title, subtitle, xp, index, cefr }: Props) {
   const router = useRouter();
 
   return (
-    <div className="bg-white border-b border-slate-100">
+    <div className="bg-white/80 backdrop-blur-sm border-b border-slate-100">
       <div className="px-4 md:px-6 py-4">
         {/* Back */}
         <button
@@ -28,9 +29,16 @@ export default function LessonHeader({ title, subtitle, xp, index }: Props) {
         {/* Title */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold text-slate-900">
-              {title}
-            </h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900">
+                {title}
+              </h1>
+              {cefr && (
+                <span className="text-[11px] font-bold text-white bg-gradient-to-l from-blue-500 to-indigo-500 rounded-full px-2.5 py-0.5 shadow-sm">
+                  {cefr}
+                </span>
+              )}
+            </div>
 
             {subtitle && (
               <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
@@ -43,7 +51,7 @@ export default function LessonHeader({ title, subtitle, xp, index }: Props) {
 
           {/* XP badge */}
           {xp && (
-            <div className="flex items-center gap-1 bg-yellow-50 text-yellow-600 px-3 py-1 rounded-full text-xs font-semibold">
+            <div className="flex items-center gap-1 bg-yellow-50 text-yellow-600 px-3 py-1 rounded-full text-xs font-semibold shrink-0">
               <Star size={14} />
               {xp} XP
             </div>

@@ -5,182 +5,151 @@ import {
   SPEEDQUIZ_WORDS,
   SPEEDQUIZ_SENTENCES,
 } from "../data/speedquiz/questions";
+import { lessonsOfCourse } from "../data/lessons/manifest";
 const prisma = new PrismaClient();
 
+// ۱۲ دوره × ۱۰ درس — بر پایه CEFR (منبع: data/lessons/manifest.ts)
 const courseData = [
   {
+    id: "seed-grammar-beginner",
     title: "گرامر مبتدی",
     titleEn: "Grammar Beginner",
     level: "BEGINNER" as const,
     color: "bg-blue-500",
     imageUrl: "/assets/grammar.svg",
     order: 1,
-    lessons: [
-      "آشنایی با افعال to be",
-      "زمان حال ساده",
-      "ضمایر شخصی",
-      "جملات منفی",
-      "سوالی کردن",
-    ],
+    description: "گرامر پایه از صفر — سطح‌بندی CEFR: A1 و A2",
   },
   {
+    id: "seed-grammar-intermediate",
     title: "گرامر متوسط",
     titleEn: "Grammar Intermediate",
     level: "INTERMEDIATE" as const,
     color: "bg-blue-600",
     imageUrl: "/assets/grammar.svg",
     order: 2,
-    lessons: [
-      "زمان حال کامل",
-      "زمان گذشته",
-      "جملات شرطی",
-      "modal verbs",
-      "passive voice",
-    ],
+    description: "گرامر کاربردی متوسط — سطح‌بندی CEFR: B1 و B2",
   },
   {
+    id: "seed-grammar-advanced",
     title: "گرامر پیشرفته",
     titleEn: "Grammar Advanced",
     level: "ADVANCED" as const,
     color: "bg-blue-700",
     imageUrl: "/assets/grammar.svg",
     order: 3,
-    lessons: [
-      "conditional type 2&3",
-      "subjunctive",
-      "inversion",
-      "cleft sentences",
-      "ellipsis",
-    ],
+    description: "ساختارهای پیشرفته و ادبی — سطح‌بندی CEFR: C1 و C2",
   },
   {
+    id: "seed-conversation-beginner",
     title: "مکالمه مبتدی",
     titleEn: "Conversation Beginner",
     level: "BEGINNER" as const,
     color: "bg-teal-500",
     imageUrl: "/assets/conversation.svg",
     order: 4,
-    lessons: [
-      "معرفی خود",
-      "خرید کردن",
-      "در رستوران",
-      "پرسیدن مسیر",
-      "احوال‌پرسی",
-    ],
+    description: "مکالمه دوطرفه با سایت — سطح‌بندی CEFR: A1 و A2",
   },
   {
+    id: "seed-conversation-intermediate",
     title: "مکالمه متوسط",
     titleEn: "Conversation Intermediate",
     level: "INTERMEDIATE" as const,
     color: "bg-teal-600",
     imageUrl: "/assets/conversation.svg",
     order: 5,
-    lessons: ["در محل کار", "مذاکره", "بیان نظر", "تعارف", "صحبت درباره آینده"],
+    description: "مکالمه دوطرفه با سایت — سطح‌بندی CEFR: B1 و B2",
   },
   {
+    id: "seed-conversation-advanced",
     title: "مکالمه پیشرفته",
     titleEn: "Conversation Advanced",
     level: "ADVANCED" as const,
     color: "bg-teal-700",
     imageUrl: "/assets/conversation.svg",
     order: 6,
-    lessons: [
-      "بحث و مناظره",
-      "سخنرانی",
-      "متقاعد کردن",
-      "طنز",
-      "اصطلاحات روزمره",
-    ],
+    description: "مکالمه دوطرفه با سایت — سطح‌بندی CEFR: C1 و C2",
   },
   {
+    id: "seed-vocabulary-beginner",
     title: "لغات مبتدی",
     titleEn: "Vocabulary Beginner",
     level: "BEGINNER" as const,
     color: "bg-purple-500",
     imageUrl: "/assets/vocabulary.svg",
     order: 7,
-    lessons: ["لغات خانه", "اعداد", "رنگ‌ها", "روزهای هفته", "ماه‌های سال"],
+    description: "لغات کاربردی با فلش‌کارت — سطح‌بندی CEFR: A1 و A2",
   },
   {
+    id: "seed-vocabulary-intermediate",
     title: "لغات متوسط",
     titleEn: "Vocabulary Intermediate",
     level: "INTERMEDIATE" as const,
     color: "bg-purple-600",
     imageUrl: "/assets/vocabulary.svg",
     order: 8,
-    lessons: ["لغات تجاری", "محیط زیست", "تکنولوژی", "بهداشت", "اقتصاد"],
+    description: "لغات کاربردی با فلش‌کارت — سطح‌بندی CEFR: B1 و B2",
   },
   {
+    id: "seed-vocabulary-advanced",
     title: "لغات پیشرفته",
     titleEn: "Vocabulary Advanced",
     level: "ADVANCED" as const,
     color: "bg-purple-700",
     imageUrl: "/assets/vocabulary.svg",
     order: 9,
-    lessons: ["اصطلاحات آکادمیک", "لغات حقوقی", "پزشکی", "ادبیات", "idioms"],
+    description: "لغات تخصصی و اصطلاحات — سطح‌بندی CEFR: C1 و C2",
   },
   {
+    id: "seed-listening-beginner",
     title: "لیسنینگ مبتدی",
     titleEn: "Listening Beginner",
     level: "BEGINNER" as const,
     color: "bg-orange-500",
     imageUrl: "/assets/listening.svg",
     order: 10,
-    lessons: [
-      "تلفظ الفبا",
-      "اعداد در مکالمه",
-      "دستورالعمل",
-      "مکالمه آهسته",
-      "آهنگ ساده",
-    ],
+    description: "داستان‌های صوتی ۵ دقیقه‌ای — سطح‌بندی CEFR: A1 و A2",
   },
   {
+    id: "seed-listening-intermediate",
     title: "لیسنینگ متوسط",
     titleEn: "Listening Intermediate",
     level: "INTERMEDIATE" as const,
     color: "bg-orange-600",
     imageUrl: "/assets/listening.svg",
     order: 11,
-    lessons: [
-      "اخبار رادیو",
-      "پادکست",
-      "مکالمه روزمره",
-      "فیلم با زیرنویس",
-      "مصاحبه",
-    ],
+    description: "داستان‌های صوتی ۵ دقیقه‌ای — سطح‌بندی CEFR: B1 و B2",
   },
   {
+    id: "seed-listening-advanced",
     title: "لیسنینگ پیشرفته",
     titleEn: "Listening Advanced",
     level: "ADVANCED" as const,
     color: "bg-orange-700",
     imageUrl: "/assets/listening.svg",
     order: 12,
-    lessons: [
-      "TED talks",
-      "فیلم بدون زیرنویس",
-      "لهجه‌های مختلف",
-      "BBC news",
-      "lyrics",
-    ],
+    description: "داستان‌های صوتی ۵ دقیقه‌ای — سطح‌بندی CEFR: C1 و C2",
   },
 ];
 
 async function seedCourses() {
-  console.log("📚 Seeding courses...");
+  console.log("📚 Seeding courses (v1.0.1.2 — 120 real lessons)...");
 
   for (const course of courseData) {
-    const id = `seed-${course.titleEn.toLowerCase().replace(/\s+/g, "-")}`;
+    const defs = lessonsOfCourse(course.id.replace("seed-", ""));
+    if (defs.length !== 10) {
+      throw new Error(`course ${course.id}: expected 10 lessons, got ${defs.length}`);
+    }
 
     const existing = await prisma.course.findUnique({
-      where: { id },
-      include: { lessons: { select: { id: true } } },
+      where: { id: course.id },
+      include: { lessons: { orderBy: { order: "asc" } } },
     });
 
     if (!existing) {
       await prisma.course.create({
         data: {
-          id,
+          id: course.id,
           title: course.title,
           titleEn: course.titleEn,
           level: course.level,
@@ -188,28 +157,86 @@ async function seedCourses() {
           imageUrl: course.imageUrl,
           isPublished: true,
           order: course.order,
-          description: `دوره ${course.title}`,
+          description: course.description,
           lessons: {
-            create: course.lessons.map((title, i) => ({
-              title,
-              order: i + 1,
-              xp: 10 + i * 5,
-              duration: 8 + i * 3,
-              type: i === 0 ? "TEACH" : i === 4 ? "QUIZ" : "PRACTICE",
+            create: defs.map((d) => ({
+              id: `${course.id}-l${String(d.order).padStart(2, "0")}`,
+              title: d.titleFa,
+              order: d.order,
+              xp: d.xp,
+              duration: d.durationMin,
+              type: "TEACH",
               content: JSON.stringify({
-                title,
-                rule: "Learning Content",
-                examples: ["Example 1", "Example 2"],
+                kind: d.kind,
+                slug: d.slug,
+                cefr: d.cefr,
               }),
             })),
           },
         },
       });
       console.log(
-        `  ✅ "${course.title}" created with ${course.lessons.length} lessons`,
+        `  ✅ "${course.title}" created with ${defs.length} lessons`,
       );
     } else {
-      console.log(`  ⏭️ "${course.title}" already exists, skipping`);
+      // ارتقای امن: درس‌های موجود به‌روزرسانی می‌شوند (پیشرفت کاربران حفظ می‌شود)
+      // و درس‌های ۶ تا ۱۰ با شناسه قطعی ساخته می‌شوند
+      await prisma.course.update({
+        where: { id: course.id },
+        data: {
+          title: course.title,
+          titleEn: course.titleEn,
+          level: course.level,
+          color: course.color,
+          imageUrl: course.imageUrl,
+          isPublished: true,
+          order: course.order,
+          description: course.description,
+        },
+      });
+
+      const existingLessons = existing.lessons;
+      for (let i = 0; i < defs.length; i++) {
+        const d = defs[i];
+        const content = JSON.stringify({
+          kind: d.kind,
+          slug: d.slug,
+          cefr: d.cefr,
+        });
+        if (i < existingLessons.length) {
+          await prisma.lesson.update({
+            where: { id: existingLessons[i].id },
+            data: {
+              title: d.titleFa,
+              order: d.order,
+              xp: d.xp,
+              duration: d.durationMin,
+              type: "TEACH",
+              content,
+            },
+          });
+        } else {
+          await prisma.lesson.create({
+            data: {
+              id: `${course.id}-l${String(d.order).padStart(2, "0")}`,
+              courseId: course.id,
+              title: d.titleFa,
+              order: d.order,
+              xp: d.xp,
+              duration: d.durationMin,
+              type: "TEACH",
+              content,
+            },
+          });
+        }
+      }
+      // حذف درس‌های اضافی (اگر بیش از ۱۰ بود)
+      for (let i = defs.length; i < existingLessons.length; i++) {
+        await prisma.lesson.delete({ where: { id: existingLessons[i].id } });
+      }
+      console.log(
+        `  ✅ "${course.title}" upgraded → ${defs.length} real lessons`,
+      );
     }
   }
 }
