@@ -1,137 +1,183 @@
 "use client";
 
 import Link from "next/link";
-import { useListening } from "@/app/hook/useListening";
-import { Headphones, Star, Clock, Zap, ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { getListeningLevel } from "@/types/listening";
+import {
+  Headphones,
+  BookMarked,
+  PenLine,
+  ArrowLeft,
+  Clock,
+  Zap,
+} from "lucide-react";
+import { countCompleted } from "@/lib/practice-progress";
+import { ProgressBar } from "@/app/components/practice/PracticeBits";
 
-function StarsDisplay({ count }: { count: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3].map((s) => (
-        <Star
-          key={s}
-          className={`h-4 w-4 ${
-            s <= count
-              ? "text-amber-400 fill-amber-400"
-              : "text-slate-200 fill-slate-200"
-          }`}
-        />
-      ))}
-    </div>
-  );
-}
+// ========================================
+// هاب تمرین‌ها (نسخه ۱.۰.۱.۴)
+// سه بخش: شنیداری / گرامری / نوشتاری — با پیشرفت زنده
+// پیشرفت آیتم‌های ایستا در localStorage ذخیره می‌شود
+// ========================================
+
+type Totals = { listening: number; grammar: number; writing: number };
+
+const SECTIONS = [
+  {
+    key: "listening" as const,
+    href: "/training/listening",
+    title: "تمرین شنیداری",
+    subtitle: "پادکست‌ها گوش بده و جاهای خالی را پر کن",
+    icon: Headphones,
+    iconBg: "bg-orange-50",
+    iconColor: "text-orange-600",
+    barColor: "bg-linear-to-l from-orange-500 to-amber-400",
+    chip: "bg-orange-100 text-orange-700",
+  },
+  {
+    key: "grammar" as const,
+    href: "/training/grammar",
+    title: "تمرین گرامری",
+    subtitle: "۱۵ مجموعه از مبتدی تا پیشرفته با کوئیز",
+    icon: BookMarked,
+    iconBg: "bg-blue-50",
+    iconColor: "text-blue-600",
+    barColor: "bg-linear-to-l from-blue-600 to-sky-400",
+    chip: "bg-blue-100 text-blue-700",
+  },
+  {
+    key: "writing" as const,
+    href: "/training/writing",
+    title: "تمرین نوشتاری",
+    subtitle: "بنویس و با هوش مصنوعی اصلاحش کن",
+    icon: PenLine,
+    iconBg: "bg-emerald-50",
+    iconColor: "text-emerald-600",
+    barColor: "bg-linear-to-l from-emerald-600 to-teal-400",
+    chip: "bg-emerald-100 text-emerald-700",
+  },
+];
 
 export default function TrainingPage() {
-  const { episodes, loading } = useListening();
+  const [totals, setTotals] = useState<Totals | null>(null);
+  const [completed, setCompleted] = useState<Totals | null>(null);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-      </div>
-    );
-  }
+  useEffect(() => {
+    const id = setTimeout(() => {
+      void (async () => {
+        // مجموع‌ها از APIها — تعداد انجام‌شده‌ها از localStorage
+        const [listening, grammar, writing] = await Promise.all([
+          fetch("/api/practice/listening")
+            .then((r) => (r.ok ? r.json() : []))
+            .catch(() => [] as unknown[]),
+          fetch("/api/practice/grammar")
+            .then((r) => (r.ok ? r.json() : []))
+            .catch(() => [] as unknown[]),
+          fetch("/api/practice/writing")
+            .then((r) => (r.ok ? r.json() : []))
+            .catch(() => [] as unknown[]),
+        ]);
+        setTotals({
+          listening: Array.isArray(listening) ? listening.length : 0,
+          grammar: Array.isArray(grammar) ? grammar.length : 0,
+          writing: Array.isArray(writing) ? writing.length : 0,
+        });
+      })();
+      setCompleted({
+        listening: countCompleted("listening"),
+        grammar: countCompleted("grammar"),
+        writing: countCompleted("writing"),
+      });
+    }, 0);
+    return () => clearTimeout(id);
+  }, []);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto" dir="rtl">
-      {/* هدر */}
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
+      {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
-          <Headphones className="w-5 h-5 text-orange-600" />
+        <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
+          <Zap className="w-5 h-5 text-violet-600" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800">تمرین شنیداری</h1>
+          <h1 className="text-xl font-bold text-slate-800">تمرین‌ها</h1>
           <p className="text-sm text-slate-500">
-            به پادکست‌ها گوش بده و متن جاخالی رو پر کن
+            هر روز کمی تمرین — شنیداری، گرامر و نوشتن
           </p>
         </div>
       </div>
 
-      {episodes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <Headphones className="h-16 w-16 text-slate-200" />
-          <p className="text-slate-500">هنوز تمرین شنیداری اضافه نشده</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-          {episodes.map((ep, i) => {
-            const levelInfo = getListeningLevel(ep.level);
-            const done = ep.progress && ep.progress.stars > 0;
-            const minutes = Math.floor(ep.duration / 60);
-            const seconds = ep.duration % 60;
-
-            return (
-              <motion.div
-                key={ep.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.08 }}
+      {/* ================= کارت‌های سه بخش ================= */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        {SECTIONS.map((s, i) => {
+          const total = totals?.[s.key] ?? 0;
+          const done = completed?.[s.key] ?? 0;
+          const Icon = s.icon;
+          return (
+            <motion.div
+              key={s.key}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+            >
+              <Link
+                href={s.href}
+                className="block bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md hover:border-slate-200 transition-all p-5 h-full group"
               >
-                <Link href={`/training/${ep.id}`} className="block group">
-                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-1 transition-all duration-300">
-                    {/* هدر کارت */}
-                    <div className="bg-linear-to-l from-orange-500 to-amber-500 px-5 py-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-white font-bold text-base">
-                            {ep.titleFa}
-                          </h3>
-                          <p className="text-orange-100 text-xs mt-1">
-                            {ep.title}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-1">
-                          <Zap className="h-3.5 w-3.5 text-yellow-200" />
-                          <span className="text-xs font-bold text-white">
-                            {ep.xp}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* بدنه کارت */}
-                    <div className="p-4 space-y-3">
-                      <p className="text-sm text-slate-600 leading-relaxed line-clamp-2">
-                        {ep.description}
-                      </p>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${levelInfo.color}`}
-                          >
-                            {levelInfo.fa}
-                          </span>
-                          <span className="flex items-center gap-1 text-xs text-slate-500">
-                            <Clock className="h-3 w-3" />
-                            {minutes}:{seconds.toString().padStart(2, "0")}
-                          </span>
-                        </div>
-
-                        {done && <StarsDisplay count={ep.progress!.stars} />}
-                      </div>
-
-                      {/* دکمه */}
-                      <button
-                        className={`w-full py-2.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-colors ${
-                          done
-                            ? "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                            : "bg-orange-50 text-orange-600 hover:bg-orange-100"
-                        }`}
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                        {done ? "تلاش مجدد" : "شروع تمرین"}
-                      </button>
-                    </div>
+                <div className="flex items-start justify-between mb-4">
+                  <div
+                    className={`w-12 h-12 rounded-2xl ${s.iconBg} flex items-center justify-center group-hover:scale-105 transition-transform`}
+                  >
+                    <Icon className={`w-6 h-6 ${s.iconColor}`} />
                   </div>
-                </Link>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+                  <span
+                    className={`text-[10px] font-bold px-2 py-1 rounded-full ${s.chip}`}
+                  >
+                    {total > 0 ? `${total} آیتم` : "..."}
+                  </span>
+                </div>
+                <h2 className="font-bold text-slate-800 mb-1">{s.title}</h2>
+                <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                  {s.subtitle}
+                </p>
+                <ProgressBar
+                  value={done}
+                  total={total}
+                  color={s.barColor}
+                />
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* ================= راهنما ================= */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="mt-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-start gap-3"
+      >
+        <Clock className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+        <p className="text-xs text-slate-500 leading-relaxed">
+          هر تمرین شنیداری حدود ۵ تا ۷ دقیقه وقت می‌برد، هر مجموعه گرامری ۱۰
+          سؤال کوتاه دارد و در نوشتاری متنِ حداکثر ۲۰۰ کلمه‌ای می‌نویسی و
+          هوش مصنوعی آن را برایت اصلاح می‌کند. ستاره‌ها بر اساس بهترین نتیجه
+          تو ذخیره می‌شوند — ۸۰٪ به بالا سه ستاره، ۶۰٪ دو ستاره و ۴۰٪ یک
+          ستاره.
+        </p>
+      </motion.div>
+
+      {/* لینک قدیمی اپیزودها هنوز از مسیر /training/[episodeId] کار می‌کند */}
+      <div className="mt-4 text-center">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          بازگشت به داشبورد
+        </Link>
+      </div>
     </div>
   );
 }
