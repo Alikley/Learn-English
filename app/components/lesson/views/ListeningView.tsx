@@ -14,6 +14,7 @@ import {
 import type { ListeningLesson } from "@/data/lessons/types";
 import { LISTENING_TIMINGS } from "@/data/lessons/listening-timings";
 import { storyAudio, speakFallback, canSpeak } from "@/lib/lesson-audio";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 import ContinueButton from "../ContinueButton";
 import ProgressStepper from "../ProgressStepper";
 
@@ -329,7 +330,7 @@ export default function ListeningView({
                           : "text-slate-500"
                       }`}
                     >
-                      {para}
+                      <HoverableText text={para} />
                     </p>
                   </div>
                 );
@@ -367,7 +368,7 @@ export default function ListeningView({
                 </span>
               </div>
               <p className="font-semibold text-slate-900 mb-4 leading-7">
-                {currentQ.question}
+                <HoverableText text={currentQ.question} />
               </p>
               <div className="space-y-2">
                 {currentQ.options.map((opt, i) => {
@@ -395,7 +396,7 @@ export default function ListeningView({
                       className={`w-full text-right border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
                     >
                       <span className="flex items-center gap-2 text-slate-800 text-sm">
-                        {opt}
+                        <HoverableText text={opt} />
                       </span>
                     </motion.button>
                   );

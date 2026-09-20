@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import type { ConversationLesson } from "@/data/lessons/types";
 import { convLineAudio, playLine, canSpeak } from "@/lib/lesson-audio";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 import ContinueButton from "../ContinueButton";
 import ProgressStepper from "../ProgressStepper";
 
@@ -337,7 +338,7 @@ export default function ConversationView({
                           isSite ? "text-red-900" : "text-blue-900"
                         }`}
                       >
-                        {line.en}
+                        <HoverableText text={line.en} />
                       </p>
                       <p className="text-[11px] text-slate-400 leading-5 mt-0.5">
                         {line.fa}

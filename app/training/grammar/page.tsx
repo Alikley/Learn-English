@@ -32,6 +32,7 @@ import {
 } from "@/types/training";
 import { Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress } from "@/lib/practice-progress";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 
 // ========================================
 // لیست تمرین گرامری (نسخه ۱.۰.۱.۴)
@@ -204,7 +205,7 @@ export default function GrammarListPage() {
                     {set.topicFa}
                   </h3>
                   <p className="text-[11px] text-slate-400 font-medium mb-2">
-                    {set.topicEn}
+                    <HoverableText text={set.topicEn} />
                   </p>
                   <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-3">
                     {set.description}

@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { getListeningLevel } from "@/types/listening";
 import type { PodcastEpisode } from "@/types/training";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 
 // ========================================
 // پلیر تمرین شنیداری (نسخه ۱.۰.۱.۴)
@@ -584,7 +585,12 @@ export default function ListeningPlayerPage() {
                     .replace(/^[A-Za-z]+:\s*/, "")
                     .split(/\{(\d+)\}/)
                     .map((part, i) => {
-                      if (i % 2 === 0) return <span key={i}>{part}</span>;
+                      if (i % 2 === 0)
+                        return (
+                          <span key={i}>
+                            <HoverableText text={part} />
+                          </span>
+                        );
 
                       const gapId = parseInt(part, 10);
                       const gap = gapsMap.get(gapId);

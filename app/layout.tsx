@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/app/components/AppShell";
 import AuthGuard from "@/app/components/AuthGuard";
+import { WordHoverProvider } from "@/app/components/vocabulary/WordHoverProvider";
 import Providers from "./Providers";
 
 const geistSans = Geist({
@@ -31,7 +32,9 @@ export default function RootLayout({
       <body className="h-full flex flex-col bg-gray-50">
         <Providers>
           <AuthGuard>
-            <AppShell>{children}</AppShell>
+            <WordHoverProvider>
+              <AppShell>{children}</AppShell>
+            </WordHoverProvider>
           </AuthGuard>
         </Providers>
       </body>

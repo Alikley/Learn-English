@@ -25,6 +25,7 @@ import { motion, AnimatePresence } from "motion/react";
 import type { WritingFeedback, WritingTopic } from "@/types/training";
 import { ScoreRing, Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 
 // ========================================
 // ادیتور نوشتاری (نسخه ۱.۰.۱.۴)
@@ -236,7 +237,9 @@ export default function WritingEditorPage() {
             </h1>
             {bestStars > 0 && <Stars count={bestStars} />}
           </div>
-          <p className="text-sm text-slate-500 truncate">{topic.titleEn}</p>
+          <p className="text-sm text-slate-500 truncate">
+            <HoverableText text={topic.titleEn} />
+          </p>
         </div>
       </div>
 
@@ -248,7 +251,7 @@ export default function WritingEditorPage() {
           </div>
           <div className="flex-1">
             <p className="text-sm text-slate-700 leading-relaxed mb-2" dir="ltr">
-              {topic.prompt}
+              <HoverableText text={topic.prompt} />
             </p>
             <p className="text-xs text-slate-500 leading-relaxed">
               {topic.promptFa}
@@ -262,7 +265,10 @@ export default function WritingEditorPage() {
                   className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-1 rounded-full"
                   title={w.fa}
                 >
-                  <span dir="ltr">{w.en}</span> — {w.fa}
+                  <span dir="ltr">
+                    <HoverableText text={w.en} />
+                  </span>{" "}
+                  — {w.fa}
                 </span>
               ))}
             </div>

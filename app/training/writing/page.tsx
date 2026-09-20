@@ -21,6 +21,7 @@ import {
 import type { WritingTopic } from "@/types/training";
 import { Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress } from "@/lib/practice-progress";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 
 // ========================================
 // لیست موضوعات نوشتاری (نسخه ۱.۰.۱.۴)
@@ -118,7 +119,7 @@ export default function WritingListPage() {
                   {topic.titleFa}
                 </h3>
                 <p className="text-[11px] text-slate-400 font-medium mb-3">
-                  {topic.titleEn}
+                  <HoverableText text={topic.titleEn} />
                 </p>
 
                 <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 mb-4">

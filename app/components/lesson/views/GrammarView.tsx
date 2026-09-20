@@ -15,6 +15,7 @@ import {
   Layers,
 } from "lucide-react";
 import type { GrammarLesson } from "@/data/lessons/types";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 import ContinueButton from "../ContinueButton";
 import ProgressStepper from "../ProgressStepper";
 
@@ -137,7 +138,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                           dir="ltr"
                           className="text-left text-slate-900 font-semibold text-sm leading-7"
                         >
-                          {ex.en}
+                          <HoverableText text={ex.en} />
                         </p>
                         <p className="text-slate-400 text-xs mt-1 leading-6">
                           {ex.fa}
@@ -242,7 +243,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                         dir="ltr"
                         className="text-left text-slate-900 font-semibold text-base leading-7"
                       >
-                        {ex.en}
+                        <HoverableText text={ex.en} />
                       </p>
                       <p className="text-slate-400 text-xs mt-1.5 leading-6 border-t border-dashed border-slate-100 pt-1.5">
                         {ex.fa}

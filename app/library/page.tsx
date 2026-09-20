@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useBooks } from "../hook/useBooks";
 import { getLevelInfo } from "@/types/book";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 
 export default function LibraryPage() {
   const { books, loading } = useBooks();
@@ -69,7 +70,9 @@ export default function LibraryPage() {
                 <h3 className="text-white font-bold text-lg mb-1 truncate">
                   {book.titleFa}
                 </h3>
-                <p className="text-blue-400 text-sm mb-2">{book.title}</p>
+                <p className="text-blue-400 text-sm mb-2">
+                  <HoverableText text={book.title} />
+                </p>
                 <div className="flex items-center justify-between text-xs text-gray-400">
                   <span>✍️ {book.author}</span>
                   <span>📄 {book.pages} صفحه</span>

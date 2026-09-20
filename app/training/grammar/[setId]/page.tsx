@@ -20,6 +20,7 @@ import {
   GRAMMAR_LEVEL_COLOR,
 } from "@/types/training";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 
 // ========================================
 // کوئیز گرامری (نسخه ۱.۰.۱.۴)
@@ -213,7 +214,9 @@ export default function GrammarQuizPage() {
               {GRAMMAR_LEVEL_LABEL[set.level]}
             </span>
           </div>
-          <p className="text-sm text-slate-500 truncate">{set.topicEn}</p>
+          <p className="text-sm text-slate-500 truncate">
+            <HoverableText text={set.topicEn} />
+          </p>
         </div>
         <div className="flex items-center gap-1 bg-blue-50 rounded-full px-3 py-1.5 shrink-0">
           <Zap className="h-4 w-4 text-blue-500" />
@@ -286,7 +289,7 @@ export default function GrammarQuizPage() {
               </div>
 
               <h2 className="text-base md:text-lg font-bold text-slate-800 leading-relaxed mb-6">
-                {question.question}
+                <HoverableText text={question.question} />
               </h2>
 
               {/* گزینه‌های MCQ / ERROR */}
@@ -332,7 +335,7 @@ export default function GrammarQuizPage() {
                           {i + 1}
                         </span>
                         <span className="flex-1 text-left leading-relaxed">
-                          {option}
+                          <HoverableText text={option} />
                         </span>
                         {answered && isAnswer && (
                           <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />

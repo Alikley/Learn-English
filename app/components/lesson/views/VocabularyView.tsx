@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { VocabularyLesson } from "@/data/lessons/types";
 import { playLine, canSpeak } from "@/lib/lesson-audio";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 import ContinueButton from "../ContinueButton";
 import ProgressStepper from "../ProgressStepper";
 
@@ -162,7 +163,7 @@ export default function VocabularyView({
                       dir="ltr"
                       className="text-white text-3xl md:text-4xl font-bold tracking-wide"
                     >
-                      {word.word}
+                      <HoverableText text={word.word} />
                     </p>
                     <button
                       onClick={(e) => {
@@ -196,7 +197,7 @@ export default function VocabularyView({
                         dir="ltr"
                         className="text-purple-400 text-sm font-semibold"
                       >
-                        {word.word}
+                        <HoverableText text={word.word} />
                       </p>
                       <p className="text-slate-900 text-2xl font-bold mt-1">
                         {word.fa}
@@ -207,7 +208,7 @@ export default function VocabularyView({
                         dir="ltr"
                         className="text-left text-slate-800 text-sm leading-7"
                       >
-                        {word.example}
+                        <HoverableText text={word.example} />
                       </p>
                       <p className="text-slate-400 text-xs leading-6 mt-1">
                         {word.exampleFa}

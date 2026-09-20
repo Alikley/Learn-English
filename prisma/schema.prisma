@@ -23,6 +23,7 @@ model user {
   streak            streak?
   listeningProgress ListeningProgress[]
   gameScores        GameScore[]
+  wordBoxes         WordBox[]
 }
 
 model course {
@@ -248,4 +249,37 @@ model SpeedQuizQuestion {
   isActive    Boolean @default(true)
 
   @@index([level, isActive])
+}
+
+// ========================================
+// لغت‌نامه (نسخه ۱.۰.۱.۶)
+// جعبه‌های لغات کاربر — هر جعبه حداکثر ۱۰ کلمه
+// منبع: هاور روی کلمه‌ها در کل سایت + افزودن دستی از صفحه لغت‌نامه
+// ========================================
+
+/// جعبه لغات کاربر
+model WordBox {
+  id        Int          @id @default(autoincrement())
+  userId    String
+  name      String       @db.VarChar(60)
+  createdAt DateTime     @default(now())
+
+  user  user          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  words WordBoxItem[]
+
+  @@index([userId])
+}
+
+/// کلمه داخل جعبه — word انگلیسی + معنی فارسی (در صورت وجود)
+model WordBoxItem {
+  id          Int      @id @default(autoincrement())
+  boxId       Int
+  word        String   @db.VarChar(80)
+  translation String?  @db.VarChar(160)
+  addedAt     DateTime @default(now())
+
+  box WordBox @relation(fields: [boxId], references: [id], onDelete: Cascade)
+
+  @@unique([boxId, word])
+  @@index([boxId])
 }

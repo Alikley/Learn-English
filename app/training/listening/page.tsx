@@ -8,6 +8,7 @@ import { getListeningLevel } from "@/types/listening";
 import type { ListeningItem } from "@/types/training";
 import { Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress } from "@/lib/practice-progress";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 
 // ========================================
 // لیست تمرین شنیداری (نسخه ۱.۰.۱.۴)
@@ -118,7 +119,7 @@ export default function ListeningListPage() {
                     {item.titleFa}
                   </h3>
                   <p className="text-[11px] text-slate-400 font-medium line-clamp-1 mb-3">
-                    {item.title}
+                    <HoverableText text={item.title} />
                   </p>
 
                   <div className="flex items-center gap-3 text-[11px] text-slate-500 font-bold">
