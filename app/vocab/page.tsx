@@ -2,19 +2,20 @@
 
 import { useState } from "react";
 import { motion } from "motion/react";
-import { FolderPlus, Loader2, LogIn, X } from "lucide-react";
+import { FolderPlus, Loader2, LogIn, X, AlertTriangle } from "lucide-react";
 import { useVocabularyBoxes } from "@/app/hook/useVocabularyBoxes";
 import { BoxCard, EmptyBoxesHint } from "@/app/components/vocabulary/BoxCard";
 
 // ========================================
-// صفحه لغت‌نامه (نسخه ۱.۰.۱.۶)
+// صفحه لغت‌نامه (نسخه 1.0.1.7)
 // جعبه‌های لغت — هر جعبه حداکثر ۱۰ کلمه
-// اولین بازدید: ۴ جعبه پیش‌فرض خودکار ساخته می‌شوند
+// اولین بازدید: ۲ جعبه پیش‌فرض خودکار ساخته می‌شوند
 // منبع کلمه‌ها: هاور روی کلمه‌های انگلیسی سراسر سایت + افزودن دستی
+// اگر سرور خطا دهد، پیام دقیق نمایش داده می‌شود (جعبه‌ها هرگز «محو» به نظر نمی‌رسند)
 // ========================================
 
 export default function VocabPage() {
-  const { boxes, loading, authed, addBox, deleteBox, addWord, removeWord } =
+  const { boxes, loading, authed, error, refetch, addBox, deleteBox, addWord, removeWord } =
     useVocabularyBoxes();
 
   // دیالوگ ساخت جعبه
@@ -125,6 +126,19 @@ export default function VocabPage() {
           >
             ورود
           </a>
+        </div>
+      ) : error && boxes.length === 0 ? (
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl px-5 py-6 flex flex-col items-center gap-3 text-center">
+          <AlertTriangle className="w-7 h-7 text-amber-500" />
+          <p className="text-sm font-bold text-amber-700 leading-7 max-w-lg">
+            {error}
+          </p>
+          <button
+            onClick={() => void refetch()}
+            className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-4 py-2 text-xs font-bold transition-colors"
+          >
+            تلاش دوباره
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-start">

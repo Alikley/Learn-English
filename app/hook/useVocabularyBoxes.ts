@@ -5,17 +5,19 @@ import type { VocabBox, VocabWordItem } from "@/types/vocabulary";
 import { VOCAB_BOX_NAME_MAX, VOCAB_BOX_WORD_LIMIT } from "@/types/vocabulary";
 
 // ========================================
-// هوک جعبه‌های لغت‌نامه (نسخه ۱.۰.۱.۶)
+// هوک جعبه‌های لغت‌نامه (نسخه 1.0.1.7)
 // استفاده در صفحه /vocab و پاپ‌آور هاور کلمه
 // auto=true  → با مانت، جعبه‌ها را می‌گیرد (صفحه لغت‌نامه)
 // auto=false → فقط با فراخوانی refetch (پاپ‌آور — برای مهمان‌ها نویز نمی‌سازد)
 // همهٔ تغییرات، state را درجا به‌روز می‌کنند — بدون رفرش کامل
+// خطای سرور هرگز بی‌صدا نمی‌ماند → error برای نمایش صریح
 // ========================================
 
 export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
   const [boxes, setBoxes] = useState<VocabBox[]>([]);
   const [loading, setLoading] = useState(auto);
   const [authed, setAuthed] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const requested = useRef(false);
 
   const refetch = useCallback(async () => {
@@ -25,15 +27,23 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
       if (res.status === 401) {
         setAuthed(false);
         setBoxes([]);
+        setError(null);
         return;
       }
       setAuthed(true);
-      if (res.ok) {
-        const data = (await res.json()) as { boxes: VocabBox[] };
+      const data = (await res.json().catch(() => null)) as {
+        boxes?: VocabBox[];
+        error?: string;
+      } | null;
+      if (res.ok && data?.boxes) {
         setBoxes(data.boxes);
+        setError(null);
+      } else {
+        // خطا را بی‌صدا قورت نده — جعبه‌ها «محو شده» به نظر نمی‌رسند
+        setError(data?.error ?? "دریافت جعبه‌ها ناموفق بود");
       }
     } catch {
-      /* شبکه قطع است — state قبلی می‌ماند */
+      setError("ارتباط با سرور برقرار نشد");
     } finally {
       setLoading(false);
     }
@@ -172,6 +182,7 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
     boxes,
     loading,
     authed,
+    error,
     refetch,
     addBox,
     deleteBox,

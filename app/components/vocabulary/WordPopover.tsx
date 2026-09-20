@@ -19,7 +19,7 @@ import type { WordHoverTarget } from "./WordHoverProvider";
 import { useWordHover } from "./WordHoverProvider";
 
 // ========================================
-// پاپ‌آور هاور کلمه (نسخه ۱.۰.۱.۶)
+// پاپ‌آور هاور کلمه (نسخه 1.0.1.7)
 // روی کلمه انگلیسی هاور → این جعبه باز می‌شود
 // گزینه‌ها: «ترجمه» + «جعبه لغت» (افزودن به یکی از جعبه‌ها)
 // ========================================
@@ -193,9 +193,10 @@ function PickerPanel({
   setAddError: (e: string | null) => void;
 }) {
   // فقط وقتی پنل باز شد جعبه‌ها را بگیر — نه برای همهٔ صفحات
-  const { boxes, loading, authed, refetch, addWord } = useVocabularyBoxes({
-    auto: false,
-  });
+  const { boxes, loading, authed, error, refetch, addWord } =
+    useVocabularyBoxes({
+      auto: false,
+    });
   const [busyBoxId, setBusyBoxId] = useState<number | null>(null);
   const requested = useRef(false);
 
@@ -239,6 +240,17 @@ function PickerPanel({
       <div className="flex items-center justify-center gap-2 py-3 text-slate-400 text-xs font-bold">
         <Loader2 className="w-4 h-4 animate-spin" />
         در حال گرفتن جعبه‌ها...
+      </div>
+    );
+  }
+
+  // خطای سرور؟ پیام دقیق نشان بده — نه «جعبه‌ای نداری» (که یعنی محو شدن جعبه‌ها)
+  if (error && boxes.length === 0) {
+    return (
+      <div className="py-2 px-1">
+        <p className="text-[11px] text-amber-600 leading-5 text-center">
+          {error}
+        </p>
       </div>
     );
   }

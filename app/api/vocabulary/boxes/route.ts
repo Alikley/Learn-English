@@ -1,5 +1,6 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/Prisma client";
+import { vocabModelsGuard, vocabDbError } from "@/lib/vocab-db";
 import { NextRequest } from "next/server";
 import {
   DEFAULT_BOX_NAMES,
@@ -9,9 +10,10 @@ import {
 } from "@/types/vocabulary";
 
 // ========================================
-// جعبه‌های لغت‌نامه (نسخه ۱.۰.۱.۶)
-// GET  → فهرست جعبه‌ها + کلمه‌ها (اولین بار ۴ جعبه پیش‌فرض می‌سازد)
+// جعبه‌های لغت‌نامه (نسخه 1.0.1.7)
+// GET  → فهرست جعبه‌ها + کلمه‌ها (اولین بار ۲ جعبه پیش‌فرض می‌سازد)
 // POST → جعبه جدید
+// اگر کلاینت پرایسما قدیمی یا مهاجرت اعمال‌نشده باشد → پیام فارسی دقیق
 // ========================================
 
 type BoxRow = {
@@ -46,35 +48,49 @@ export async function GET() {
   if (auth.error) return auth.error;
   const userId = auth.session.user.id;
 
-  let rows = await prisma.wordBox.findMany({
-    where: { userId },
-    orderBy: { createdAt: "asc" },
-    include: {
-      words: { orderBy: { addedAt: "asc" } },
-    },
-  });
+  // کلاینت پرایسما با schema قدیمی generate شده؟ → راهنمای دقیق
+  const guard = vocabModelsGuard();
+  if (guard) return guard;
 
-  // اولین بازدید؟ ۴ جعبه پیش‌فرض بساز
-  if (rows.length === 0) {
-    await prisma.wordBox.createMany({
-      data: DEFAULT_BOX_NAMES.map((name) => ({ userId, name })),
-    });
-    rows = await prisma.wordBox.findMany({
+  try {
+    let rows = await prisma.wordBox.findMany({
       where: { userId },
       orderBy: { createdAt: "asc" },
       include: {
         words: { orderBy: { addedAt: "asc" } },
       },
     });
-  }
 
-  return ok({ boxes: rows.map(toVocabBox) });
+    // اولین بازدید؟ ۲ جعبه پیش‌فرض خالی بساز
+    if (rows.length === 0) {
+      await prisma.wordBox.createMany({
+        data: DEFAULT_BOX_NAMES.map((name) => ({ userId, name })),
+      });
+      rows = await prisma.wordBox.findMany({
+        where: { userId },
+        orderBy: { createdAt: "asc" },
+        include: {
+          words: { orderBy: { addedAt: "asc" } },
+        },
+      });
+    }
+
+    return ok({ boxes: rows.map(toVocabBox) });
+  } catch (e) {
+    const dbErr = vocabDbError(e);
+    if (dbErr) return dbErr;
+    throw e;
+  }
 }
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
   const userId = auth.session.user.id;
+
+  // کلاینت پرایسما با schema قدیمی generate شده؟ → راهنمای دقیق
+  const guard = vocabModelsGuard();
+  if (guard) return guard;
 
   let body: { name?: unknown } | null = null;
   try {
@@ -88,10 +104,16 @@ export async function POST(req: NextRequest) {
   if (name.length > VOCAB_BOX_NAME_MAX)
     return err(`نام جعبه نباید بیشتر از ${VOCAB_BOX_NAME_MAX} حرف باشد`);
 
-  const box = await prisma.wordBox.create({
-    data: { userId, name },
-    include: { words: { orderBy: { addedAt: "asc" } } },
-  });
+  try {
+    const box = await prisma.wordBox.create({
+      data: { userId, name },
+      include: { words: { orderBy: { addedAt: "asc" } } },
+    });
 
-  return ok({ box: toVocabBox(box) }, 201);
+    return ok({ box: toVocabBox(box) }, 201);
+  } catch (e) {
+    const dbErr = vocabDbError(e);
+    if (dbErr) return dbErr;
+    throw e;
+  }
 }
