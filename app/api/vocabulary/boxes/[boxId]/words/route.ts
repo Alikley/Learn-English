@@ -6,7 +6,7 @@ import { NextRequest } from "next/server";
 import { VOCAB_BOX_WORD_LIMIT, VOCAB_WORD_PATTERN } from "@/types/vocabulary";
 
 // ========================================
-// افزودن کلمه به جعبه لغت‌نامه (نسخه 1.0.1.7)
+// افزودن کلمه به جعبه لغت‌نامه (نسخه 1.0.1.8)
 // POST /api/vocabulary/boxes/[boxId]/words
 // body: { word: string, translation?: string }
 // اگر translation نداد → از لغت‌نامه محلی پر می‌شود

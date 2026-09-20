@@ -7,7 +7,7 @@ import { useVocabularyBoxes } from "@/app/hook/useVocabularyBoxes";
 import { BoxCard, EmptyBoxesHint } from "@/app/components/vocabulary/BoxCard";
 
 // ========================================
-// صفحه لغت‌نامه (نسخه 1.0.1.7)
+// صفحه لغت‌نامه (نسخه 1.0.1.8)
 // جعبه‌های لغت — هر جعبه حداکثر ۱۰ کلمه
 // اولین بازدید: ۲ جعبه پیش‌فرض خودکار ساخته می‌شوند
 // منبع کلمه‌ها: هاور روی کلمه‌های انگلیسی سراسر سایت + افزودن دستی

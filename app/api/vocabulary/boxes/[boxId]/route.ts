@@ -4,7 +4,7 @@ import { vocabModelsGuard, vocabDbError } from "@/lib/vocab-db";
 import { NextRequest } from "next/server";
 
 // ========================================
-// حذف یک جعبه لغت‌نامه (نسخه 1.0.1.7)
+// حذف یک جعبه لغت‌نامه (نسخه 1.0.1.8)
 // DELETE /api/vocabulary/boxes/[boxId]
 // کلمه‌های داخل جعبه هم به‌صورت آبشاری حذف می‌شوند
 // ========================================

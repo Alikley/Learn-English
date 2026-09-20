@@ -5,25 +5,58 @@ import type { VocabBox, VocabWordItem } from "@/types/vocabulary";
 import { VOCAB_BOX_NAME_MAX, VOCAB_BOX_WORD_LIMIT } from "@/types/vocabulary";
 
 // ========================================
-// هوک جعبه‌های لغت‌نامه (نسخه 1.0.1.7)
+// هوک جعبه‌های لغت‌نامه (نسخه 1.0.1.8 — رفع اسپینر ابدی)
 // استفاده در صفحه /vocab و پاپ‌آور هاور کلمه
 // auto=true  → با مانت، جعبه‌ها را می‌گیرد (صفحه لغت‌نامه)
 // auto=false → فقط با فراخوانی refetch (پاپ‌آور — برای مهمان‌ها نویز نمی‌سازد)
 // همهٔ تغییرات، state را درجا به‌روز می‌کنند — بدون رفرش کامل
 // خطای سرور هرگز بی‌صدا نمی‌ماند → error برای نمایش صریح
+//
+// ⚠️ سازگار با React StrictMode (در حالت dev هر افکت دوبار اجرا می‌شود):
+// فِچ اولیه همگام و بلافاصله داخل خود افکت شروع می‌شود — نه با setTimeout
+// که cleanup بتواند آن را لغو کند. الگوی قبلی (ref گارد + setTimeout +
+// clearTimeout) باعث می‌شد در dev فِچ هرگز اجرا نشود و اسپینر
+// «در حال باز کردن لغت‌نامه...» برای همیشه بماند.
+// برای اینکه دوبار فِچ نزنیم، «قول در جریان» به اشتراک گذاشته می‌شود.
+//
+// ⏱ سقف انتظار ۲۰ ثانیه: اگر سرور پاسخ نداد (هر دلیلی — کندی دیتابیس،
+// قفل شبکه، سرور گیرکرده)، خطای فارسی روشن + دکمه تلاش دوباره نشان
+// می‌دهیم — دیگر «اسپینر ابدی» غیرممکن است.
 // ========================================
+
+/** سقف انتظار هر درخواست لغت‌نامه (میلی‌ثانیه) */
+const VOCAB_REQ_TIMEOUT_MS = 20_000;
+
+/** فِچ با سقف زمانی — بعد از مهلت، درخواست لغو و خطا نمایش داده می‌شود */
+async function fetchWithTimeout(url: string, init?: RequestInit) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), VOCAB_REQ_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** پیام فارسی خطای شبکه/تایم‌اوت */
+function netErrorMessage(e: unknown): string {
+  if (e instanceof DOMException && e.name === "AbortError")
+    return "پاسخ سرور بیش از حد طول کشید — دوباره تلاش کنید";
+  return "ارتباط با سرور برقرار نشد";
+}
 
 export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
   const [boxes, setBoxes] = useState<VocabBox[]>([]);
   const [loading, setLoading] = useState(auto);
   const [authed, setAuthed] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const requested = useRef(false);
+  // قولِ فِچِ در جریان — برای جلوگیری از دوباره‌گیری در StrictMode
+  const inFlight = useRef<Promise<void> | null>(null);
 
   const refetch = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/vocabulary/boxes");
+      const res = await fetchWithTimeout("/api/vocabulary/boxes");
       if (res.status === 401) {
         setAuthed(false);
         setBoxes([]);
@@ -42,22 +75,32 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
         // خطا را بی‌صدا قورت نده — جعبه‌ها «محو شده» به نظر نمی‌رسند
         setError(data?.error ?? "دریافت جعبه‌ها ناموفق بود");
       }
-    } catch {
-      setError("ارتباط با سرور برقرار نشد");
+    } catch (e) {
+      setError(netErrorMessage(e));
     } finally {
       setLoading(false);
     }
   }, []);
 
+  /**
+   * بارگذاری اولیهٔ امن در React StrictMode:
+   * افکت در dev دوبار اجرا می‌شود — بار اول فِچ همگام شروع می‌شود و
+   * cleanup آن را لغو نمی‌کند؛ بار دوم همان قولِ در جریان را برمی‌گرداند
+   * تا درخواست تکراری نزنیم. refetch هرگز reject نمی‌شود.
+   */
+  const ensureLoaded = useCallback(() => {
+    if (!inFlight.current) {
+      inFlight.current = refetch().finally(() => {
+        inFlight.current = null;
+      });
+    }
+    return inFlight.current;
+  }, [refetch]);
+
   useEffect(() => {
     if (!auto) return;
-    if (requested.current) return;
-    requested.current = true;
-    const id = setTimeout(() => {
-      void refetch();
-    }, 0);
-    return () => clearTimeout(id);
-  }, [auto, refetch]);
+    void ensureLoaded();
+  }, [auto, ensureLoaded]);
 
   /** ساخت جعبه جدید — پیام خطای فارسی برمی‌گرداند */
   const addBox = useCallback(
@@ -68,7 +111,7 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
         return `نام جعبه نباید بیشتر از ${VOCAB_BOX_NAME_MAX} حرف باشد`;
 
       try {
-        const res = await fetch("/api/vocabulary/boxes", {
+        const res = await fetchWithTimeout("/api/vocabulary/boxes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: trimmed }),
@@ -77,8 +120,8 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
         if (!res.ok || !data.box) return data.error ?? "ساخت جعبه ناموفق بود";
         setBoxes((prev) => [...prev, data.box as VocabBox]);
         return null;
-      } catch {
-        return "ارتباط با سرور برقرار نشد";
+      } catch (e) {
+        return netErrorMessage(e);
       }
     },
     [],
@@ -87,15 +130,15 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
   /** حذف جعبه */
   const deleteBox = useCallback(async (boxId: number): Promise<string | null> => {
     try {
-      const res = await fetch(`/api/vocabulary/boxes/${boxId}`, {
+      const res = await fetchWithTimeout(`/api/vocabulary/boxes/${boxId}`, {
         method: "DELETE",
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) return data.error ?? "حذف جعبه ناموفق بود";
       setBoxes((prev) => prev.filter((b) => b.id !== boxId));
       return null;
-    } catch {
-      return "ارتباط با سرور برقرار نشد";
+    } catch (e) {
+      return netErrorMessage(e);
     }
   }, []);
 
@@ -119,7 +162,7 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
       }
 
       try {
-        const res = await fetch(`/api/vocabulary/boxes/${boxId}/words`, {
+        const res = await fetchWithTimeout(`/api/vocabulary/boxes/${boxId}/words`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ word: clean, translation: translation ?? undefined }),
@@ -141,8 +184,8 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
           ),
         );
         return null;
-      } catch {
-        return "ارتباط با سرور برقرار نشد";
+      } catch (e) {
+        return netErrorMessage(e);
       }
     },
     [boxes],
@@ -152,7 +195,7 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
   const removeWord = useCallback(
     async (wordId: number): Promise<string | null> => {
       try {
-        const res = await fetch(`/api/vocabulary/words/${wordId}`, {
+        const res = await fetchWithTimeout(`/api/vocabulary/words/${wordId}`, {
           method: "DELETE",
         });
         const data = (await res.json()) as { error?: string };
@@ -171,8 +214,8 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
           }),
         );
         return null;
-      } catch {
-        return "ارتباط با سرور برقرار نشد";
+      } catch (e) {
+        return netErrorMessage(e);
       }
     },
     [],
