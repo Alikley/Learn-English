@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useBook } from "@/app/hook/useBook";
 import { getLevelInfo } from "@/types/book";
+import PageLoader from "@/app/components/PageLoader";
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -11,9 +12,10 @@ export default function BookDetailPage() {
   const { book, loading, notFound } = useBook(bookId);
 
   if (loading) {
+    // لودر یکپارچه — پس‌زمینهٔ تیرهٔ صفحهٔ جزئیات کتاب حفظ می‌شود
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-950">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent" />
+      <div className="min-h-screen bg-gray-950">
+        <PageLoader />
       </div>
     );
   }

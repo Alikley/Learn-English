@@ -16,6 +16,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import PageLoader from "@/app/components/PageLoader";
 import {
   getListeningLevel,
   ListeningEpisode,
@@ -265,11 +266,7 @@ export default function ListeningExercisePage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!episode) {
@@ -292,7 +289,7 @@ export default function ListeningExercisePage() {
   const levelInfo = getListeningLevel(episode.level);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
       {/* هدر */}
       <div className="flex items-center gap-3 mb-6">
         <button

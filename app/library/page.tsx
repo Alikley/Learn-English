@@ -5,25 +5,23 @@ import Link from "next/link";
 import { useBooks } from "../hook/useBooks";
 import { getLevelInfo } from "@/types/book";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
+import PageLoader from "@/app/components/PageLoader";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 export default function LibraryPage() {
   const { books, loading } = useBooks();
+  const { t } = useLanguage();
 
+  // حالت لودینگ یکپارچهٔ سایت — v1.0.1.9
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8" dir="rtl">
+    <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">📚 کتابخانه</h1>
-        <p className="text-gray-400">
-          کتاب‌های داستان انگلیسی برای تقویت مهارت خواندن
-        </p>
+        <h1 className="text-3xl font-bold text-white mb-2">{t("library.title")}</h1>
+        <p className="text-gray-400">{t("library.sub")}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -49,7 +47,7 @@ export default function LibraryPage() {
                 </span>
                 <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                   <span className="text-white text-sm flex items-center gap-2">
-                    📖 مطالعه کتاب
+                    📖 {t("library.read")}
                     <svg
                       className="w-4 h-4 rotate-180"
                       fill="none"
@@ -75,7 +73,7 @@ export default function LibraryPage() {
                 </p>
                 <div className="flex items-center justify-between text-xs text-gray-400">
                   <span>✍️ {book.author}</span>
-                  <span>📄 {book.pages} صفحه</span>
+                  <span>📄 {book.pages} {t("library.pages")}</span>
                 </div>
               </div>
             </Link>
@@ -86,7 +84,7 @@ export default function LibraryPage() {
       {books.length === 0 && (
         <div className="text-center py-20 text-gray-400">
           <p className="text-5xl mb-4">📭</p>
-          <p className="text-lg">هنوز کتابی اضافه نشده</p>
+          <p className="text-lg">{t("library.empty")}</p>
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useBook } from "@/app/hook/useBook";
+import PageLoader from "@/app/components/PageLoader";
 
 export default function BookReaderPage() {
   const params = useParams();
@@ -34,14 +35,10 @@ export default function BookReaderPage() {
   }, []);
 
   if (loading) {
+    // لودر یکپارچه — پس‌زمینهٔ کاغذی کتاب‌خوان حفظ می‌شود
     return (
-      <div className="flex items-center justify-center h-screen bg-[#F5F0E8]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-2 border-amber-700 border-t-transparent" />
-          <span className="text-amber-800/60 text-sm">
-            در حال بارگذاری کتاب...
-          </span>
-        </div>
+      <div className="min-h-screen bg-[#F5F0E8]">
+        <PageLoader />
       </div>
     );
   }
@@ -62,10 +59,7 @@ export default function BookReaderPage() {
   }
 
   return (
-    <div
-      className="h-screen flex flex-col bg-[#F5F0E8] overflow-hidden"
-      dir="rtl"
-    >
+    <div className="h-screen flex flex-col bg-[#F5F0E8] overflow-hidden">
       {/* نوار بالایی */}
       <div
         className={`absolute top-0 left-0 right-0 z-50 bg-linear-to-b from-black/60 via-black/30 to-transparent px-6 py-4 flex items-center justify-between transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}

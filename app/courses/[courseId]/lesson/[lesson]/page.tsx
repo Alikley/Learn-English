@@ -9,6 +9,7 @@ import ProgressStepper from "@/app/components/lesson/ProgressStepper";
 import { useState, useEffect } from "react";
 import { getCourseTheme } from "@/lib/course-theme";
 import { CEFR_LABEL, type Cefr } from "@/data/lessons/types";
+import PageLoader from "@/app/components/PageLoader";
 
 type LessonContentMeta = {
   kind?: string;
@@ -122,12 +123,9 @@ export default function LessonPage() {
     }
   };
 
+  // لودر یکپارچهٔ سایت — v1.0.1.9
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!lesson) {

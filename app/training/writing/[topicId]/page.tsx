@@ -26,6 +26,7 @@ import type { WritingFeedback, WritingTopic } from "@/types/training";
 import { ScoreRing, Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
+import PageLoader from "@/app/components/PageLoader";
 
 // ========================================
 // ادیتور نوشتاری (نسخه ۱.۰.۱.۴)
@@ -191,12 +192,9 @@ export default function WritingEditorPage() {
   };
 
   /* ---------- رندر ---------- */
+  // لودر یکپارچهٔ سایت — v1.0.1.9
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!topic) {

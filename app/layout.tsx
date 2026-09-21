@@ -16,9 +16,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// ========================================
+// متادیتای ریشه — v1.0.1.9
+// قالب عنوان: «صفحه | Flex English» — هر مسیر
+// عنوان خودش را از layout همان مسیر می‌گیرد.
+// زبان پیش‌فرض فارسی و راست‌چین است؛ با دکمهٔ
+// تغییر زبان در نوبار، به‌صورت زنده LTR/انگلیسی
+// می‌شود (عنوان تب هم همان لحظه عوض می‌شود).
+// ========================================
 export const metadata: Metadata = {
-  title: "Flex English",
-  description: "یادگیری زبان انگلیسی به ساده‌ترین شکل",
+  title: {
+    default: "Flex English — یادگیری زبان انگلیسی",
+    template: "%s | Flex English",
+  },
+  description: "یادگیری زبان انگلیسی به ساده‌ترین شکل — تمرین، بازی، کتاب و لغت‌نامه",
 };
 
 export default function RootLayout({
@@ -26,7 +37,8 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="en"
+      lang="fa"
+      dir="rtl"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="h-full flex flex-col bg-gray-50">

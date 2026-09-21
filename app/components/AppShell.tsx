@@ -5,11 +5,13 @@ import Sidebar from "@/app/components/Sidebar";
 import StreakLoginAlert from "@/app/components/StreakLoginAlert";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { useIsPublicPath } from "@/app/components/AuthGuard";
+import { useLanguage } from "@/app/context/LanguageContext";
 import { useSidebar } from "../hook/useSidebar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { isOpen, toggle } = useSidebar();
   const isPublic = useIsPublicPath();
+  const { lang } = useLanguage();
 
   // صفحات login و register بدون navbar و sidebar
   if (isPublic) {
@@ -23,7 +25,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* ✅ آلرت استریک ورود */}
       <StreakLoginAlert />
 
-      <div className="flex-1 flex flex-row-reverse overflow-hidden h-full relative">
+      {/* v1.0.1.9 — چیدمان با dir سند هماهنگ است: flex-row یعنی
+          سایدبار در فارسی سمت راست و در انگلیسی سمت چپ می‌نشیند */}
+      <div className="flex-1 flex flex-row overflow-hidden h-full relative">
         {/* overlay موبایل */}
         {isOpen && (
           <div
@@ -32,13 +36,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           />
         )}
 
-        {/* سایدبار */}
+        {/* سایدبار — در موبایل از سمتِ «شروع» سند باز/بسته می‌شود */}
         <div
           className={`
-            fixed top-0 right-0 h-full z-50 w-56
+            fixed top-0 start-0 h-full z-50 w-56
             transform transition-transform duration-300
             md:static md:translate-x-0 md:w-56 md:shrink-0 md:z-auto
-            ${isOpen ? "translate-x-0" : "translate-x-full"}
+            ${isOpen ? "translate-x-0" : lang === "fa" ? "translate-x-full" : "-translate-x-full"}
             md:block
           `}
         >

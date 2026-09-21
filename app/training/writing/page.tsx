@@ -22,6 +22,8 @@ import type { WritingTopic } from "@/types/training";
 import { Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress } from "@/lib/practice-progress";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
+import PageLoader from "@/app/components/PageLoader";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
 // لیست موضوعات نوشتاری (نسخه ۱.۰.۱.۴)
@@ -61,32 +63,31 @@ export default function WritingListPage() {
     return () => clearTimeout(id);
   }, []);
 
+  const { t } = useLanguage();
+
+  // لودر یکپارچهٔ سایت — v1.0.1.9
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
           <PenLine className="w-5 h-5 text-emerald-600" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">تمرین نوشتاری</h1>
+          <h1 className="text-xl font-bold text-slate-800">{t("training.writing.title")}</h1>
           <p className="text-sm text-slate-500">
-            متنی کوتاه بنویس و هوش مصنوعی آن را اصلاح می‌کند
+            {t("training.writing.sub")}
           </p>
         </div>
         <Link
           href="/training"
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
         >
-          بازگشت
+          {t("training.back")}
         </Link>
       </div>
 

@@ -5,18 +5,22 @@ import { motion } from "motion/react";
 import { FolderPlus, Loader2, LogIn, X, AlertTriangle } from "lucide-react";
 import { useVocabularyBoxes } from "@/app/hook/useVocabularyBoxes";
 import { BoxCard, EmptyBoxesHint } from "@/app/components/vocabulary/BoxCard";
+import PageLoader from "@/app/components/PageLoader";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
-// صفحه لغت‌نامه (نسخه 1.0.1.8)
+// صفحه لغت‌نامه (نسخه 1.0.1.9)
 // جعبه‌های لغت — هر جعبه حداکثر ۱۰ کلمه
 // اولین بازدید: ۲ جعبه پیش‌فرض خودکار ساخته می‌شوند
 // منبع کلمه‌ها: هاور روی کلمه‌های انگلیسی سراسر سایت + افزودن دستی
 // اگر سرور خطا دهد، پیام دقیق نمایش داده می‌شود (جعبه‌ها هرگز «محو» به نظر نمی‌رسند)
+// لودر یکپارچهٔ سایت — v1.0.1.9
 // ========================================
 
 export default function VocabPage() {
   const { boxes, loading, authed, error, refetch, addBox, deleteBox, addWord, removeWord } =
     useVocabularyBoxes();
+  const { t } = useLanguage();
 
   // دیالوگ ساخت جعبه
   const [showDialog, setShowDialog] = useState(false);
@@ -39,17 +43,14 @@ export default function VocabPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto">
       {/* هدر + افزودن جعبه */}
       <div className="flex items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-slate-800">
-            لغت‌نامه
+            {t("vocab.title")}
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            روی هر کلمه انگلیسی سایت هاور کن تا ترجمه و «جعبه لغت» باز شود —
-            کلمه‌های اینجا جمع می‌شوند
-          </p>
+          <p className="text-xs text-slate-400 mt-1">{t("vocab.sub")}</p>
         </div>
         <button
           onClick={() => {
@@ -59,7 +60,7 @@ export default function VocabPage() {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2.5 text-sm font-bold shadow-sm transition-colors shrink-0"
         >
           <FolderPlus className="w-4 h-4" />
-          جعبه جدید
+          {t("vocab.newBox")}
         </button>
       </div>
 
@@ -110,10 +111,7 @@ export default function VocabPage() {
 
       {/* محتوا */}
       {loading && boxes.length === 0 ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-slate-400 text-sm font-bold">
-          <Loader2 className="w-5 h-5 animate-spin" />
-          در حال باز کردن لغت‌نامه...
-        </div>
+        <PageLoader />
       ) : !authed ? (
         <div className="flex flex-col items-center gap-3 py-16 text-slate-400">
           <LogIn className="w-8 h-8" />

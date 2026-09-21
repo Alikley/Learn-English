@@ -7,6 +7,7 @@ import EmptyState from "@/app/components/course/EmptyState";
 import { LEVEL_LABEL } from "@/types/course";
 import { getCourseTheme } from "@/lib/course-theme";
 import { useCourseDetail } from "@/app/hook/useCourseDetail";
+import PageLoader from "@/app/components/PageLoader";
 
 // ========================================
 // صفحه جزئیات دوره — v1.0.1.1
@@ -29,12 +30,9 @@ export default function CourseDetailPage() {
   const { course, loading, completing, completeLesson, stats } =
     useCourseDetail(courseId);
 
+  // لودر یکپارچهٔ سایت — v1.0.1.9
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!course) {

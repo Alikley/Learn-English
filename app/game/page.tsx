@@ -7,6 +7,7 @@ import MascotCharacter from "@/app/components/game/MascotCharacter";
 import { useGameStats } from "@/app/hook/useGameStats";
 import { useMemoryStats } from "@/app/hook/useMemoryStats";
 import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
 // هاب بازی‌ها — کارت هر بازی
@@ -23,22 +24,21 @@ import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
 // ========================================
 
 export default function GamePage() {
+  const { t } = useLanguage();
   const { stats: hangmanStats, streak: hangmanStreak } = useGameStats();
   const { stats: memoryStats, streak: memoryStreak } = useMemoryStats();
   const { stats: speedQuizStats, streak: speedQuizStreak } = useSpeedQuizStats();
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
           <Gamepad2 className="w-5 h-5 text-emerald-600" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800">بازی‌ها</h1>
-          <p className="text-sm text-slate-500">
-            با بازی یاد بگیر — امتیاز بگیر و استریکت رو زنده نگه دار!
-          </p>
+          <h1 className="text-xl font-bold text-slate-800">{t("games.title")}</h1>
+          <p className="text-sm text-slate-500">{t("games.sub")}</p>
         </div>
       </div>
 
@@ -49,7 +49,7 @@ export default function GamePage() {
         <div className="space-y-3">
           <GameCard
             title="Hangman"
-            desc="حروف را حدس بزن و کلمه را نجات بده! کلمات از A1 تا C1"
+            desc={t("games.hangmanDesc")}
             icon="/assets/icon_2_hangman.svg"
             href="/game/hangman"
             stats={
@@ -59,7 +59,7 @@ export default function GamePage() {
 
           <GameCard
             title="Match Card"
-            desc="کارت‌ها را باز کن و جفت کلمات انگلیسی-فارسی را پیدا کن — از A1 تا C1"
+            desc={t("games.memoryDesc")}
             icon="/assets/icon_1_abc_blocks.svg"
             href="/game/memory"
             stats={
@@ -69,7 +69,7 @@ export default function GamePage() {
 
           <GameCard
             title="Quiz Hot"
-            desc="سریع جواب بده — سوال‌های کلمه و جمله از A1 تا C1"
+            desc={t("games.quizDesc")}
             icon="/assets/icon_3_document_sign.svg"
             href="/game/speedquiz"
             stats={
@@ -83,9 +83,9 @@ export default function GamePage() {
 
           {/* نکته */}
           <p className="pt-2 text-center text-[11px] text-slate-400 leading-5">
-            بازی‌های جدید به‌مرور اضافه می‌شوند
+            {t("games.note1")}
             <br />
-            هر بازی که شروع کنی، روز یادگیری‌ات هم ثبت می‌شود
+            {t("games.note2")}
           </p>
         </div>
 
@@ -94,7 +94,7 @@ export default function GamePage() {
         <div className="flex flex-col items-center justify-center">
           <MascotCharacter />
           <p className="mt-3 text-center text-xs text-slate-400">
-            چشم‌هایم به موس توست — بازی کن!
+            {t("games.caption")}
           </p>
         </div>
       </div>

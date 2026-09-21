@@ -17,6 +17,7 @@ import {
   SPEEDQUIZ_LEVELS,
   getGameLevel,
 } from "@/types/game";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
 // صفحه بازی کوییز سرعتی
@@ -66,9 +67,10 @@ export default function SpeedQuizPage() {
 
   const levelFa = getGameLevel(level).fa;
   const currentQuestion = questions[qIndex] ?? null;
+  const { t } = useLanguage();
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
@@ -76,9 +78,7 @@ export default function SpeedQuizPage() {
         </div>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">Quiz Hot</h1>
-          <p className="text-sm text-slate-500">
-            سریع جواب بده — هر ثانیه که می‌گذره، امتیاز کمتره!
-          </p>
+          <p className="text-sm text-slate-500">{t("games.speedquiz.sub")}</p>
         </div>
         {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
         {phase === "levelSelect" ? (
@@ -87,7 +87,7 @@ export default function SpeedQuizPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            بازگشت
+            {t("games.back")}
           </Link>
         ) : (
           <button
@@ -145,7 +145,7 @@ export default function SpeedQuizPage() {
           {/* ---- بدنه بازی ---- */}
           {phase === "loading" && (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="w-10 h-10 border-4 border-amber-200 border-t-amber-600 rounded-full animate-spin" />
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
               <p className="text-sm text-slate-500">
                 {/* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
                 {hideLevel
