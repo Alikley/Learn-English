@@ -26,6 +26,7 @@ export const DICT: Record<string, [string, string]> = {
   "sidebar.vocab": ["لغت‌نامه", "Vocabulary"],
   "sidebar.courses": ["دوره‌های من", "My Courses"],
   "sidebar.chat": ["پیام‌ها", "Messages"],
+  "sidebar.menu": ["منو", "Menu"],
   "sidebar.streakTitle": ["روزهای متوالی یادگیری", "Daily Learning Streak"],
   "sidebar.day": ["روز", "days"],
   "sidebar.msg0": ["شروع یک مسیر جدید!", "Start a new journey!"],

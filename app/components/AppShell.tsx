@@ -3,6 +3,7 @@
 import Navbar from "@/app/Navbar";
 import Sidebar from "@/app/components/Sidebar";
 import StreakLoginAlert from "@/app/components/StreakLoginAlert";
+import SmoothScroll from "@/app/components/SmoothScroll";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { useIsPublicPath } from "@/app/components/AuthGuard";
 import { useLanguage } from "@/app/context/LanguageContext";
@@ -50,8 +51,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* v1.0.2.0 — scroll-smooth: اسکرول طولیِ داخل صفحه اصلی
-          هم مانند خود سند، نرم و انیمیشنی می‌شود */}
+            هم مانند خود سند، نرم و انیمیشنی می‌شود
+            v1.0.2.1 — Lenis (SmoothScroll) چرخ ماوس را هم نرم
+            می‌کند؛ scroll-smooth به‌عنوان پشتیبان می‌ماند چون
+            lenis هر فریم با behavior:instant اسکرول می‌گذارد */}
       <main className="flex-1 overflow-y-auto h-full scroll-smooth">{children}</main>
+
+      {/* v1.0.2.1 — اسکرول انیمیشنی واقعی (Lenis) روی main */}
+      <SmoothScroll />
       </div>
     </NotificationProvider>
   );

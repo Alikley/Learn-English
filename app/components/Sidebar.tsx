@@ -13,14 +13,24 @@ import {
   MessageCircle,
   LibraryBig,
   Flame,
+  Moon,
+  Sun,
+  X,
 } from "lucide-react";
 import { useStreak } from "@/app/hook/useStreak";
 import { useLanguage } from "@/app/context/LanguageContext";
+import { useTheme } from "@/app/context/ThemeContext";
 
 // ========================================
-// سایدبار — v1.0.1.9
+// سایدبار — v1.0.2.1
 //
-// ✨ انیمیشن‌های جدید آیکون‌ها (درخواست کاربر):
+// ✨ v1.0.2.1 (درخواست کاربر — گام ۱):
+//  - در حالت ریسپانسیو، نشان استریک و دکمهٔ دارک/لایت
+//    از نوبار به این اسلاید کناری منتقل شدند — ردیف
+//    «عملیات سریع» بالای منو (فقط موبایل، md:hidden)
+//  - دکمهٔ بستنِ اسلاید موبایل آیکون X گرفت (قبلاً خالی بود)
+//
+// ✨ انیمیشن‌های آیکون‌ها (v1.0.1.9):
 //  - هر آیکون هاورِ مخصوص خودش را دارد: بانس،
 //    چرخش، فلیپ کتاب، ویگِر قلم، پاپِ پیام...
 //  - آیتمِ فعال: «قرص آبی» با انیمیشن shared-layout
@@ -147,6 +157,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname();
   const { streak } = useStreak();
   const { t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
 
   const menuItems = [
     { labelKey: "sidebar.dashboard", icon: Home, href: "/dashboard" },
@@ -171,11 +182,50 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   return (
     <div className="h-full bg-white border-e border-slate-100 flex flex-col pt-16 md:pt-0">
       {/* دکمه بستن - فقط موبایل */}
-      <div className="md:hidden flex justify-start px-3 py-2 border-b border-slate-100">
+      <div className="md:hidden flex items-center justify-between px-3 py-2 border-b border-slate-100">
+        <span className="text-xs font-medium text-gray-400">{t("sidebar.menu")}</span>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-slate-50"
-        ></button>
+          aria-label="بستن منو"
+          className="p-1.5 rounded-lg hover:bg-slate-50 text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* ✅ v1.0.2.1 — ردیف عملیات سریع موبایل:
+          نشان استریک + دکمهٔ دارک/لایت (همان‌هایی که در
+          ریسپانسیو از نوبار به اینجا منتقل شدند — گام ۱) */}
+      <div className="md:hidden flex items-center justify-between gap-2 px-3 py-2.5 border-b border-slate-100">
+        {streak.current > 0 ? (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 rounded-full border border-orange-100">
+            <Flame className="h-4 w-4 text-orange-500" />
+            <span className="text-sm font-bold text-orange-600">
+              {streak.current}
+            </span>
+            <span className="text-[11px] font-medium text-orange-500">
+              {t("sidebar.streakTitle")}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-full border border-slate-100">
+            <Flame className="h-4 w-4 text-slate-300" />
+            <span className="text-[11px] font-medium text-gray-500">
+              {t("sidebar.streakTitle")}
+            </span>
+          </div>
+        )}
+        <button
+          onClick={toggleTheme}
+          title={theme === "light" ? t("navbar.darkMode") : t("navbar.lightMode")}
+          className="flex items-center justify-center p-2 rounded-full border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all duration-200 group"
+        >
+          {theme === "light" ? (
+            <Moon className="h-4 w-4 transition-transform duration-500 group-hover:-rotate-12 group-hover:scale-110" />
+          ) : (
+            <Sun className="h-4 w-4 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110" />
+          )}
+        </button>
       </div>
 
       <nav className="flex-1 space-y-1 p-3">

@@ -24,11 +24,11 @@ import { useLanguage } from "@/app/context/LanguageContext";
 import { useTheme } from "@/app/context/ThemeContext";
 
 // ========================================
-// نوبار — v1.0.2.0
-//  - دکمهٔ دارک/لایت (Moon/Sun) کنار دکمهٔ زبان
-//  - رفع اسکرول عرضی در حالت انگلیسی: دیالوگ جستجو
-//    از start-0 به end-0 تغییر کرد — در LTR از لبهٔ راست
-//    بیرون نمی‌زند و صفحه دیگر عریض‌تر از viewport نمی‌شود
+// نوبار — v1.0.2.1
+//  - حالت ریسپانسیو (زیر md): نشان استریک و دکمهٔ دارک/لایت
+//    از نوبار حذف می‌شوند و به داخل اسلاید کناری (منوی
+//    همبرگر) منتقل شده‌اند — سایدبار موبایل شلوغ نمی‌شود
+//  - (v1.0.2.0) دکمهٔ دارک/لایت، رفع اسکرول عرضی EN و ...
 //  - (v1.0.1.9) دکمهٔ زبان، کلیک نام → داشبورد و ...
 // ========================================
 
@@ -133,9 +133,10 @@ export default function Navbar({
             </Link>
           </div>
 
-          {/* ✅ استریک روزهای متوالی */}
+          {/* ✅ استریک روزهای متوالی — v1.0.2.1:
+              فقط دسکتاپ (md+)؛ در موبایل داخل اسلاید کناری است */}
           {streak.current > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 rounded-full border border-orange-100">
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 rounded-full border border-orange-100">
               <Flame className="h-4 w-4 text-orange-500" />
               <span className="text-sm font-bold text-orange-600">
                 {streak.current}
@@ -155,11 +156,13 @@ export default function Navbar({
             </span>
           </button>
 
-          {/* 🌙 دکمهٔ دارک/لایت — v1.0.2.0 */}
+          {/* 🌙 دکمهٔ دارک/لایت — v1.0.2.0
+              v1.0.2.1: فقط دسکتاپ (md+)؛ در موبایل داخل
+              اسلاید کناری (کنار همبرگر) قرار دارد */}
           <button
             onClick={toggleTheme}
             title={theme === "light" ? t("navbar.darkMode") : t("navbar.lightMode")}
-            className="flex items-center justify-center p-2 rounded-full border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all duration-200 group"
+            className="hidden md:flex items-center justify-center p-2 rounded-full border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all duration-200 group"
           >
             {theme === "light" ? (
               <Moon className="h-4 w-4 transition-transform duration-500 group-hover:-rotate-12 group-hover:scale-110" />
@@ -179,7 +182,9 @@ export default function Navbar({
               )}
             </button>
             <div className="absolute top-12 end-0 w-64 md:w-72 bg-white rounded-xl shadow-xl border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-              <div className="space-y-2 max-h-60 overflow-y-auto">
+              {/* v1.0.2.1 — data-lenis-prevent: چرخ ماوس روی
+                  لیست اعلان‌ها این لیست را اسکرول می‌کند نه صفحه */}
+              <div className="space-y-2 max-h-60 overflow-y-auto" data-lenis-prevent>
                 {recentNotifications.length > 0 ? (
                   recentNotifications.map((notif) => (
                     <div

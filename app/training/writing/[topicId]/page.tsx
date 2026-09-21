@@ -349,6 +349,7 @@ export default function WritingEditorPage() {
           dir="ltr"
           data-placeholder="Start writing here..."
           className="min-h-[16rem] max-h-[32rem] overflow-y-auto p-5 text-[15px] leading-[1.9] text-slate-800 outline-none focus:ring-2 focus:ring-emerald-100 [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-slate-300"
+          data-lenis-prevent
         />
       </div>
 
