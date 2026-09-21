@@ -13,21 +13,23 @@ import {
   Menu,
   Flame,
   Globe,
+  Moon,
+  Sun,
 } from "lucide-react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { useAuth } from "@/app/context/AuthContext";
 import { useStreak } from "@/app/hook/useStreak";
 import { useLanguage } from "@/app/context/LanguageContext";
+import { useTheme } from "@/app/context/ThemeContext";
 
 // ========================================
-// نوبار — v1.0.1.9
-//  - دکمهٔ تغییر زبان فارسی/English (Globe)
-//    کنار جستجو؛ جهت سایت و پوسته همگام عوض می‌شود
-//  - کلیک روی نام/آواتار کاربر → داشبورد
-//    (قبلاً به /profile/edit می‌رفت که وجود نداشت!)
-//  - جای دیالوگ‌ها با ابزارهای منطقی (start/end)
-//    در هر دو حالت راست‌چین/چپ‌چین درست باز می‌شوند
+// نوبار — v1.0.2.0
+//  - دکمهٔ دارک/لایت (Moon/Sun) کنار دکمهٔ زبان
+//  - رفع اسکرول عرضی در حالت انگلیسی: دیالوگ جستجو
+//    از start-0 به end-0 تغییر کرد — در LTR از لبهٔ راست
+//    بیرون نمی‌زند و صفحه دیگر عریض‌تر از viewport نمی‌شود
+//  - (v1.0.1.9) دکمهٔ زبان، کلیک نام → داشبورد و ...
 // ========================================
 
 export default function Navbar({
@@ -41,6 +43,7 @@ export default function Navbar({
   const { user, logout } = useAuth();
   const { streak } = useStreak();
   const { lang, toggleLang, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const recentNotifications = notifications.slice(0, 3);
 
   return (
@@ -152,6 +155,19 @@ export default function Navbar({
             </span>
           </button>
 
+          {/* 🌙 دکمهٔ دارک/لایت — v1.0.2.0 */}
+          <button
+            onClick={toggleTheme}
+            title={theme === "light" ? t("navbar.darkMode") : t("navbar.lightMode")}
+            className="flex items-center justify-center p-2 rounded-full border border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-600 hover:text-blue-600 transition-all duration-200 group"
+          >
+            {theme === "light" ? (
+              <Moon className="h-4 w-4 transition-transform duration-500 group-hover:-rotate-12 group-hover:scale-110" />
+            ) : (
+              <Sun className="h-4 w-4 transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110" />
+            )}
+          </button>
+
           {/* زنگوله */}
           <div className="relative group">
             <button className="relative flex items-center justify-center">
@@ -211,7 +227,10 @@ export default function Navbar({
             <button>
               <Search className="h-5 w-5 md:h-6 md:w-6 text-slate-700 hover:text-blue-600" />
             </button>
-            <div className="absolute top-12 start-0 w-64 md:w-80 bg-white rounded-xl shadow-xl border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            {/* v1.0.2.0 — end-0 (قبلاً start-0 بود): در حالت EN
+                جستجو در لبهٔ راست صفحه است؛ با start-0 کادر ۳۲۰px
+                به بیرونِ viewport می‌رفت و اسکرول عرضی می‌ساخت */}
+            <div className="absolute top-12 end-0 w-64 md:w-80 bg-white rounded-xl shadow-xl border border-slate-100 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input

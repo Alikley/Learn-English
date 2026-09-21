@@ -49,7 +49,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Sidebar onClose={toggle} />
         </div>
 
-        <main className="flex-1 overflow-y-auto h-full">{children}</main>
+        {/* v1.0.2.0 — scroll-smooth: اسکرول طولیِ داخل صفحه اصلی
+          هم مانند خود سند، نرم و انیمیشنی می‌شود */}
+      <main className="flex-1 overflow-y-auto h-full scroll-smooth">{children}</main>
       </div>
     </NotificationProvider>
   );

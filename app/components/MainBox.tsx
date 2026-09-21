@@ -12,7 +12,12 @@ export default function MainBox() {
         <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-blue-200/30 -translate-x-8 translate-y-8" />
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-blue-200/30 translate-x-8 -translate-y-8" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:h-70">
+        {/* v1.0.2.0 — بنر همیشه چپ‌چینِ ثابت است (dir="ltr"):
+            قبل از این، در حالت فارسی flex-row معکوس می‌شد و کاراکتر با
+            translateX(200px) به بیرونِ لبهٔ راستِ بنر رانده و بریده می‌شد؛
+            در حالت انگلیسی درست بود. حالا هر دو زبان دقیقاً مثل هم‌اند:
+            کاراکتر سمت چپ (با شیفت به مرکز) و متن سمت راست. */}
+        <div dir="ltr" className="relative z-10 flex flex-col md:flex-row md:h-70">
           {/* Character */}
           <div className="w-full md:w-[32%] flex items-end justify-center shrink-0">
             {/* موبایل: عکس نرمال بدون translate */}

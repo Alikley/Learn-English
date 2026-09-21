@@ -45,6 +45,8 @@ export const DICT: Record<string, [string, string]> = {
   "navbar.myDashboard": ["داشبورد من", "My Dashboard"],
   "navbar.logout": ["خروج", "Log out"],
   "navbar.langBtnTitle": ["Switch to English", "تغییر زبان به فارسی"],
+  "navbar.darkMode": ["حالت تاریک", "Dark mode"],
+  "navbar.lightMode": ["حالت روشن", "Light mode"],
 
   // ---------- لودر یکپارچه ----------
   "loader.loading": ["در حال بارگذاری...", "Loading..."],
