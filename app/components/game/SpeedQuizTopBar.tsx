@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion, AnimatePresence } from "motion/react";
 import { Heart, Zap, Star } from "lucide-react";
@@ -57,12 +58,13 @@ export default function SpeedQuizTopBar({
   lastGained: number;
   gainKey: number;
 }) {
+  const { tr } = useLanguage();
   return (
     <div className="flex items-center justify-between gap-3 px-4 md:px-6 py-3 border-b border-slate-100 bg-slate-50/60 flex-wrap">
       {/* ---- پیشرفت سوال‌ها ---- */}
       <div className="flex items-center gap-2 order-1">
         <span className="text-[11px] font-bold text-slate-500 whitespace-nowrap">
-          سوال {qIndex + 1} از {totalQuestions}
+          {tr("سوال", "Question")} {qIndex + 1} {tr("از", "of")} {totalQuestions}
         </span>
         <div className="flex items-center gap-1">
           {Array.from({ length: totalQuestions }, (_, i) => {
@@ -118,7 +120,7 @@ export default function SpeedQuizTopBar({
               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-violet-100 border border-violet-200 text-violet-600 text-[11px] font-extrabold whitespace-nowrap"
             >
               <Star className="w-3 h-3 fill-violet-400" />
-              کمبو ×{combo}
+              {tr("کمبو", "Combo")} ×{combo}
             </motion.span>
           )}
         </AnimatePresence>

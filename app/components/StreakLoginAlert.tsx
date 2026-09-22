@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Flame, X } from "lucide-react";
 import { useStreak } from "@/app/hook/useStreak";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 export default function StreakLoginAlert() {
   const { streak, loading } = useStreak();
+  const { tr } = useLanguage();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -32,12 +34,24 @@ export default function StreakLoginAlert() {
 
   const getMessage = () => {
     if (streak.current === 1)
-      return "امروز اولین قدمت رو برداشتی! هر روز تمرین کن تا استریک‌ت حفظ بشه.";
+      return tr(
+        "امروز اولین قدمت رو برداشتی! هر روز تمرین کن تا استریک‌ت حفظ بشه.",
+        "You took your first step today! Practice daily to keep your streak."
+      );
     if (streak.current < 7)
-      return `${streak.current} روز متوالی تمرین کردی! به همین روند ادامه بده.`;
+      return tr(
+        `${streak.current} روز متوالی تمرین کردی! به همین روند ادامه بده.`,
+        `${streak.current} days in a row! Keep up the pace.`
+      );
     if (streak.current < 30)
-      return `${streak.current} روز متوالی! داری فوق‌العاده پیشرفت میکنی.`;
-    return `${streak.current} روز متوالی! تو واقعاً حرفه‌ای هستی!`;
+      return tr(
+        `${streak.current} روز متوالی! داری فوق‌العاده پیشرفت میکنی.`,
+        `${streak.current} days straight! You're progressing amazingly.`
+      );
+    return tr(
+      `${streak.current} روز متوالی! تو واقعاً حرفه‌ای هستی!`,
+      `${streak.current} days straight! You're truly a pro!`
+    );
   };
 
   return (
@@ -76,7 +90,7 @@ export default function StreakLoginAlert() {
                 <div className="flex items-baseline gap-2 mb-1">
                   <span className="text-3xl font-black">{streak.current}</span>
                   <span className="text-sm font-medium text-orange-100">
-                    روز متوالی!
+                    {tr("روز متوالی!", "day streak!")}
                   </span>
                 </div>
                 <p className="text-sm text-orange-100 leading-relaxed">
@@ -89,7 +103,7 @@ export default function StreakLoginAlert() {
             {streak.current > 0 && streak.current < 7 && (
               <div className="relative mt-4">
                 <div className="flex justify-between text-xs text-orange-100 mb-1">
-                  <span>رکورد بعدی: ۷ روز</span>
+                  <span>{tr("رکورد بعدی: ۷ روز", "Next milestone: 7 days")}</span>
                   <span>{streak.current}/7</span>
                 </div>
                 <div className="w-full h-2 bg-white/20 rounded-full overflow-hidden">

@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { CategoryStat } from "@/types/dashboard";
 
@@ -49,6 +50,7 @@ export default function PerformanceBox({
   categories: CategoryStat[];
   streak: { current: number; longest: number };
 }) {
+  const { tr } = useLanguage();
   const maxLessons = Math.max(...weeklyStats.map((w) => w.lessons), 1);
   const maxXP = Math.max(...weeklyStats.map((w) => w.xp), 1);
   const last7 = dailyActivity.slice(-7);
@@ -72,10 +74,10 @@ export default function PerformanceBox({
                 d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
               />
             </svg>
-            عملکرد ماه گذشته
+            {tr("عملکرد ماه گذشته", "Last Month's Performance")}
           </h2>
           <p className="text-emerald-100 text-sm mt-1">
-            آمار یادگیری شما در ۳۰ روز گذشته
+            {tr("آمار یادگیری شما در ۳۰ روز گذشته", "Your learning stats over the last 30 days")}
           </p>
         </div>
 
@@ -83,31 +85,31 @@ export default function PerformanceBox({
         <div className="p-6 grid grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             icon="📖"
-            label="درس‌های تکمیل شده"
+            label={tr("درس‌های تکمیل شده", "Lessons Completed")}
             value={stats.totalLessonsThisMonth}
             color="text-blue-600"
           />
           <StatCard
             icon="⚡"
-            label="امتیاز درس‌ها"
+            label={tr("امتیاز درس‌ها", "Lesson Points")}
             value={stats.totalXPThisMonth.toLocaleString("fa-IR")}
             color="text-amber-600"
           />
           <StatCard
             icon="🎧"
-            label="XP شنیداری"
+            label={tr("XP شنیداری", "Listening XP")}
             value={`+${stats.totalListeningXP}`}
             color="text-orange-600"
           />
           <StatCard
             icon="📊"
-            label="میانگین درس/روز"
+            label={tr("میانگین درس/روز", "Avg lessons/day")}
             value={stats.avgLessonsPerDay}
             color="text-emerald-600"
           />
           <StatCard
             icon="🔥"
-            label="روز متوالی"
+            label={tr("روز متوالی", "Day Streak")}
             value={streak.current}
             color="text-red-600"
           />
@@ -120,7 +122,7 @@ export default function PerformanceBox({
           <span className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-sm">
             📈
           </span>
-          فعالیت هفتگی
+          {tr("فعالیت هفتگی", "Weekly Activity")}
         </h3>
         <div className="flex items-end gap-3 h-48">
           {weeklyStats.map((w, i) => (
@@ -153,7 +155,7 @@ export default function PerformanceBox({
           <span className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 text-sm">
             📚
           </span>
-          پیشرفت دسته‌بندی‌ها
+          {tr("پیشرفت دسته‌بندی‌ها", "Category Progress")}
         </h3>
         <div className="space-y-4">
           {categories.map((cat) => (
@@ -163,17 +165,17 @@ export default function PerformanceBox({
                   {cat.name}
                 </span>
                 <span className="text-xs text-slate-500">
-                  {cat.completed} از {cat.total} درس ({cat.progress}%)
+                  {cat.completed} {tr("از", "of")} {cat.total} {tr("درس", "lessons")} ({cat.progress}%)
                 </span>
               </div>
               <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ${
-                    cat.name === "گرامر"
+                    cat.name === tr("گرامر", "Grammar")
                       ? "bg-blue-500"
-                      : cat.name === "مکالمه"
+                      : cat.name === tr("مکالمه", "Conversation")
                         ? "bg-teal-500"
-                        : cat.name === "لغات"
+                        : cat.name === tr("لغات", "Vocabulary")
                           ? "bg-purple-500"
                           : "bg-orange-500"
                   }`}
@@ -191,7 +193,7 @@ export default function PerformanceBox({
           <span className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600 text-sm">
             📅
           </span>
-          فعالیت ۷ روز اخیر
+          {tr("فعالیت ۷ روز اخیر", "Last 7 days' activity")}
         </h3>
         <div className="flex gap-2 justify-between">
           {last7.map((d, i) => {

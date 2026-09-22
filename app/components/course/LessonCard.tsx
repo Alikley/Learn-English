@@ -1,6 +1,7 @@
 import { CheckCircle2, Circle, Clock, Star, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { Lesson } from "@/types/course";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 type Props = {
   lesson: Lesson;
@@ -19,6 +20,7 @@ export default function LessonCard({
   completing,
   onComplete,
 }: Props) {
+  const { tr } = useLanguage();
   const isCompleting = completing === lesson.id;
   const router = useRouter();
 
@@ -60,7 +62,7 @@ export default function LessonCard({
             {lesson.duration && (
               <span className="flex items-center gap-1 text-xs text-slate-400">
                 <Clock size={12} />
-                {lesson.duration} دقیقه
+                {lesson.duration} {tr("دقیقه", "min")}
               </span>
             )}
             <span className="flex items-center gap-1 text-xs text-yellow-500 font-medium">
@@ -69,7 +71,7 @@ export default function LessonCard({
             </span>
             {lesson.score !== null && (
               <span className="text-xs text-green-600 font-medium">
-                امتیاز: {lesson.score}
+                {tr("امتیاز:", "Score:")} {lesson.score}
               </span>
             )}
           </div>
@@ -82,7 +84,7 @@ export default function LessonCard({
               onClick={handleStart}
               className="text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg shrink-0 transition-colors"
             >
-              مشاهده مجدد
+              {tr("مشاهده مجدد", "Review")}
             </button>
           ) : (
             <button
@@ -95,7 +97,7 @@ export default function LessonCard({
               ) : (
                 <>
                   <ChevronLeft size={14} />
-                  شروع
+                  {tr("شروع", "Start")}
                 </>
               )}
             </button>

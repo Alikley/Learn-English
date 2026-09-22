@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useState } from "react";
 
@@ -17,6 +18,7 @@ export default function ProfileBox({
   saving: boolean;
   onSave: (nickname: string, phone: string) => Promise<boolean>;
 }) {
+  const { tr } = useLanguage();
   const [editNick, setEditNick] = useState(nickname);
   const [editPhone, setEditPhone] = useState(phone);
   const [saved, setSaved] = useState(false);
@@ -47,10 +49,10 @@ export default function ProfileBox({
               d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
             />
           </svg>
-          اطلاعات پروفایل
+          {tr("اطلاعات پروفایل", "Profile Information")}
         </h2>
         <p className="text-blue-100 text-sm mt-1">
-          نام مستعار روی نوبار نمایش داده می‌شود
+          {tr("نام مستعار روی نوبار نمایش داده می‌شود", "The nickname is shown in the navbar")}
         </p>
       </div>
 
@@ -58,7 +60,7 @@ export default function ProfileBox({
         {/* ایمیل (فقط خواندنی) */}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">
-            ایمیل
+            {tr("ایمیل", "Email")}
           </label>
           <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-400 text-sm">
             <svg
@@ -81,7 +83,7 @@ export default function ProfileBox({
         {/* نام اصلی (فقط خواندنی) */}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">
-            نام اصلی
+            {tr("نام اصلی", "Full Name")}
           </label>
           <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-400 text-sm">
             <svg
@@ -104,13 +106,13 @@ export default function ProfileBox({
         {/* نام مستعار (قابل ویرایش) */}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">
-            نام مستعار <span className="text-blue-500">(نمایش در نوبار)</span>
+            {tr("نام مستعار", "Nickname")} <span className="text-blue-500">{tr("(نمایش در نوبار)", "(shown in the navbar)")}</span>
           </label>
           <input
             type="text"
             value={editNick}
             onChange={(e) => setEditNick(e.target.value)}
-            placeholder="مثلاً: علی، سارا..."
+            placeholder={tr("مثلاً: علی، سارا...", "e.g. Ali, Sara...")}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-slate-800"
           />
         </div>
@@ -118,13 +120,13 @@ export default function ProfileBox({
         {/* شماره تلفن */}
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1.5">
-            شماره تلفن
+            {tr("شماره تلفن", "Phone Number")}
           </label>
           <input
             type="tel"
             value={editPhone}
             onChange={(e) => setEditPhone(e.target.value)}
-            placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+            placeholder={tr("۰۹۱۲۳۴۵۶۷۸۹", "09123456789")}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-slate-800"
             dir="ltr"
           />
@@ -139,10 +141,10 @@ export default function ProfileBox({
           {saving ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-              در حال ذخیره...
+              {tr("در حال ذخیره...", "Saving...")}
             </>
           ) : saved ? (
-            <>✅ ذخیره شد!</>
+            <>{tr("✅ ذخیره شد!", "✅ Saved!")}</>
           ) : (
             <>
               <svg
@@ -158,7 +160,7 @@ export default function ProfileBox({
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              ذخیره تغییرات
+              {tr("ذخیره تغییرات", "Save Changes")}
             </>
           )}
         </button>

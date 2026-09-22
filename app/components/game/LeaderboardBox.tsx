@@ -4,18 +4,20 @@ import { motion } from "motion/react";
 import { Crown, Medal, Trophy, RefreshCcw, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useLeaderboard } from "@/app/hook/useLeaderboard";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 // ========================================
 // باکس برترین امتیازها (نسخه ۱.۰.۲.۲ — گام ۲)
 // کنار باکس انتخاب سطح در هر سه بازی نمایش داده می‌شود
 // چه کسی بیشترین امتیاز را دارد؟ — آماده برای سایت آنلاین
+// v1.0.2.3: لودینگ به سبک کتابخانه + دوزبانه (گام ۳/۴)
 // ========================================
 
-const GAME_LABELS: Record<string, { title: string; hint: string }> = {
-  hangman: { title: "Hangman", hint: "حدس کلمه‌ها" },
-  memory: { title: "Match Card", hint: "جفت کلمه‌ها" },
-  speedquiz: { title: "Quiz Hot", hint: "پاسخ سریع" },
+const GAME_LABELS: Record<string, { title: string; hintFa: string; hintEn: string }> = {
+  hangman: { title: "Hangman", hintFa: "حدس کلمه‌ها", hintEn: "Guess the words" },
+  memory: { title: "Match Card", hintFa: "جفت کلمه‌ها", hintEn: "Match the pairs" },
+  speedquiz: { title: "Quiz Hot", hintFa: "پاسخ سریع", hintEn: "Quick answers" },
 };
 
 const MEDAL_STYLES: Record<number, string> = {
@@ -32,7 +34,8 @@ const MEDAL_ICONS: Record<number, React.ComponentType<{ className?: string }>> =
 
 export default function LeaderboardBox({ game }: { game: string }) {
   const { data, loading, unauthorized, failed, reload } = useLeaderboard(game);
-  const meta = GAME_LABELS[game] ?? { title: game, hint: "" };
+  const { tr } = useLanguage();
+  const meta = GAME_LABELS[game] ?? { title: game, hintFa: "", hintEn: "" };
 
   return (
     <motion.div
@@ -48,19 +51,22 @@ export default function LeaderboardBox({ game }: { game: string }) {
         </div>
         <div className="min-w-0">
           <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100">
-            برترین امتیازها
+            {tr("برترین امتیازها", "Top Scores")}
           </h3>
           <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
-            {meta.title} · {meta.hint}
+            {meta.title} · {tr(meta.hintFa, meta.hintEn)}
           </p>
         </div>
       </div>
 
       <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-4 pb-3 border-b border-dashed border-slate-100 dark:border-slate-800">
-        کی بیشترین امتیاز رو داره؟ رکورد جدید بزن و اسمت رو ببر بالا!
+        {tr(
+          "کی بیشترین امتیاز رو داره؟ رکورد جدید بزن و اسمت رو ببر بالا!",
+          "Who holds the high score? Set a new record and climb to the top!"
+        )}
       </p>
 
-      {/* ---------- بارگذاری (به سبک کتابخانه) ---------- */}
+      {/* ---------- بارگذاری (به سبک کتابخانه — v1.0.2.3 گام ۴) ---------- */}
       {loading && <PageLoading minHeightClass="py-8" />}
 
       {/* ---------- ورود لازم است ---------- */}
@@ -70,13 +76,16 @@ export default function LeaderboardBox({ game }: { game: string }) {
             <LogIn className="h-6 w-6 text-blue-500" />
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-6 mb-4">
-            برای دیدن رکوردداران اول وارد حسابت شو
+            {tr(
+              "برای دیدن رکوردداران اول وارد حسابت شو",
+              "Log in first to see the record holders"
+            )}
           </p>
           <Link
             href="/login"
             className="inline-block px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
           >
-            ورود
+            {tr("ورود", "Log In")}
           </Link>
         </div>
       )}
@@ -85,14 +94,14 @@ export default function LeaderboardBox({ game }: { game: string }) {
       {!loading && failed && (
         <div className="py-8 text-center">
           <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-            دریافت رکوردها ناموفق بود
+            {tr("دریافت رکوردها ناموفق بود", "Couldn't load the records")}
           </p>
           <button
             onClick={() => void reload()}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-bold transition-colors"
           >
             <RefreshCcw className="w-3.5 h-3.5" />
-            تلاش دوباره
+            {tr("تلاش دوباره", "Try Again")}
           </button>
         </div>
       )}
@@ -140,7 +149,7 @@ export default function LeaderboardBox({ game }: { game: string }) {
                       </span>
                       {row.isYou && (
                         <span className="shrink-0 text-[9px] font-extrabold px-1.5 py-0.5 rounded-md bg-blue-600 text-white">
-                          شما
+                          {tr("شما", "You")}
                         </span>
                       )}
                     </div>
@@ -161,7 +170,10 @@ export default function LeaderboardBox({ game }: { game: string }) {
                 <Trophy className="h-6 w-6 text-amber-500" />
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-6">
-                هنوز کسی رکوردی ثبت نکرده — اولین رکورددار این بازی باش!
+                {tr(
+                  "هنوز کسی رکوردی ثبت نکرده — اولین رکورددار این بازی باش!",
+                  "No records yet — be the first record holder of this game!"
+                )}
               </p>
             </div>
           )}
@@ -170,10 +182,13 @@ export default function LeaderboardBox({ game }: { game: string }) {
           {data?.you && (
             <div className="mt-4 pt-3 border-t border-dashed border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <span className="text-[11px] text-slate-400 dark:text-slate-500">
-                رتبه تو
+                {tr("رتبه تو", "Your Rank")}
               </span>
               <span className="text-xs font-extrabold text-blue-600 dark:text-blue-400">
-                {data.you.rank} از بین همه · بهترین: {data.you.bestScore}
+                {tr(
+                  `${data.you.rank} از بین همه · بهترین: ${data.you.bestScore}`,
+                  `#${data.you.rank} overall · Best: ${data.you.bestScore}`
+                )}
               </span>
             </div>
           )}

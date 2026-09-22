@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -23,13 +24,14 @@ type Props = {
   completing: boolean;
 };
 
-const STEPS = ["کارت‌ها", "آزمونک"];
+const STEPS: [string, string][] = [["کارت‌ها", "Cards"], ["آزمونک", "Quiz"]];
 
 export default function VocabularyView({
   lesson,
   onComplete,
   completing,
 }: Props) {
+  const { tr } = useLanguage();
   const [step, setStep] = useState(0);
   const [cardIndex, setCardIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -118,7 +120,7 @@ export default function VocabularyView({
 
   return (
     <div className="space-y-4">
-      <ProgressStepper sections={STEPS} currentIndex={step} />
+      <ProgressStepper sections={STEPS.map(([fa, en]) => tr(fa, en))} currentIndex={step} />
 
       <AnimatePresence mode="wait">
         {/* ---------- گام ۱: فلش‌کارت‌ها ---------- */}
@@ -176,11 +178,11 @@ export default function VocabularyView({
                         size={16}
                         className={playingWord ? "animate-pulse" : ""}
                       />
-                      تلفظ
+                      {tr("تلفظ", "Pronunciation")}
                     </button>
                     <p className="text-purple-200 text-[11px] flex items-center gap-1">
                       <RotateCcw size={12} />
-                      برای دیدن معنی، کارت را لمس کنید
+                      {tr("برای دیدن معنی، کارت را لمس کنید", "Tap the card to see the meaning")}
                     </p>
                   </motion.div>
                 ) : (
@@ -216,7 +218,7 @@ export default function VocabularyView({
                     </div>
                     <p className="text-purple-300 text-[11px] flex items-center gap-1 justify-center">
                       <RotateCcw size={12} />
-                      لمس کنید تا به کلمه برگردید
+                      {tr("لمس کنید تا به کلمه برگردید", "Tap to flip back to the word")}
                     </p>
                   </motion.div>
                 )}
@@ -231,7 +233,7 @@ export default function VocabularyView({
                 className="flex items-center gap-1 text-sm text-slate-400 hover:text-purple-600 font-medium disabled:opacity-30"
               >
                 <ArrowRight size={18} />
-                قبلی
+                {tr("قبلی", "Previous")}
               </button>
 
               <div className="flex items-center gap-1.5">
@@ -253,7 +255,7 @@ export default function VocabularyView({
                   onClick={next}
                   className="flex items-center gap-1 text-sm text-purple-600 hover:text-purple-700 font-bold"
                 >
-                  بعدی
+                  {tr("بعدی", "Next")}
                   <ArrowLeft size={18} />
                 </button>
               ) : (
@@ -262,20 +264,20 @@ export default function VocabularyView({
                   className="flex items-center gap-1 text-sm text-green-600 hover:text-green-700 font-bold"
                 >
                   <CheckCircle2 size={16} />
-                  تمام شد
+                  {tr("تمام شد", "Done")}
                 </button>
               )}
             </div>
 
             <p className="text-center text-xs text-slate-400">
-              کلمه {cardIndex + 1} از {words.length}
+              {tr("کلمه", "Word")} {cardIndex + 1} {tr("از", "of")} {words.length}
             </p>
 
             <button
               onClick={() => setStep(1)}
               className="w-full text-center text-xs text-slate-400 hover:text-purple-600 font-medium py-2"
             >
-              رفتن به آزمونک ←
+              {tr("رفتن به آزمونک ←", "Go to Quiz →")}
             </button>
           </motion.div>
         )}
@@ -292,10 +294,10 @@ export default function VocabularyView({
             <div className="bg-white border border-purple-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold text-purple-600 bg-purple-50 rounded-full px-3 py-1">
-                  سؤال {qIndex + 1} از {quiz.length}
+                  {tr("سؤال", "Question")} {qIndex + 1} {tr("از", "of")} {quiz.length}
                 </span>
                 <span className="text-xs text-green-600 font-bold">
-                  {correctCount} درست
+                  {correctCount} {tr("درست", "correct")}
                 </span>
               </div>
               <p className="font-semibold text-slate-900 mb-4 leading-7">
@@ -324,7 +326,7 @@ export default function VocabularyView({
                       transition={{ duration: 0.4 }}
                       onClick={() => handleSelect(i)}
                       disabled={selected !== null}
-                      className={`w-full text-right border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
+                      className={`w-full text-start border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
                     >
                       <span className="flex items-center gap-2 text-slate-800 text-sm">
                         {opt}
@@ -350,7 +352,7 @@ export default function VocabularyView({
             {selected !== null && (
               <ContinueButton
                 onClick={nextQuestion}
-                label={qIndex < quiz.length - 1 ? "سؤال بعدی" : "تکمیل درس"}
+                label={qIndex < quiz.length - 1 ? tr("سؤال بعدی", "Next Question") : tr("تکمیل درس", "Finish Lesson")}
                 loading={completing && qIndex === quiz.length - 1}
               />
             )}
@@ -360,7 +362,7 @@ export default function VocabularyView({
                 className="w-full text-center text-xs text-slate-400 hover:text-purple-600 font-medium"
               >
                 <Repeat size={12} className="inline mr-1" />
-                مرور دوباره کارت‌ها
+                {tr("مرور دوباره کارت‌ها", "Review Cards Again")}
               </button>
             )}
           </motion.div>

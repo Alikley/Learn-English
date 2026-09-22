@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -41,7 +42,7 @@ type Props = {
   completing: boolean;
 };
 
-const STEPS = ["گفت‌وگو", "آزمونک"];
+const STEPS: [string, string][] = [["گفت‌وگو", "Dialogue"], ["آزمونک", "Quiz"]];
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -50,6 +51,7 @@ export default function ConversationView({
   onComplete,
   completing,
 }: Props) {
+  const { tr } = useLanguage();
   const lines = lesson.lines;
   const quiz = lesson.quiz;
 
@@ -209,7 +211,7 @@ export default function ConversationView({
 
   return (
     <div className="space-y-4">
-      <ProgressStepper sections={STEPS} currentIndex={step} />
+      <ProgressStepper sections={STEPS.map(([fa, en]) => tr(fa, en))} currentIndex={step} />
 
       <AnimatePresence mode="wait">
         {/* ---------- گام ۱: گفت‌وگوی پله‌پله ---------- */}
@@ -231,7 +233,7 @@ export default function ConversationView({
                 <span className="w-8 h-8 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center">
                   <MessageCircle size={18} />
                 </span>
-                <h3 className="font-bold text-slate-900">سناریوی مکالمه</h3>
+                <h3 className="font-bold text-slate-900">{tr("سناریوی مکالمه", "Conversation Scenario")}</h3>
               </div>
               <p className="text-slate-600 text-sm leading-7">
                 {lesson.situation}
@@ -239,11 +241,11 @@ export default function ConversationView({
               <div className="flex flex-wrap items-center gap-4 mt-3 text-[11px] text-slate-500">
                 <span className="flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-                  قرمز = سایت صحبت می‌کند (با صدا)
+                  {tr("قرمز = سایت صحبت می‌کند (با صدا)", "Red = the site speaks (with audio)")}
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-3 h-3 rounded-full bg-blue-500 inline-block" />
-                  آبی = نقش شما؛ خودتان بخوانید و دکمه را بزنید
+                  {tr("آبی = نقش شما؛ خودتان بخوانید و دکمه را بزنید", "Blue = your role; read it yourself and press the button")}
                 </span>
               </div>
             </motion.div>
@@ -252,7 +254,7 @@ export default function ConversationView({
             <div className="bg-white border border-slate-100 rounded-2xl px-4 py-3 shadow-sm">
               <div className="flex items-center justify-between text-xs mb-2">
                 <span className="font-bold text-teal-700">
-                  جمله {Math.min(revealed, lines.length)} از {lines.length}
+                  {tr("جمله", "Sentence")} {Math.min(revealed, lines.length)} {tr("از", "of")} {lines.length}
                 </span>
                 <span className="text-slate-400">{progressPct}%</span>
               </div>
@@ -280,8 +282,8 @@ export default function ConversationView({
                     <Bot size={28} />
                   </motion.div>
                   <p className="text-sm text-slate-500 leading-7 max-w-xs">
-                    سایت شروع می‌کند و صحبت می‌کند؛ وقتی نوبت شما شد، جمله آبی
-                    را برای خودتان بخوانید و دکمه ادامه را بزنید.
+                    {tr(`سایت شروع می‌کند و صحبت می‌کند؛ وقتی نوبت شما شد، جمله آبی
+                    را برای خودتان بخوانید و دکمه ادامه را بزنید.`, "The site starts and speaks; when it is your turn, read the blue sentence to yourself and press Continue.")}
                   </p>
                 </div>
               )}
@@ -352,7 +354,7 @@ export default function ConversationView({
                             } hover:text-red-400`}
                           >
                             <Volume2 size={12} />
-                            پخش مجدد
+                            {tr("پخش مجدد", "Replay")}
                           </span>
                         </div>
                       )}
@@ -360,7 +362,7 @@ export default function ConversationView({
                         <div className="flex justify-start mt-1">
                           <span className="flex items-center gap-1 text-[10px] text-blue-400">
                             <BookOpen size={12} />
-                            این جمله را شما بخوانید
+                            {tr("این جمله را شما بخوانید", "You read this sentence")}
                           </span>
                         </div>
                       )}
@@ -414,17 +416,17 @@ export default function ConversationView({
                     {finished ? (
                       <>
                         <RotateCcw size={18} />
-                        تمرین مجدد مکالمه
+                        {tr("تمرین مجدد مکالمه", "Practice Conversation Again")}
                       </>
                     ) : revealed === 0 ? (
                       <>
                         <Play size={18} />
-                        شروع مکالمه
+                        {tr("شروع مکالمه", "Start Conversation")}
                       </>
                     ) : (
                       <>
                         <Play size={18} />
-                        ادامه مکالمه
+                        {tr("ادامه مکالمه", "Continue Conversation")}
                       </>
                     )}
                   </motion.button>
@@ -435,17 +437,17 @@ export default function ConversationView({
                     className="flex-1 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl transition-all"
                   >
                     <Square size={18} />
-                    توقف
+                    {tr("توقف", "Stop")}
                   </motion.button>
                 )}
                 {!running && revealed > 0 && !finished && (
                   <button
                     onClick={restart}
                     className="flex items-center gap-1.5 px-3 py-3 rounded-xl text-xs font-bold border-2 bg-white border-slate-200 text-slate-400 hover:text-slate-600 transition-all"
-                    title="شروع دوباره از جمله اول"
+                    title={tr("شروع دوباره از جمله اول", "Restart from the first sentence")}
                   >
                     <RotateCcw size={16} />
-                    از اول
+                    {tr("از اول", "Start Over")}
                   </button>
                 )}
               </div>
@@ -467,14 +469,14 @@ export default function ConversationView({
                         >
                           <Mic size={18} />
                         </motion.span>
-                        نوبت شماست — این جمله را برای خودتان بخوانید
+                        {tr("نوبت شماست — این جمله را برای خودتان بخوانید", "Your turn — read this sentence to yourself")}
                       </div>
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={userReadIt}
                         className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg shrink-0 flex items-center gap-1.5"
                       >
-                        خواندم، جمله بعدی
+                        {tr("خواندم، جمله بعدی", "I've read it — next sentence")}
                         <ArrowLeft size={14} />
                       </motion.button>
                     </div>
@@ -493,7 +495,7 @@ export default function ConversationView({
                   >
                     <ContinueButton
                       onClick={() => setStep(1)}
-                      label="شروع آزمونک"
+                      label={tr("شروع آزمونک", "Start Quiz")}
                     />
                   </motion.div>
                 )}
@@ -507,7 +509,7 @@ export default function ConversationView({
                   }}
                   className="w-full text-center text-xs text-slate-400 hover:text-teal-600 font-medium py-1"
                 >
-                  رفتن به آزمونک ←
+                  {tr("رفتن به آزمونک ←", "Go to Quiz →")}
                 </button>
               )}
             </div>
@@ -526,10 +528,10 @@ export default function ConversationView({
             <div className="bg-white border border-teal-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold text-teal-600 bg-teal-50 rounded-full px-3 py-1">
-                  سؤال {qIndex + 1} از {quiz.length}
+                  {tr("سؤال", "Question")} {qIndex + 1} {tr("از", "of")} {quiz.length}
                 </span>
                 <span className="text-xs text-green-600 font-bold">
-                  {correctCount} درست
+                  {correctCount} {tr("درست", "correct")}
                 </span>
               </div>
               <p className="font-semibold text-slate-900 mb-4 leading-7">
@@ -558,7 +560,7 @@ export default function ConversationView({
                       transition={{ duration: 0.4 }}
                       onClick={() => handleSelect(i)}
                       disabled={selected !== null}
-                      className={`w-full text-right border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
+                      className={`w-full text-start border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
                     >
                       <span
                         dir={/[a-zA-Z]/.test(opt) ? "ltr" : "rtl"}
@@ -591,7 +593,7 @@ export default function ConversationView({
             {selected !== null && (
               <ContinueButton
                 onClick={nextQuestion}
-                label={qIndex < quiz.length - 1 ? "سؤال بعدی" : "تکمیل درس"}
+                label={qIndex < quiz.length - 1 ? tr("سؤال بعدی", "Next Question") : tr("تکمیل درس", "Finish Lesson")}
                 loading={completing && qIndex === quiz.length - 1}
               />
             )}
@@ -601,7 +603,7 @@ export default function ConversationView({
                 className="w-full text-center text-xs text-slate-400 hover:text-teal-600 font-medium"
               >
                 <RotateCcw size={12} className="inline mr-1" />
-                بازگشت به مکالمه
+                {tr("بازگشت به مکالمه", "Back to Conversation")}
               </button>
             )}
           </motion.div>
@@ -615,7 +617,7 @@ export default function ConversationView({
           className="flex items-center justify-center gap-1 text-xs text-green-600 font-bold"
         >
           <CheckCircle2 size={14} />
-          مکالمه کامل شد — حالا آزمونک را انجام دهید
+          {tr("مکالمه کامل شد — حالا آزمونک را انجام دهید", "Conversation complete — now take the quiz")}
         </motion.div>
       )}
     </div>

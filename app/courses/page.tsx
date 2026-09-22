@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import CourseCard from "@/app/components/course/CourseCard";
@@ -26,6 +27,7 @@ import { useCourses } from "../hook/useCourses";
 // ========================================
 
 export default function MyCoursePage() {
+  const { tr, dir } = useLanguage();
   const { courses, loading, enrolling, enroll } = useCourses();
 
   if (loading) return <PageLoading />;
@@ -33,13 +35,13 @@ export default function MyCoursePage() {
   if (courses.length === 0) return <EmptyState />;
 
   return (
-    <div className="w-full min-h-full bg-[#fbfbfb] dark:bg-[#0b1220] pb-12" dir="rtl">
+    <div className="w-full min-h-full bg-[#fbfbfb] dark:bg-[#0b1220] pb-12" dir={dir}>
       <div className="bg-white border-b border-slate-100 px-4 md:px-6 py-5">
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-          دوره‌های من
+          {tr("دوره‌های من", "My Courses")}
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          مسیر یادگیری خود را انتخاب کن
+          {tr("مسیر یادگیری خود را انتخاب کن", "Choose your learning path")}
         </p>
       </div>
 
@@ -58,10 +60,10 @@ export default function MyCoursePage() {
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-2xl">{group.icon}</span>
                     <h2 className="text-xl md:text-2xl font-bold text-slate-800">
-                      {group.label}
+                      {tr(group.label, group.labelEn)}
                     </h2>
                     <span className="text-slate-400 text-sm">
-                      ({grouped.length} دوره)
+                      ({grouped.length} {tr("دوره", "courses")})
                     </span>
                   </div>
                   {/* کارت‌ها کنار هم — همان حس صفحهٔ اصلی */}
@@ -84,7 +86,7 @@ export default function MyCoursePage() {
           <aside className="w-40 lg:w-44 xl:w-48 shrink-0 mx-auto lg:mx-0 lg:sticky lg:top-6 flex flex-col items-center">
             <GirlCharacter />
             <p className="mt-2 text-center text-[10px] leading-4 text-slate-400">
-              چشم‌هایم به موس توست — بیا یاد بگیریم!
+              {tr("چشم‌هایم به موس توست — بیا یاد بگیریم!", "My eyes are on your mouse — let's learn!")}
             </p>
           </aside>
         </div>

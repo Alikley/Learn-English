@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -40,9 +41,16 @@ type Props = {
   completing: boolean;
 };
 
-const STEPS = ["آموزش", "مثال‌ها", "اشتباهات رایج", "نکته‌های طلایی", "آزمونک"];
+const STEPS: [string, string][] = [
+  ["آموزش", "Tutorial"],
+  ["مثال‌ها", "Examples"],
+  ["اشتباهات رایج", "Common Mistakes"],
+  ["نکته‌های طلایی", "Golden Tips"],
+  ["آزمونک", "Quiz"],
+];
 
 export default function GrammarView({ lesson, onComplete, completing }: Props) {
+  const { tr } = useLanguage();
   const [step, setStep] = useState(0);
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -69,7 +77,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
 
   return (
     <div className="space-y-4">
-      <ProgressStepper sections={STEPS} currentIndex={step} />
+      <ProgressStepper sections={STEPS.map(([fa, en]) => tr(fa, en))} currentIndex={step} />
 
       <AnimatePresence mode="wait">
         {/* ---------- گام ۱: آموزش مفهومی ---------- */}
@@ -92,7 +100,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                 <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
                   <Lightbulb size={18} />
                 </span>
-                <h3 className="font-bold text-slate-900">چرا این درس مهم است؟</h3>
+                <h3 className="font-bold text-slate-900">{tr("چرا این درس مهم است؟", "Why is this lesson important?")}</h3>
               </div>
               <p className="text-slate-600 text-sm leading-8">{lesson.intro}</p>
             </motion.div>
@@ -161,7 +169,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                 <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
                   <Star size={18} />
                 </span>
-                <h3 className="font-bold text-amber-900">قانون در یک نگاه</h3>
+                <h3 className="font-bold text-amber-900">{tr("قانون در یک نگاه", "The Rule at a Glance")}</h3>
               </div>
               <p className="text-amber-950 text-sm leading-8 font-medium">
                 {lesson.rule}
@@ -181,7 +189,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                 <span className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
                   <Table2 size={18} />
                 </span>
-                <h3 className="font-bold text-slate-900">جدول ساختار</h3>
+                <h3 className="font-bold text-slate-900">{tr("جدول ساختار", "Structure Table")}</h3>
               </div>
               <div className="space-y-2">
                 {lesson.form.map((row, i) => (
@@ -208,7 +216,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
               </div>
             </motion.div>
 
-            <ContinueButton onClick={() => setStep(1)} label="دیدن مثال‌ها" />
+            <ContinueButton onClick={() => setStep(1)} label={tr("دیدن مثال‌ها", "See Examples")} />
           </motion.div>
         )}
 
@@ -223,7 +231,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
           >
             <div className="flex items-center gap-2 text-xs text-slate-500 px-1">
               <BookOpen size={14} />
-              {lesson.examples.length} مثال دوزبانه — هر مثال را بلند بخوانید
+              {lesson.examples.length} {tr("مثال دوزبانه — هر مثال را بلند بخوانید", "bilingual examples — read each one out loud")}
             </div>
             <div className="space-y-3">
               {lesson.examples.map((ex, i) => (
@@ -253,7 +261,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                 </motion.div>
               ))}
             </div>
-            <ContinueButton onClick={() => setStep(2)} label="اشتباهات رایج" />
+            <ContinueButton onClick={() => setStep(2)} label={tr("اشتباهات رایج", "Common Mistakes")} />
           </motion.div>
         )}
 
@@ -293,7 +301,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                 </motion.div>
               ))}
             </div>
-            <ContinueButton onClick={() => setStep(3)} label="نکته‌های طلایی" />
+            <ContinueButton onClick={() => setStep(3)} label={tr("نکته‌های طلایی", "Golden Tips")} />
           </motion.div>
         )}
 
@@ -315,7 +323,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                 <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
                   <Sparkles size={18} />
                 </span>
-                <h3 className="font-bold text-slate-900">نکته‌های طلایی</h3>
+                <h3 className="font-bold text-slate-900">{tr("نکته‌های طلایی", "Golden Tips")}</h3>
               </div>
               {lesson.tips.map((tip, i) => (
                 <motion.div
@@ -332,7 +340,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                 </motion.div>
               ))}
             </motion.div>
-            <ContinueButton onClick={() => setStep(4)} label="شروع آزمونک" />
+            <ContinueButton onClick={() => setStep(4)} label={tr("شروع آزمونک", "Start Quiz")} />
           </motion.div>
         )}
 
@@ -348,11 +356,11 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
             <div className="bg-white border border-blue-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold text-blue-600 bg-blue-50 rounded-full px-3 py-1">
-                  سؤال {qIndex + 1} از {quiz.length}
+                  {tr("سؤال", "Question")} {qIndex + 1} {tr("از", "of")} {quiz.length}
                 </span>
                 <span className="flex items-center gap-1 text-xs text-green-600 font-bold">
                   <Layers size={14} />
-                  {correctCount} درست
+                  {correctCount} {tr("درست", "correct")}
                 </span>
               </div>
               <p className="font-semibold text-slate-900 mb-4 leading-7">
@@ -381,7 +389,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
                       transition={{ duration: 0.4 }}
                       onClick={() => handleSelect(i)}
                       disabled={selected !== null}
-                      className={`w-full text-right border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
+                      className={`w-full text-start border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
                     >
                       <span className="flex items-center gap-2">
                         <span
@@ -424,7 +432,7 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
             {selected !== null && (
               <ContinueButton
                 onClick={nextQuestion}
-                label={qIndex < quiz.length - 1 ? "سؤال بعدی" : "تکمیل درس"}
+                label={qIndex < quiz.length - 1 ? tr("سؤال بعدی", "Next Question") : tr("تکمیل درس", "Finish Lesson")}
                 loading={completing && qIndex === quiz.length - 1}
               />
             )}
@@ -440,13 +448,13 @@ export default function GrammarView({ lesson, onComplete, completing }: Props) {
             className="flex items-center gap-1 text-sm text-slate-400 hover:text-slate-600"
           >
             <ArrowRight size={16} />
-            قبلی
+            {tr("قبلی", "Previous")}
           </button>
           <button
             onClick={() => setStep((s) => s + 1)}
             className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
-            بعدی
+            {tr("بعدی", "Next")}
             <ArrowLeft size={16} />
           </button>
         </div>

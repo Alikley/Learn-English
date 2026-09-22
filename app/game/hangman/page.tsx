@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import Link from "next/link";
@@ -17,6 +18,7 @@ import { useHangmanGame } from "@/app/hook/useHangmanGame";
 import { useGameStats } from "@/app/hook/useGameStats";
 import {
   CATEGORY_LABELS,
+  CATEGORY_LABELS_EN,
   GAME_CONFIG,
   HANGMAN_TIMER_SECONDS,
   getGameLevel,
@@ -30,6 +32,7 @@ import {
 // ========================================
 
 export default function HangmanPage() {
+  const { tr, dir } = useLanguage();
   const { stats, submitting, isNewRecord, submitSessionStart, submitWordResult, submitSession } =
     useGameStats();
 
@@ -66,10 +69,10 @@ export default function HangmanPage() {
     handleBackToLevels,
   } = game;
 
-  const levelFa = getGameLevel(level).fa;
+  const levelFa = tr(getGameLevel(level).fa, getGameLevel(level).en);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -78,7 +81,7 @@ export default function HangmanPage() {
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">Hangman</h1>
           <p className="text-sm text-slate-500">
-            حروف را حدس بزن و کلمه را نجات بده!
+            {tr("حروف را حدس بزن و کلمه را نجات بده!", "Guess the letters and save the word!")}
           </p>
         </div>
         {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
@@ -88,7 +91,7 @@ export default function HangmanPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            بازگشت
+            {tr("بازگشت", "Back")}
           </Link>
         ) : (
           <button
@@ -96,7 +99,7 @@ export default function HangmanPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            بازی‌ها
+            {tr("بازی‌ها", "Games")}
           </button>
         )}
       </div>
@@ -142,7 +145,7 @@ export default function HangmanPage() {
             <div className="flex flex-col items-center justify-center py-20 gap-3">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
               <p className="text-sm text-slate-500">
-                در حال آماده‌سازی کلمات سطح {levelFa}...
+                {tr(`در حال آماده‌سازی کلمات سطح ${levelFa}...`, `Preparing words for level ${levelFa}...`)}
               </p>
             </div>
           )}
@@ -151,14 +154,14 @@ export default function HangmanPage() {
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <XCircle className="h-14 w-14 text-red-200" />
               <p className="text-slate-500 text-sm">
-                خطا در بارگذاری بازی. دوباره تلاش کنید.
+                {tr("خطا در بارگذاری بازی. دوباره تلاش کنید.", "Error loading the game. Please try again.")}
               </p>
               <button
                 onClick={handleRestart}
                 className="px-5 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-medium hover:bg-emerald-100 transition-colors flex items-center gap-2"
               >
                 <RotateCcw className="h-4 w-4" />
-                تلاش مجدد
+                {tr("تلاش مجدد", "Try Again")}
               </button>
             </div>
           )}
@@ -181,17 +184,20 @@ export default function HangmanPage() {
                     >
                       <p className="text-sm text-amber-800 flex items-center gap-2 flex-wrap">
                         <Lightbulb className="h-4 w-4 shrink-0 text-amber-500" />
-                        <span className="font-medium">راهنما:</span>
+                        <span className="font-medium">{tr("راهنما:", "Guide:")}</span>
                         <span className="font-bold">{currentWord.hint}</span>
                       </p>
                       <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-                          {CATEGORY_LABELS[currentWord.category] ?? currentWord.category}
+                          {tr(
+                            CATEGORY_LABELS[currentWord.category] ?? currentWord.category,
+                            CATEGORY_LABELS_EN[currentWord.category] ?? currentWord.category
+                          )}
                         </span>
                         <span
                           className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getGameLevel(currentWord.level).color}`}
                         >
-                          سطح {getGameLevel(currentWord.level).fa}
+                          {tr("سطح", "Level")} {tr(getGameLevel(currentWord.level).fa, getGameLevel(currentWord.level).en)}
                         </span>
                         {/* بج CEFR کلمه */}
                         {currentWord.cefr && (
@@ -220,7 +226,7 @@ export default function HangmanPage() {
                     onGuess={handleGuess}
                   />
                   <p className="text-center text-[11px] text-slate-400 mt-3">
-                    با کیبورد گوشی یا کامپیوتر هم می‌توانی تایپ کنی
+                    {tr("با کیبورد گوشی یا کامپیوتر هم می‌توانی تایپ کنی", "You can also type with your phone or computer keyboard")}
                   </p>
                 </div>
               </>
@@ -258,16 +264,16 @@ export default function HangmanPage() {
       {/* راهنمای امتیازدهی */}
       {phase !== "levelSelect" && (
         <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-400 flex-wrap">
-          <span>سطح: {levelFa}</span>
+          <span>{tr("سطح:", "Level:")} {levelFa}</span>
           <span className="text-slate-200">|</span>
-          <span>زمان هر حدس: {HANGMAN_TIMER_SECONDS[level]} ثانیه</span>
+          <span>{tr("زمان هر حدس:", "Time per guess:")} {HANGMAN_TIMER_SECONDS[level]} {tr("ثانیه", "s")}</span>
           <span className="text-slate-200">|</span>
-          <span>هر حرف درست: +{GAME_CONFIG.pointsPerLetter}</span>
+          <span>{tr("هر حرف درست:", "Each correct letter:")} +{GAME_CONFIG.pointsPerLetter}</span>
           <span>
-            پاداش برد: +{GAME_CONFIG.winBaseBonus} تا +
-            {GAME_CONFIG.winBaseBonus + GAME_CONFIG.maxWrong * GAME_CONFIG.pointsPerLife}
+            {tr("پاداش برد:", "Win bonus:")} +{GAME_CONFIG.winBaseBonus} {tr("تا", "to")} +
+            +{GAME_CONFIG.winBaseBonus + GAME_CONFIG.maxWrong * GAME_CONFIG.pointsPerLife}
           </span>
-          <span>هر دور: {GAME_CONFIG.wordsPerSession} کلمه</span>
+          <span>{tr("هر دور:", "Each round:")} {GAME_CONFIG.wordsPerSession} {tr("کلمه", "words")}</span>
         </div>
       )}
     </div>

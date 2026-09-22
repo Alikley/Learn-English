@@ -1,7 +1,8 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
-import { Trophy, Play, ArrowRight, ArrowLeft, RotateCcw, XCircle } from "lucide-react";
+import { Trophy, ArrowRight, ArrowLeft, RotateCcw, XCircle } from "lucide-react";
 import type { GameStats } from "@/types/game";
 import Confetti from "./Confetti";
 
@@ -68,8 +69,8 @@ export default function GameOutcomeOverlay({
   losses,
   stats,
   isNewRecord,
-  winLabel = "درست",
-  lossLabel = "اشتباه",
+  winLabel,
+  lossLabel,
   onRestart,
   onBack,
   onNext,
@@ -91,6 +92,7 @@ export default function GameOutcomeOverlay({
   // مرحله بعد — فقط در حالت برد (بدون نمایش شماره مرحله)
   onNext?: () => void;
 }) {
+  const { tr } = useLanguage();
   const isGameOver = outcome === "gameover";
 
   return (
@@ -134,7 +136,7 @@ export default function GameOutcomeOverlay({
                   : "border-emerald-200 border-t-emerald-600"
               }`}
             />
-            <p className="text-sm text-slate-500">در حال ثبت امتیاز...</p>
+            <p className="text-sm text-slate-500">{tr("در حال ثبت امتیاز...", "Saving score...")}</p>
           </div>
         ) : (
           <>
@@ -179,7 +181,7 @@ export default function GameOutcomeOverlay({
               transition={{ delay: isGameOver ? 1.05 : 1.45 }}
               className={`text-sm font-bold ${isGameOver ? "text-red-400" : "text-emerald-600"}`}
             >
-              {isGameOver ? "بازی تمام شد!" : "جان سالم به در بردی و برنده شدی!"}
+              {isGameOver ? tr("بازی تمام شد!", "Game Over!") : tr("جان سالم به در بردی و برنده شدی!", "You survived and won!")}
             </motion.p>
 
             {/* خلاصه امتیاز — بدون شماره مرحله و بدون استریک */}
@@ -190,16 +192,16 @@ export default function GameOutcomeOverlay({
               className="flex items-center justify-center gap-6 text-sm"
             >
               <div>
-                <span className="text-slate-500">امتیاز کل: </span>
+                <span className="text-slate-500">{tr("امتیاز کل:", "Total Score:")} </span>
                 <span className={`font-extrabold text-lg ${isGameOver ? "text-red-500" : "text-emerald-600"}`}>
                   {score}
                 </span>
               </div>
               <div className="text-slate-200">|</div>
               <div>
-                <span className="text-emerald-600 font-bold">{wins} {winLabel}</span>
+                <span className="text-emerald-600 font-bold">{wins} {winLabel ?? tr("درست", "Correct")}</span>
                 <span className="text-slate-400"> / </span>
-                <span className="text-red-500 font-bold">{losses} {lossLabel}</span>
+                <span className="text-red-500 font-bold">{losses} {lossLabel ?? tr("اشتباه", "Wrong")}</span>
               </div>
             </motion.div>
 
@@ -218,11 +220,11 @@ export default function GameOutcomeOverlay({
                   className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-amber-600 text-xs font-bold"
                 >
                   <Trophy className="h-3.5 w-3.5" />
-                  رکورد جدید!
+                  {tr("رکورد جدید!", "New Record!")}
                 </motion.span>
               )}
               <span className="text-xs text-slate-500">
-                بهترین امتیاز: <b className="text-slate-700">{stats?.bestScore ?? 0}</b>
+                {tr("بهترین امتیاز:", "Best Score:")} <b className="text-slate-700">{stats?.bestScore ?? 0}</b>
               </span>
             </motion.div>
 
@@ -241,16 +243,16 @@ export default function GameOutcomeOverlay({
                     className="flex-1 px-6 py-3 bg-linear-to-l from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl font-medium text-sm transition-all shadow-md flex items-center justify-center gap-2"
                   >
                     <RotateCcw className="h-4 w-4" />
-                    دوباره
+                    {tr("دوباره", "Again")}
                   </motion.button>
                   <motion.button
                     onClick={onBack}
                     whileTap={{ scale: 0.95 }}
                     className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2"
-                    title="بازگشت"
+                    title={tr("بازگشت", "Back")}
                   >
                     <ArrowRight className="h-4 w-4" />
-                    <span className="hidden sm:inline">بازگشت</span>
+                    <span className="hidden sm:inline">{tr("بازگشت", "Back")}</span>
                   </motion.button>
                 </>
               ) : (
@@ -261,16 +263,16 @@ export default function GameOutcomeOverlay({
                     className="flex-1 px-6 py-3 bg-linear-to-l from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-medium text-sm transition-all shadow-md flex items-center justify-center gap-2"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    مرحله بعد
+                    {tr("مرحله بعد", "Next Stage")}
                   </motion.button>
                   <motion.button
                     onClick={onBack}
                     whileTap={{ scale: 0.95 }}
                     className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-sm transition-colors flex items-center justify-center gap-2"
-                    title="بازگشت"
+                    title={tr("بازگشت", "Back")}
                   >
                     <ArrowRight className="h-4 w-4" />
-                    <span className="hidden sm:inline">بازگشت</span>
+                    <span className="hidden sm:inline">{tr("بازگشت", "Back")}</span>
                   </motion.button>
                 </>
               )}

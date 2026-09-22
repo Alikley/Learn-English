@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -20,6 +21,7 @@ import { SPEEDQUIZ_CATEGORY_LABELS } from "@/data/speedquiz/questions";
 // ========================================
 
 function ResultBanner({ feedback }: { feedback: SpeedQuizFeedback }) {
+  const { tr } = useLanguage();
   if (feedback.correct) {
     return (
       <motion.div
@@ -29,7 +31,7 @@ function ResultBanner({ feedback }: { feedback: SpeedQuizFeedback }) {
         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 text-sm font-extrabold"
       >
         <CheckCircle2 className="w-4.5 h-4.5" />
-        عالی بود! +{feedback.gained} امتیاز
+        {tr("عالی بود!", "Great!")} +{feedback.gained} {tr("امتیاز", "points")}
       </motion.div>
     );
   }
@@ -42,7 +44,7 @@ function ResultBanner({ feedback }: { feedback: SpeedQuizFeedback }) {
         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-sm font-extrabold"
       >
         <AlarmClock className="w-4.5 h-4.5" />
-        وقت تمام شد!
+        {tr("وقت تمام شد!", "Time's up!")}
       </motion.div>
     );
   }
@@ -54,7 +56,7 @@ function ResultBanner({ feedback }: { feedback: SpeedQuizFeedback }) {
       className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 border border-red-200 text-red-500 text-sm font-extrabold"
     >
       <XCircle className="w-4.5 h-4.5" />
-      اشتباه بود — یک جان کم شد
+      {tr("اشتباه بود — یک جان کم شد", "Wrong — you lost a life")}
     </motion.div>
   );
 }
@@ -66,9 +68,10 @@ export default function SpeedQuizQuestionCard({
   question: SpeedQuizQuestion;
   feedback: SpeedQuizFeedback | null;
 }) {
+  const { tr } = useLanguage();
   const isWord = question.type === "WORD";
   const TypeIcon = isWord ? BookOpen : TextQuote;
-  const typeLabel = isWord ? "کلمه" : "جمله";
+  const typeLabel = isWord ? tr("کلمه", "Word") : tr("جمله", "Sentence");
   const categoryLabel =
     SPEEDQUIZ_CATEGORY_LABELS[question.category] ?? question.category;
 

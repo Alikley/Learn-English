@@ -3,6 +3,7 @@ import Image from "next/image";
 import { BookOpen, ChevronLeft } from "lucide-react";
 import type { Course } from "@/types/course";
 import { LEVEL_COLOR, LEVEL_LABEL } from "@/types/course";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 // 👇 نگاشت دسته‌بندی به عکس پیش‌فرض
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -46,6 +47,7 @@ type Props = {
 };
 
 export default function CourseCard({ course, onEnroll, enrolling }: Props) {
+  const { tr } = useLanguage();
   const isEnrolling = enrolling === course.id;
   const imageSrc = getCourseImage(course);
   const bgColor = getCourseBg(course);
@@ -85,7 +87,7 @@ export default function CourseCard({ course, onEnroll, enrolling }: Props) {
           </p>
         )}
         <div className="text-xs text-slate-400 mb-3">
-          {course.totalLessons} درس
+          {course.totalLessons} {tr("درس", "lessons")}
         </div>
 
         {/* پیشرفت */}
@@ -93,7 +95,7 @@ export default function CourseCard({ course, onEnroll, enrolling }: Props) {
           <div className="mb-3">
             <div className="flex justify-between text-xs text-slate-500 mb-1">
               <span>{course.progress}%</span>
-              <span>پیشرفت</span>
+              <span>{tr("پیشرفت", "Progress")}</span>
             </div>
             <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
               <div
@@ -112,7 +114,7 @@ export default function CourseCard({ course, onEnroll, enrolling }: Props) {
               className="w-full flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
             >
               <ChevronLeft size={16} />
-              ادامه دوره
+              {tr("ادامه دوره", "Continue Course")}
             </Link>
           ) : (
             <button
@@ -125,7 +127,7 @@ export default function CourseCard({ course, onEnroll, enrolling }: Props) {
               ) : (
                 <>
                   <BookOpen size={15} />
-                  ثبت‌نام
+                  {tr("ثبت‌نام", "Sign Up")}
                 </>
               )}
             </button>

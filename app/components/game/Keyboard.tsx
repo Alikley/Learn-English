@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 
@@ -22,12 +23,13 @@ export default function Keyboard({
   disabled?: boolean;
   onGuess: (letter: string) => void;
 }) {
+  const { tr } = useLanguage();
   return (
     <div
       dir="ltr"
       className="grid grid-cols-9 gap-1 sm:gap-1.5 md:gap-2 max-w-lg mx-auto"
       role="group"
-      aria-label="کیبورد حروف"
+      aria-label={tr("کیبورد حروف", "Letter Keyboard")}
     >
       {LETTERS.map((letter) => {
         const isGuessed = guessedLetters.includes(letter);
@@ -54,7 +56,7 @@ export default function Keyboard({
                 ? "cursor-not-allowed"
                 : "cursor-pointer",
             ].join(" ")}
-            aria-label={`حرف ${letter}`}
+            aria-label={tr(`حرف ${letter}`, `Letter ${letter}`)}
           >
             {letter}
           </motion.button>

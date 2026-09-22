@@ -1,4 +1,6 @@
 "use client";
+import { localizeMessage } from "@/lib/message-i18n";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -36,6 +38,7 @@ export function WordPopover({
   target: WordHoverTarget;
   onClose: () => void;
 }) {
+  const { tr, dir } = useLanguage();
   const ctx = useWordHover();
   // state تازه برای هر کلمه — Provider با key={word} کامپوننت را
   // برای هر کلمهٔ جدید از نو مانت می‌کند؛ نیازی به ریست در effect نیست
@@ -70,10 +73,10 @@ export function WordPopover({
         translationCache.set(key, data.translation);
         setTranslation(data.translation);
       } else {
-        setMessage(data.message ?? "ترجمه‌ای پیدا نشد");
+        setMessage(data.message ?? tr("ترجمه‌ای پیدا نشد", "No translation found"));
       }
     } catch {
-      setMessage("ارتباط با سرور برقرار نشد");
+      setMessage(tr("ارتباط با سرور برقرار نشد", "Could not connect to the server"));
     } finally {
       setTranslating(false);
     }
@@ -98,7 +101,7 @@ export function WordPopover({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.97 }}
         transition={{ duration: 0.12 }}
-        dir="rtl"
+        dir={dir}
         onMouseEnter={ctx?.cancelClose}
         onMouseLeave={ctx?.scheduleClose}
         style={{ position: "fixed", top, left, width: POPOVER_W, zIndex: 90 }}
@@ -115,7 +118,7 @@ export function WordPopover({
           <button
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600"
-            title="بستن"
+            title={tr("بستن", "Close")}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -130,7 +133,7 @@ export function WordPopover({
         ) : null}
         {message ? (
           <p className="text-[11px] text-amber-600 leading-5 mb-2 px-1">
-            {message}
+            {localizeMessage(message)}
           </p>
         ) : null}
 
@@ -157,7 +160,7 @@ export function WordPopover({
               className="flex-1 flex items-center justify-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 rounded-xl px-2 py-2 text-xs font-bold transition-colors"
             >
               <FolderPlus className="w-3.5 h-3.5" />
-              جعبه لغت
+              {tr("جعبه لغت", "Word Box")}
             </button>
           </div>
         ) : (
@@ -192,6 +195,7 @@ function PickerPanel({
   addError: string | null;
   setAddError: (e: string | null) => void;
 }) {
+  const { tr } = useLanguage();
   // فقط وقتی پنل باز شد جعبه‌ها را بگیر — نه برای همهٔ صفحات
   const { boxes, loading, authed, error, refetch, addWord } =
     useVocabularyBoxes({
@@ -222,14 +226,14 @@ function PickerPanel({
     return (
       <div className="text-center py-2">
         <p className="text-xs text-slate-500 leading-6 mb-2">
-          برای گذاشتن کلمه در جعبه لغت، وارد شوید
+          {tr("برای گذاشتن کلمه در جعبه لغت، وارد شوید", "Log in to add words to your Word Box")}
         </p>
         <Link
           href="/login"
           className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-1.5 text-xs font-bold transition-colors"
         >
           <LogIn className="w-3.5 h-3.5" />
-          ورود
+          {tr("ورود", "Log In")}
         </Link>
       </div>
     );
@@ -239,7 +243,7 @@ function PickerPanel({
     return (
       <div className="flex items-center justify-center gap-2 py-3 text-slate-400 text-xs font-bold">
         <Loader2 className="w-4 h-4 animate-spin" />
-        در حال گرفتن جعبه‌ها...
+        {tr("در حال گرفتن جعبه‌ها...", "Loading boxes...")}
       </div>
     );
   }
@@ -259,7 +263,7 @@ function PickerPanel({
     return (
       <div className="flex items-center justify-center gap-2 py-3 text-slate-400 text-xs font-bold">
         <Inbox className="w-4 h-4" />
-        هنوز جعبه‌ای نداری
+        {tr("هنوز جعبه‌ای نداری", "You have no boxes yet")}
       </div>
     );
   }
@@ -293,7 +297,7 @@ function PickerPanel({
                 <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
               ) : (
                 <span className="text-[10px] text-slate-400 shrink-0">
-                  {already ? "هست" : `${box.wordCount}/${VOCAB_BOX_WORD_LIMIT}`}
+                  {already ? tr("هست", "added") : `${box.wordCount}/${VOCAB_BOX_WORD_LIMIT}`}
                 </span>
               )}
             </button>

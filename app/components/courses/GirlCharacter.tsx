@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { useGaze } from "@/app/hook/useGaze";
@@ -76,6 +77,7 @@ function Eye({
 }
 
 export default function GirlCharacter() {
+  const { tr } = useLanguage();
   // نگاه به سمت موس + پلک‌زدن
   const { ref, gaze } = useGaze<HTMLDivElement>();
   const blinking = useBlink();
@@ -84,7 +86,7 @@ export default function GirlCharacter() {
     <div
       ref={ref}
       className="relative mx-auto w-full max-w-[440px] select-none"
-      aria-label="کاراکتر راهنمای دوره‌ها"
+      aria-label={tr("کاراکتر راهنمای دوره‌ها", "Courses Guide Character")}
       role="img"
     >
       {/* سایهٔ زمین — با شناوری کاراکتر نرم نفس می‌کشد */}

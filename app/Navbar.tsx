@@ -19,6 +19,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useStreak } from "@/app/hook/useStreak";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { LanguageToggle } from "@/app/components/LanguageToggle";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 export default function Navbar({
   toggleSidebar,
@@ -30,10 +31,14 @@ export default function Navbar({
   const { notifications, unreadCount } = useNotifications();
   const { user, logout } = useAuth();
   const { streak } = useStreak();
+  const { tr } = useLanguage();
   const recentNotifications = notifications.slice(0, 3);
 
   return (
-    <header className="h-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 z-30 transition-colors duration-300">
+    // ✅ v1.0.2.۶ — گام ۱: overflow-x-clip → منوهای کشویی نامرئی (زنگوله/جستجو)
+    // در موبایل از عرض صفحه بیرون نمی‌زنند (رفع اسکرول افقی ۲۰px در ۳۶۰px)
+    // عمودی visible می‌ماند تا کشوها هنگام هاور پایین بیایند
+    <header className="h-20 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0 z-30 transition-colors duration-300 overflow-x-clip">
       <div className="flex h-full items-center justify-between px-4 md:px-6">
         {/* Right Side (start in RTL) */}
         <div className="flex items-center gap-2 md:gap-4">
@@ -63,7 +68,7 @@ export default function Navbar({
                 )}
               </div>
               <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
-                {user?.name ?? "کاربر"}
+                {user?.name ?? tr("کاربر", "User")}
               </span>
               <ChevronDown className="h-4 w-4 text-slate-500 dark:text-slate-400 transition-transform group-hover:rotate-180" />
             </div>
@@ -73,10 +78,10 @@ export default function Navbar({
               <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-lg mb-3">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-xs font-medium mb-1">
                   <Calendar size={14} />
-                  <span>زمان باقی مانده اشتراک</span>
+                  <span>{tr("زمان باقی مانده اشتراک", "Subscription time left")}</span>
                 </div>
                 <div className="text-slate-800 dark:text-slate-100 font-bold text-lg">
-                  12 روز
+                  {tr("12 روز", "12 days")}
                 </div>
                 <div className="w-full bg-blue-200 dark:bg-blue-500/30 h-1.5 rounded-full mt-1">
                   <div className="bg-blue-600 h-1.5 rounded-full w-3/4" />
@@ -88,14 +93,14 @@ export default function Navbar({
                   className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                 >
                   <User size={16} />
-                  <span>ویرایش پروفایل</span>
+                  <span>{tr("ویرایش پروفایل", "Edit Profile")}</span>
                 </Link>
                 <button
                   onClick={logout}
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                 >
                   <LogOut size={16} />
-                  <span>خروج</span>
+                  <span>{tr("خروج", "Log Out")}</span>
                 </button>
               </div>
             </div>
@@ -170,7 +175,7 @@ export default function Navbar({
                   ))
                 ) : (
                   <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-2">
-                    هیچ پیامی نیست
+                    {tr("هیچ پیامی نیست", "No messages yet")}
                   </p>
                 )}
               </div>
@@ -179,7 +184,7 @@ export default function Navbar({
                   href="/notif"
                   className="block text-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
                 >
-                  مشاهده همه
+                  {tr("مشاهده همه", "View All")}
                 </Link>
               </div>
             </div>
@@ -195,7 +200,7 @@ export default function Navbar({
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="جستجو..."
+                  placeholder={tr("جستجو...", "Search...")}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-blue-500 dark:focus:border-blue-400"
                 />
               </div>

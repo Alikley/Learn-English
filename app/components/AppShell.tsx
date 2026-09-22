@@ -23,7 +23,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* ✅ آلرت استریک ورود */}
       <StreakLoginAlert />
 
-      <div className="flex-1 flex flex-row-reverse overflow-hidden h-full relative">
+      {/*
+        ✅ v1.0.2.۶ — گام ۱: سایدبار در هر دو زبان سمت چپ می‌ماند
+        فارسی (rtl): flex-row-reverse → سایدبار اول از چپ
+        انگلیسی (ltr): flex-row معمولی → سایدبار اول از چپ
+      */}
+      <div className="flex-1 flex flex-row-reverse ltr:flex-row overflow-hidden h-full relative">
         {/* overlay موبایل */}
         {isOpen && (
           <div
@@ -35,10 +40,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* سایدبار */}
         <div
           className={`
-            fixed top-0 right-0 h-full z-50 w-56
+            fixed top-0 start-0 h-full z-50 w-56
             transform transition-transform duration-300
             md:static md:translate-x-0 md:w-56 md:shrink-0 md:z-auto
-            ${isOpen ? "translate-x-0" : "translate-x-full"}
+            ${
+              isOpen
+                ? "translate-x-0"
+                : "max-md:rtl:translate-x-full max-md:ltr:-translate-x-full"
+            }
             md:block
           `}
         >

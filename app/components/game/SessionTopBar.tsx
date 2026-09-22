@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { Heart, Zap } from "lucide-react";
@@ -22,13 +23,15 @@ export default function SessionTopBar({
   lives: number;
   score: number;
 }) {
+  const { tr } = useLanguage();
+
   const maxWrong = GAME_CONFIG.maxWrong;
 
   return (
     <div className="flex items-center justify-between flex-wrap gap-2 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
       <div className="flex items-center gap-2.5">
         <span className="text-sm font-bold text-slate-700">
-          کلمه {Math.min(wordIndex + 1, total || 1)} از {total || GAME_CONFIG.wordsPerSession}
+          {tr("کلمه", "Word")} {Math.min(wordIndex + 1, total || 1)} {tr("از", "of")} {total || GAME_CONFIG.wordsPerSession}
         </span>
         {/* نقاط پیشرفت کلمات */}
         {total > 0 && (

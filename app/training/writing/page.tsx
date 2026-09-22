@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import Link from "next/link";
@@ -43,6 +44,7 @@ const TOPIC_ICONS: Record<string, LucideIcon> = {
 };
 
 export default function WritingListPage() {
+  const { tr, dir } = useLanguage();
   const [topics, setTopics] = useState<WritingTopic[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,23 +67,23 @@ export default function WritingListPage() {
   if (loading) return <PageLoading />;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
           <PenLine className="w-5 h-5 text-emerald-600" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">تمرین نوشتاری</h1>
+          <h1 className="text-xl font-bold text-slate-800">{tr("تمرین نوشتاری", "Writing Practice")}</h1>
           <p className="text-sm text-slate-500">
-            متنی کوتاه بنویس و هوش مصنوعی آن را اصلاح می‌کند
+            {tr("متنی کوتاه بنویس و هوش مصنوعی آن را اصلاح می‌کند", "Write a short text and AI will correct it")}
           </p>
         </div>
         <Link
           href="/training"
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
         >
-          بازگشت
+          {tr("بازگشت", "Back")}
         </Link>
       </div>
 

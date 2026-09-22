@@ -128,7 +128,7 @@ function SidebarSettings() {
         >
           <Moon className="h-4.5 w-4.5" />
         </div>
-        <span className="flex-1 text-right text-sm font-medium text-slate-700 dark:text-slate-200">
+        <span className="flex-1 text-start text-sm font-medium text-slate-700 dark:text-slate-200">
           {en
             ? isDark
               ? "Dark Mode"
@@ -159,7 +159,7 @@ function SidebarSettings() {
         <div className="w-9 h-9 rounded-xl bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 flex items-center justify-center shrink-0">
           <Globe className="h-4.5 w-4.5" />
         </div>
-        <span className="flex-1 text-right text-sm font-medium text-slate-700 dark:text-slate-200">
+        <span className="flex-1 text-start text-sm font-medium text-slate-700 dark:text-slate-200">
           {en ? "Site Language" : "زبان سایت"}
         </span>
         {/* قرص لغزنده فا / EN */}

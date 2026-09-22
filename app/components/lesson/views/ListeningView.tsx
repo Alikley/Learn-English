@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -24,7 +25,7 @@ type Props = {
   completing: boolean;
 };
 
-const STEPS = ["داستان", "آزمونک"];
+const STEPS: [string, string][] = [["داستان", "Story"], ["آزمونک", "Quiz"]];
 const SPEEDS = [0.75, 1, 1.25];
 
 function fmt(sec: number): string {
@@ -39,6 +40,7 @@ export default function ListeningView({
   onComplete,
   completing,
 }: Props) {
+  const { tr } = useLanguage();
   const [step, setStep] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [currentPara, setCurrentPara] = useState(-1);
@@ -175,7 +177,7 @@ export default function ListeningView({
 
   return (
     <div className="space-y-4">
-      <ProgressStepper sections={STEPS} currentIndex={step} />
+      <ProgressStepper sections={STEPS.map(([fa, en]) => tr(fa, en))} currentIndex={step} />
 
       <AnimatePresence mode="wait">
         {/* ---------- گام ۱: داستان ---------- */}
@@ -234,8 +236,8 @@ export default function ListeningView({
                     <span className="flex items-center gap-1 font-semibold text-orange-700">
                       <Headphones size={14} />
                       {fallbackMode && !timing
-                        ? "روایت داستان"
-                        : "داستان صوتی ۵ دقیقه‌ای"}
+                        ? tr("روایت داستان", "Story Narration")
+                        : tr("داستان صوتی ۵ دقیقه‌ای", "5-minute audio story")}
                     </span>
                     <span dir="ltr" className="font-mono">
                       {fmt(time)} / {fmt(total)}
@@ -276,7 +278,7 @@ export default function ListeningView({
                   className="flex items-center gap-1 text-xs text-green-600 font-bold mt-3"
                 >
                   <CheckCircle2 size={14} />
-                  داستان کامل شنیده شد — عالی! حالا آزمونک درک مطلب
+                  {tr("داستان کامل شنیده شد — عالی! حالا آزمونک درک مطلب", "Full story heard — great! Now the comprehension quiz")}
                 </motion.p>
               )}
             </motion.div>
@@ -284,7 +286,7 @@ export default function ListeningView({
             {/* واژگان کلیدی */}
             <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
               <h4 className="text-xs font-bold text-slate-500 mb-2">
-                واژگان کلیدی داستان
+                {tr("واژگان کلیدی داستان", "Story Key Vocabulary")}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {lesson.keyVocab.map((v, i) => (
@@ -344,7 +346,7 @@ export default function ListeningView({
                 setPlaying(false);
                 setStep(1);
               }}
-              label="رفتن به آزمونک"
+              label={tr("رفتن به آزمونک", "Go to Quiz")}
             />
           </motion.div>
         )}
@@ -361,10 +363,10 @@ export default function ListeningView({
             <div className="bg-white border border-orange-100 rounded-2xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <span className="text-xs font-bold text-orange-600 bg-orange-50 rounded-full px-3 py-1">
-                  سؤال {qIndex + 1} از {quiz.length}
+                  {tr("سؤال", "Question")} {qIndex + 1} {tr("از", "of")} {quiz.length}
                 </span>
                 <span className="text-xs text-green-600 font-bold">
-                  {correctCount} درست
+                  {correctCount} {tr("درست", "correct")}
                 </span>
               </div>
               <p className="font-semibold text-slate-900 mb-4 leading-7">
@@ -393,7 +395,7 @@ export default function ListeningView({
                       transition={{ duration: 0.4 }}
                       onClick={() => handleSelect(i)}
                       disabled={selected !== null}
-                      className={`w-full text-right border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
+                      className={`w-full text-start border-2 rounded-xl px-4 py-3 transition-all ${cls}`}
                     >
                       <span className="flex items-center gap-2 text-slate-800 text-sm">
                         <HoverableText text={opt} />
@@ -419,7 +421,7 @@ export default function ListeningView({
             {selected !== null && (
               <ContinueButton
                 onClick={nextQuestion}
-                label={qIndex < quiz.length - 1 ? "سؤال بعدی" : "تکمیل درس"}
+                label={qIndex < quiz.length - 1 ? tr("سؤال بعدی", "Next Question") : tr("تکمیل درس", "Finish Lesson")}
                 loading={completing && qIndex === quiz.length - 1}
               />
             )}
@@ -429,7 +431,7 @@ export default function ListeningView({
                 className="w-full text-center text-xs text-slate-400 hover:text-orange-600 font-medium"
               >
                 <Repeat size={12} className="inline mr-1" />
-                گوش دادن دوباره
+                {tr("گوش دادن دوباره", "Listen Again")}
               </button>
             )}
           </motion.div>

@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { Trophy, Flame, Sparkles } from "lucide-react";
 import type { GameStats, StreakInfo } from "@/types/game";
@@ -14,23 +15,25 @@ import type { GameStats, StreakInfo } from "@/types/game";
 export default function GameCardStats({
   stats,
   streak,
-  inviteText = "اولین دورت را شروع کن!",
+  inviteText,
 }: {
   stats: GameStats | null;
   streak: StreakInfo | null;
   inviteText?: string;
 }) {
+  const { tr } = useLanguage();
+
   // ---- ۱) بازی کرده ----
   if (stats && (stats.sessionsPlayed > 0 || stats.bestScore > 0)) {
     return (
       <div className="flex items-center gap-2 mt-2.5 flex-wrap">
         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 font-bold">
           <Trophy className="w-3 h-3" />
-          بهترین: {stats.bestScore}
+          {tr("بهترین:", "Best:")} {stats.bestScore}
         </span>
         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-bold">
           <Flame className="w-3 h-3" />
-          {streak?.current ?? 0} روز متوالی
+          {streak?.current ?? 0} {tr("روز متوالی", "day streak")}
         </span>
       </div>
     );
@@ -42,11 +45,11 @@ export default function GameCardStats({
       <div className="flex items-center gap-2 mt-2.5 flex-wrap">
         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-bold">
           <Flame className="w-3 h-3" />
-          {streak?.current} روز متوالی
+          {streak?.current} {tr("روز متوالی", "day streak")}
         </span>
         <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold">
           <Sparkles className="w-3 h-3" />
-          {inviteText}
+          {inviteText ?? tr("اولین دورت را شروع کن!", "Start your first round!")}
         </span>
       </div>
     );
@@ -57,7 +60,7 @@ export default function GameCardStats({
     <div className="flex items-center gap-2 mt-2.5">
       <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-bold">
         <Sparkles className="w-3 h-3" />
-        هنوز بازی نکرده‌ای — {inviteText}
+        {tr("هنوز بازی نکرده‌ای", "Haven't played yet")} — {inviteText ?? tr("اولین دورت را شروع کن!", "Start your first round!")}
       </span>
     </div>
   );

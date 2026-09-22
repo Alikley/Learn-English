@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useParams, useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ import { useCourseDetail } from "@/app/hook/useCourseDetail";
 // ========================================
 
 export default function CourseDetailPage() {
+  const { tr, dir } = useLanguage();
   const { courseId } = useParams<{ courseId: string }>();
   const router = useRouter();
   const { course, loading, completing, completeLesson, stats } =
@@ -36,11 +38,11 @@ export default function CourseDetailPage() {
     return (
       <div
         className="flex flex-col items-center justify-center min-h-[60vh] gap-3"
-        dir="rtl"
+        dir={dir}
       >
-        <p className="text-slate-500">دوره یافت نشد</p>
+        <p className="text-slate-500">{tr("دوره یافت نشد", "Course not found")}</p>
         <button onClick={() => router.back()} className="text-blue-600 text-sm">
-          بازگشت
+          {tr("بازگشت", "Back")}
         </button>
       </div>
     );
@@ -52,7 +54,7 @@ export default function CourseDetailPage() {
   return (
     <div
       className={`relative w-full min-h-full overflow-hidden ${theme.pageBg}`}
-      dir="rtl"
+      dir={dir}
     >
       {/* ابرهای نرم — طبق عکس مرجع: دایره‌های سفید محو روی گرادیان بخش */}
       <div
@@ -79,7 +81,7 @@ export default function CourseDetailPage() {
             className="flex items-center gap-1 text-slate-500 hover:text-slate-800 text-sm mb-4 transition-colors"
           >
             <ArrowRight size={16} />
-            بازگشت به دوره‌ها
+            {tr("بازگشت به دوره‌ها", "Back to Courses")}
           </button>
 
           <div className="flex flex-col md:flex-row md:items-center gap-4">
@@ -117,13 +119,13 @@ export default function CourseDetailPage() {
                   <div className="text-2xl font-bold text-slate-900">
                     {stats.completedCount}/{course.lessons.length}
                   </div>
-                  <div className="text-xs text-slate-400">درس تکمیل شده</div>
+                  <div className="text-xs text-slate-400">{tr("درس تکمیل شده", "Lesson Completed")}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-amber-500">
                     {stats.earnedXp}
                   </div>
-                  <div className="text-xs text-slate-400">XP کسب شده</div>
+                  <div className="text-xs text-slate-400">{tr("XP کسب شده", "XP Earned")}</div>
                 </div>
               </div>
             )}
@@ -132,10 +134,10 @@ export default function CourseDetailPage() {
           {course.isEnrolled && (
             <div className="mt-4">
               <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-                <span>{course.progress}% تکمیل شده</span>
+                <span>{course.progress}% {tr("تکمیل شده", "completed")}</span>
                 <span>
-                  {course.lessons.length - (stats?.completedCount ?? 0)} درس
-                  باقیمانده
+                  {course.lessons.length - (stats?.completedCount ?? 0)}{" "}
+                  {tr("درس باقیمانده", "lessons remaining")}
                 </span>
               </div>
               <div className="h-2 rounded-full bg-white/80 overflow-hidden shadow-inner">

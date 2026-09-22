@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -27,7 +28,9 @@ const SECTIONS = [
     key: "listening" as const,
     href: "/training/listening",
     title: "تمرین شنیداری",
+    titleEn: "Listening Practice",
     subtitle: "پادکست‌ها گوش بده و جاهای خالی را پر کن",
+    subtitleEn: "Listen to podcasts and fill in the blanks",
     icon: Headphones,
     iconBg: "bg-orange-50",
     iconColor: "text-orange-600",
@@ -38,7 +41,9 @@ const SECTIONS = [
     key: "grammar" as const,
     href: "/training/grammar",
     title: "تمرین گرامری",
+    titleEn: "Grammar Practice",
     subtitle: "۱۵ مجموعه از مبتدی تا پیشرفته با کوئیز",
+    subtitleEn: "15 sets from beginner to advanced with quizzes",
     icon: BookMarked,
     iconBg: "bg-blue-50",
     iconColor: "text-blue-600",
@@ -49,7 +54,9 @@ const SECTIONS = [
     key: "writing" as const,
     href: "/training/writing",
     title: "تمرین نوشتاری",
+    titleEn: "Writing Practice",
     subtitle: "بنویس و با هوش مصنوعی اصلاحش کن",
+    subtitleEn: "Write and let AI correct it",
     icon: PenLine,
     iconBg: "bg-emerald-50",
     iconColor: "text-emerald-600",
@@ -59,6 +66,7 @@ const SECTIONS = [
 ];
 
 export default function TrainingPage() {
+  const { tr, dir } = useLanguage();
   const [totals, setTotals] = useState<Totals | null>(null);
   const [completed, setCompleted] = useState<Totals | null>(null);
 
@@ -93,16 +101,16 @@ export default function TrainingPage() {
   }, []);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
           <Zap className="w-5 h-5 text-violet-600" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800">تمرین‌ها</h1>
+          <h1 className="text-xl font-bold text-slate-800">{tr("تمرین‌ها", "Practice")}</h1>
           <p className="text-sm text-slate-500">
-            هر روز کمی تمرین — شنیداری، گرامر و نوشتن
+            {tr("هر روز کمی تمرین — شنیداری، گرامر و نوشتن", "A little practice every day — listening, grammar and writing")}
           </p>
         </div>
       </div>
@@ -133,12 +141,12 @@ export default function TrainingPage() {
                   <span
                     className={`text-[10px] font-bold px-2 py-1 rounded-full ${s.chip}`}
                   >
-                    {total > 0 ? `${total} آیتم` : "..."}
+                    {total > 0 ? tr(`${total} آیتم`, `${total} items`) : "..."}
                   </span>
                 </div>
-                <h2 className="font-bold text-slate-800 mb-1">{s.title}</h2>
+                <h2 className="font-bold text-slate-800 mb-1">{tr(s.title, s.titleEn)}</h2>
                 <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                  {s.subtitle}
+                  {tr(s.subtitle, s.subtitleEn)}
                 </p>
                 <ProgressBar
                   value={done}
@@ -160,11 +168,11 @@ export default function TrainingPage() {
       >
         <Clock className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
         <p className="text-xs text-slate-500 leading-relaxed">
-          هر تمرین شنیداری حدود ۵ تا ۷ دقیقه وقت می‌برد، هر مجموعه گرامری ۱۰
+          {tr(`هر تمرین شنیداری حدود ۵ تا ۷ دقیقه وقت می‌برد، هر مجموعه گرامری ۱۰
           سؤال کوتاه دارد و در نوشتاری متنِ حداکثر ۲۰۰ کلمه‌ای می‌نویسی و
           هوش مصنوعی آن را برایت اصلاح می‌کند. ستاره‌ها بر اساس بهترین نتیجه
           تو ذخیره می‌شوند — ۸۰٪ به بالا سه ستاره، ۶۰٪ دو ستاره و ۴۰٪ یک
-          ستاره.
+          ستاره.`, "Each listening practice takes about 5–7 minutes, each grammar set has 10 short questions, and in writing you write up to 200 words and AI corrects it for you. Stars are saved based on your best result — 80%+ is three stars, 60% two stars and 40% one star.")}
         </p>
       </motion.div>
 
@@ -175,7 +183,7 @@ export default function TrainingPage() {
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          بازگشت به داشبورد
+          {tr("بازگشت به داشبورد", "Back to Dashboard")}
         </Link>
       </div>
     </div>

@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { ArrowRight, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -21,6 +22,7 @@ export default function LessonHeader({
   cefr,
   backHref,
 }: Props) {
+  const { tr } = useLanguage();
   const router = useRouter();
 
   return (
@@ -33,7 +35,7 @@ export default function LessonHeader({
           className="flex items-center gap-2 text-slate-500 hover:text-blue-600 text-sm mb-4"
         >
           <ArrowRight size={16} />
-          بازگشت
+          {tr("بازگشت", "Back")}
         </button>
 
         {/* Title */}
@@ -55,7 +57,7 @@ export default function LessonHeader({
             )}
 
             {typeof index === "number" && (
-              <div className="text-xs text-slate-400 mt-1">درس {index + 1}</div>
+              <div className="text-xs text-slate-400 mt-1">{tr("درس", "Lesson")} {index + 1}</div>
             )}
           </div>
 

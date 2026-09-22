@@ -1,4 +1,6 @@
 "use client";
+import { localizeMessage } from "@/lib/message-i18n";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/app/context/AuthContext";
@@ -10,6 +12,7 @@ import { ThemeToggle } from "@/app/components/ThemeToggle";
 type LoginForm = { email: string; password: string };
 
 export default function LoginPage() {
+  const { tr, dir } = useLanguage();
   const { login, isLoading } = useAuth();
   const [showPass, setShowPass] = useState(false);
   const [serverError, setServerError] = useState("");
@@ -28,7 +31,7 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen bg-linear-to-br from-blue-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-[#0b1220] relative flex items-center justify-center p-4"
-      dir="rtl"
+      dir={dir}
     >
       <div className="absolute top-4 left-4 z-10 rounded-2xl bg-white/70 dark:bg-slate-800/70 backdrop-blur border border-slate-100 dark:border-slate-700 shadow-sm">
             <ThemeToggle />
@@ -39,18 +42,18 @@ export default function LoginPage() {
             flex <span className="text-slate-900 dark:text-slate-100">English</span>
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
-            خوش برگشتی! وارد حسابت شو
+            {tr("خوش برگشتی! وارد حسابت شو", "Welcome back! Log in to your account")}
           </p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 dark:shadow-black/40 p-8 border border-slate-100 dark:border-slate-700">
           <h2 className="text-xl font-bold text-slate-800 mb-6">
-            ورود به حساب
+            {tr("ورود به حساب", "Log In to Account")}
           </h2>
 
           {serverError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-              {serverError}
+              {localizeMessage(serverError)}
             </div>
           )}
 
@@ -61,16 +64,16 @@ export default function LoginPage() {
           >
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                ایمیل
+                {tr("ایمیل", "Email")}
               </label>
               <input
                 type="email"
                 placeholder="example@email.com"
                 {...register("email", {
-                  required: "ایمیل را وارد کنید",
+                  required: tr("ایمیل را وارد کنید", "Enter your email"),
                   pattern: {
                     value: /^\S+@\S+\.\S+$/,
-                    message: "ایمیل معتبر نیست",
+                    message: tr("ایمیل معتبر نیست", "Invalid email address"),
                   },
                 })}
                 className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.email ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
@@ -84,15 +87,15 @@ export default function LoginPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                رمز عبور
+                {tr("رمز عبور", "Password")}
               </label>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
-                  placeholder="رمز عبور خود را وارد کنید"
+                  placeholder={tr("رمز عبور خود را وارد کنید", "Enter your password")}
                   {...register("password", {
-                    required: "رمز عبور را وارد کنید",
-                    minLength: { value: 6, message: "حداقل ۶ کاراکتر" },
+                    required: tr("رمز عبور را وارد کنید", "Enter your password"),
+                    minLength: { value: 6, message: tr("حداقل ۶ کاراکتر", "At least 6 characters") },
                   })}
                   className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.password ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
                 />
@@ -121,7 +124,7 @@ export default function LoginPage() {
               ) : (
                 <>
                   <LogIn size={18} />
-                  ورود
+                  {tr("ورود", "Log In")}
                 </>
               )}
             </button>
@@ -129,18 +132,18 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-5 border-t border-slate-100 text-center">
             <p className="text-sm text-slate-500">
-              حساب کاربری نداری؟{" "}
+              {tr("حساب کاربری نداری؟", "Don't have an account?")}{" "}
               <Link
                 href="/register"
                 className="text-blue-600 font-semibold hover:text-blue-700 hover:underline transition-colors"
               >
-                ثبت نام کن
+                {tr("ثبت نام کن", "Sign Up")}
               </Link>
             </p>
           </div>
         </div>
         <p className="text-center text-xs text-slate-400 mt-6">
-          با ورود، قوانین و حریم خصوصی flex English را می‌پذیری
+          {tr("با ورود، قوانین و حریم خصوصی flex English را می‌پذیری", "By logging in, you accept the flex English terms and privacy policy")}
         </p>
       </div>
     </div>

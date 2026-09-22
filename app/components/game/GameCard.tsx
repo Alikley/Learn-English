@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -26,6 +27,8 @@ export default function GameCard({
   disabled?: boolean;
   stats?: React.ReactNode; // آمار کوچک روی کارت (اختیاری)
 }) {
+  const { tr } = useLanguage();
+
   const inner = (
     <>
       {/* آیکون بازی */}
@@ -34,7 +37,7 @@ export default function GameCard({
       </div>
 
       {/* عنوان و توضیح */}
-      <div className="flex-1 min-w-0 text-right">
+      <div className="flex-1 min-w-0 text-start">
         <h3 className="font-bold text-slate-800">{title}</h3>
         <p className="text-xs text-slate-500 mt-1 leading-5">{desc}</p>
         {stats}
@@ -44,7 +47,7 @@ export default function GameCard({
       {disabled ? (
         <span className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-100 text-slate-400 text-[11px] font-bold">
           <Clock className="w-3.5 h-3.5" />
-          به‌زودی
+          {tr("به‌زودی", "Coming Soon")}
         </span>
       ) : (
         <span className="shrink-0 w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center">

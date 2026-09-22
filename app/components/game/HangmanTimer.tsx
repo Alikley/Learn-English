@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { Hourglass } from "lucide-react";
@@ -24,6 +25,8 @@ export default function HangmanTimer({
   // وقتی نتیجه کلمه نمایش داده می‌شود، تایمر ثابت می‌ماند
   frozen?: boolean;
 }) {
+  const { tr } = useLanguage();
+
   const pct = Math.max(0, Math.min(100, (timeLeftMs / totalMs) * 100));
   const seconds = Math.max(0, Math.ceil(timeLeftMs / 1000));
   const low = seconds <= 2 && !frozen;
@@ -47,7 +50,7 @@ export default function HangmanTimer({
       {/* برچسب راهنما + عدد ثانیه */}
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[10px] text-slate-400 font-medium">
-          {levelSeconds} ثانیه برای هر حدس — تمام شود، یک تکه اضافه می‌شود!
+          {levelSeconds} {tr("ثانیه برای هر حدس — تمام شود، یک تکه اضافه می‌شود!", "seconds per guess — when it runs out, a piece is added!")}
         </span>
         <motion.span
           key={seconds}

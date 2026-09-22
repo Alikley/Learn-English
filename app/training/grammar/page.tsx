@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import Link from "next/link";
@@ -28,6 +29,7 @@ import {
 import type { GrammarLevel, GrammarSetMeta } from "@/types/training";
 import {
   GRAMMAR_LEVEL_LABEL,
+  GRAMMAR_LEVEL_LABEL_EN,
   GRAMMAR_LEVEL_COLOR,
   GRAMMAR_LEVEL_DOT,
 } from "@/types/training";
@@ -68,6 +70,7 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export default function GrammarListPage() {
+  const { tr, dir } = useLanguage();
   const [sets, setSets] = useState<GrammarSetMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("ALL");
@@ -104,23 +107,23 @@ export default function GrammarListPage() {
   if (loading) return <PageLoading />;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
           <BookMarked className="w-5 h-5 text-blue-600" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">تمرین گرامری</h1>
+          <h1 className="text-xl font-bold text-slate-800">{tr("تمرین گرامری", "Grammar Practice")}</h1>
           <p className="text-sm text-slate-500">
-            {sets.length} مجموعه — هر کدام ۱۰ سؤال از مبتدی تا پیشرفته
+            {sets.length} {tr("مجموعه — هر کدام ۱۰ سؤال از مبتدی تا پیشرفته", "sets — 10 questions each, beginner to advanced")}
           </p>
         </div>
         <Link
           href="/training"
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
         >
-          بازگشت
+          {tr("بازگشت", "Back")}
         </Link>
       </div>
 
@@ -148,7 +151,7 @@ export default function GrammarListPage() {
                   }`}
                 />
               )}
-              {t.label}
+              {t.key === "ALL" ? tr("همه", "All") : tr(GRAMMAR_LEVEL_LABEL[t.key as GrammarLevel], GRAMMAR_LEVEL_LABEL_EN[t.key as GrammarLevel])}
               <span
                 className={`text-[10px] ${
                   tab === t.key ? "text-blue-100" : "text-slate-400"
@@ -192,7 +195,7 @@ export default function GrammarListPage() {
                         GRAMMAR_LEVEL_COLOR[set.level]
                       }`}
                     >
-                      {GRAMMAR_LEVEL_LABEL[set.level]}
+                      {tr(GRAMMAR_LEVEL_LABEL[set.level], GRAMMAR_LEVEL_LABEL_EN[set.level])}
                     </span>
                   </div>
 
@@ -207,7 +210,7 @@ export default function GrammarListPage() {
                   </p>
 
                   <div className="flex items-center gap-3 text-[11px] text-slate-500 font-bold">
-                    <span>{set.questionCount} سؤال</span>
+                    <span>{set.questionCount} {tr("سؤال", "questions")}</span>
                     <span className="inline-flex items-center gap-1">
                       <Zap className="w-3.5 h-3.5 text-amber-500" />
                       {set.xp} XP

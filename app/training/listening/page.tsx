@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import Link from "next/link";
@@ -22,10 +23,11 @@ type ListItem = ListeningItem & {
 
 function fmtDuration(s: number) {
   const m = Math.floor(s / 60);
-  return `${m} دقیقه`;
+  return m; // دقیقه — نمایش دوزبانه در محل استفاده (v1.0.2.3)
 }
 
 export default function ListeningListPage() {
+  const { tr, dir } = useLanguage();
   const [items, setItems] = useState<ListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,30 +53,30 @@ export default function ListeningListPage() {
   if (loading) return <PageLoading />;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
           <Headphones className="w-5 h-5 text-orange-600" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">تمرین شنیداری</h1>
+          <h1 className="text-xl font-bold text-slate-800">{tr("تمرین شنیداری", "Listening Practice")}</h1>
           <p className="text-sm text-slate-500">
-            گوش بده و جاهای خالی را با کلمه‌ای که می‌شنوی پر کن
+            {tr("گوش بده و جاهای خالی را با کلمه‌ای که می‌شنوی پر کن", "Listen and fill the blanks with the word you hear")}
           </p>
         </div>
         <Link
           href="/training"
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
         >
-          بازگشت
+          {tr("بازگشت", "Back")}
         </Link>
       </div>
 
       {items.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <Headphones className="h-16 w-16 text-slate-200" />
-          <p className="text-slate-500">هنوز تمرین شنیداری اضافه نشده</p>
+          <p className="text-slate-500">{tr("هنوز تمرین شنیداری اضافه نشده", "No listening practices added yet")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -120,7 +122,7 @@ export default function ListeningListPage() {
                   <div className="flex items-center gap-3 text-[11px] text-slate-500 font-bold">
                     <span className="inline-flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
-                      {fmtDuration(item.duration)}
+                      {tr(`${fmtDuration(item.duration)} دقیقه`, `${fmtDuration(item.duration)} min`)}
                     </span>
                     <span className="inline-flex items-center gap-1">
                       <Zap className="w-3.5 h-3.5 text-amber-500" />

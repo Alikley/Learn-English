@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useEffect, useCallback } from "react";
@@ -54,6 +55,7 @@ function starsOf(percent: number) {
 }
 
 export default function GrammarQuizPage() {
+  const { tr, dir } = useLanguage();
   const { setId } = useParams<{ setId: string }>();
   const router = useRouter();
 
@@ -113,12 +115,12 @@ export default function GrammarQuizPage() {
           explanation: question.explanation,
           question:
             question.type === "ERROR"
-              ? "کدام جمله کاملاً صحیح است؟"
+              ? tr("کدام جمله کاملاً صحیح است؟", "Which sentence is completely correct?")
               : question.question,
         },
       ]);
     },
-    [question],
+    [question, tr],
   );
 
   const handleSelect = (option: string) => {
@@ -171,12 +173,12 @@ export default function GrammarQuizPage() {
     if (!set) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-          <p className="text-slate-500">مجموعه یافت نشد</p>
+          <p className="text-slate-500">{tr("مجموعه یافت نشد", "Set not found")}</p>
           <button
             onClick={() => router.push("/training/grammar")}
             className="text-blue-600 text-sm font-bold"
           >
-            بازگشت به لیست
+            {tr("بازگشت به لیست", "Back to List")}
           </button>
         </div>
       );
@@ -187,7 +189,7 @@ export default function GrammarQuizPage() {
   const correctCount = log.filter((l) => l.correct).length;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -231,7 +233,7 @@ export default function GrammarQuizPage() {
             {/* ================= نوار پیشرفت سؤال‌ها ================= */}
             <div className="flex items-center gap-3 mb-4">
               <span className="text-xs font-bold text-slate-500 shrink-0">
-                سؤال {qIndex + 1} از {questions.length}
+                {tr("سؤال", "Question")} {qIndex + 1} {tr("از", "of")} {questions.length}
               </span>
               <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                 <motion.div
@@ -262,10 +264,10 @@ export default function GrammarQuizPage() {
                   }`}
                 >
                   {question.type === "MCQ"
-                    ? "چهارگزینه‌ای"
+                    ? tr("چهارگزینه‌ای", "Multiple Choice")
                     : question.type === "FILL"
-                      ? "جای خالی"
-                      : "جمله صحیح"}
+                      ? tr("جای خالی", "Fill in the Blank")
+                      : tr("جمله صحیح", "Correct Sentence")}
                 </span>
                 {bestStars > 0 && (
                   <span className="flex items-center gap-0.5">
@@ -314,7 +316,7 @@ export default function GrammarQuizPage() {
                         onClick={() => handleSelect(option)}
                         disabled={answered}
                         dir="ltr"
-                        className={`text-right flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all text-sm md:text-base font-medium ${cls} ${
+                        className={`text-start flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 transition-all text-sm md:text-base font-medium ${cls} ${
                           answered ? "cursor-default" : "cursor-pointer"
                         }`}
                       >
@@ -358,7 +360,7 @@ export default function GrammarQuizPage() {
                       disabled={answered}
                       dir="ltr"
                       autoFocus
-                      placeholder="جواب را اینجا بنویس..."
+                      placeholder={tr("جواب را اینجا بنویس...", "Type your answer here...")}
                       className={`flex-1 min-w-[12rem] px-4 py-3 border-2 rounded-xl text-base font-medium outline-none transition-all text-center ${
                         answered
                           ? wasCorrect
@@ -373,7 +375,7 @@ export default function GrammarQuizPage() {
                         disabled={!fillValue.trim()}
                         className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-colors"
                       >
-                        بررسی
+                        {tr("بررسی", "Check")}
                       </button>
                     )}
                   </div>
@@ -405,12 +407,12 @@ export default function GrammarQuizPage() {
                       {wasCorrect ? (
                         <>
                           <CheckCircle2 className="h-4 w-4" />
-                          آفرین! درست جواب دادی
+                          {tr("آفرین! درست جواب دادی", "Well done! Correct answer")}
                         </>
                       ) : (
                         <>
                           <XCircle className="h-4 w-4" />
-                          نادرست — جواب درست مشخص شد
+                          {tr("نادرست — جواب درست مشخص شد", "Incorrect — the correct answer is shown")}
                         </>
                       )}
                     </p>
@@ -433,7 +435,7 @@ export default function GrammarQuizPage() {
                     onClick={handleNext}
                     className="px-8 py-3 bg-linear-to-l from-blue-600 to-sky-500 hover:from-blue-700 hover:to-sky-600 text-white rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2"
                   >
-                    {qIndex + 1 >= questions.length ? "دیدن نتیجه" : "سؤال بعدی"}
+                    {qIndex + 1 >= questions.length ? tr("دیدن نتیجه", "See Result") : tr("سؤال بعدی", "Next Question")}
                     <ChevronLeft className="h-4 w-4" />
                   </motion.button>
                 )}
@@ -449,7 +451,7 @@ export default function GrammarQuizPage() {
           >
             <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-6 md:p-8 text-center">
               <h3 className="text-lg font-bold text-slate-800 mb-5">
-                نتیجه {set.topicFa}
+                {tr("نتیجه", "Result")} {set.topicFa}
               </h3>
 
               <div className="flex items-center justify-center gap-2 mb-5">
@@ -475,14 +477,14 @@ export default function GrammarQuizPage() {
 
               <div className="flex items-center justify-center gap-6 text-sm flex-wrap">
                 <div>
-                  <span className="text-slate-500">پاسخ صحیح: </span>
+                  <span className="text-slate-500">{tr("پاسخ صحیح:", "Correct answer:")} </span>
                   <span className="font-bold text-slate-800">
                     {correctCount}/{questions.length}
                   </span>
                 </div>
                 <div className="text-slate-300">|</div>
                 <div>
-                  <span className="text-slate-500">درصد: </span>
+                  <span className="text-slate-500">{tr("درصد:", "Score:")} </span>
                   <span className="font-bold text-slate-800">
                     {Math.round((correctCount / questions.length) * 100)}%
                   </span>
@@ -512,13 +514,13 @@ export default function GrammarQuizPage() {
                   className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  دوباره
+                  {tr("دوباره", "Again")}
                 </button>
                 <button
                   onClick={() => router.push("/training/grammar")}
                   className="px-6 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition-colors"
                 >
-                  بازگشت به لیست
+                  {tr("بازگشت به لیست", "Back to List")}
                 </button>
               </div>
             </div>
@@ -527,7 +529,7 @@ export default function GrammarQuizPage() {
             <div className="mt-6 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
               <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-500" />
-                مرور همه سؤال‌ها
+                {tr("مرور همه سؤال‌ها", "Review All Questions")}
               </h3>
               <div className="space-y-3">
                 {log.map((entry, i) => (

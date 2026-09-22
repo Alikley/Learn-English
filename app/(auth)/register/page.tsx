@@ -1,4 +1,6 @@
 "use client";
+import { localizeMessage } from "@/lib/message-i18n";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/app/context/AuthContext";
@@ -15,6 +17,7 @@ type RegisterForm = {
 };
 
 export default function RegisterPage() {
+  const { tr, dir } = useLanguage();
   const { register: registerUser, isLoading } = useAuth();
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -35,7 +38,7 @@ export default function RegisterPage() {
   return (
     <div
       className="min-h-screen bg-linear-to-br from-blue-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-[#0b1220] relative flex items-center justify-center p-4"
-      dir="rtl"
+      dir={dir}
     >
       <div className="absolute top-4 left-4 z-10 rounded-2xl bg-white/70 dark:bg-slate-800/70 backdrop-blur border border-slate-100 dark:border-slate-700 shadow-sm">
             <ThemeToggle />
@@ -46,18 +49,18 @@ export default function RegisterPage() {
             flex <span className="text-slate-900 dark:text-slate-100">English</span>
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
-            یادگیری رو همین الان شروع کن
+            {tr("یادگیری رو همین الان شروع کن", "Start learning right now")}
           </p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 dark:shadow-black/40 p-8 border border-slate-100 dark:border-slate-700">
           <h2 className="text-xl font-bold text-slate-800 mb-6">
-            ساخت حساب جدید
+            {tr("ساخت حساب جدید", "Create a New Account")}
           </h2>
 
           {serverError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
-              {serverError}
+              {localizeMessage(serverError)}
             </div>
           )}
 
@@ -68,14 +71,14 @@ export default function RegisterPage() {
           >
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                نام و نام خانوادگی
+                {tr("نام و نام خانوادگی", "Full Name")}
               </label>
               <input
                 type="text"
-                placeholder="مثلاً: علی مرادی"
+                placeholder={tr("مثلاً: علی مرادی", "e.g. Ali Moradi")}
                 {...register("name", {
-                  required: "نام را وارد کنید",
-                  minLength: { value: 3, message: "حداقل ۳ کاراکتر" },
+                  required: tr("نام را وارد کنید", "Enter your name"),
+                  minLength: { value: 3, message: tr("حداقل ۳ کاراکتر", "At least 3 characters") },
                 })}
                 className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.name ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
               />
@@ -88,16 +91,16 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                ایمیل
+                {tr("ایمیل", "Email")}
               </label>
               <input
                 type="email"
                 placeholder="example@email.com"
                 {...register("email", {
-                  required: "ایمیل را وارد کنید",
+                  required: tr("ایمیل را وارد کنید", "Enter your email"),
                   pattern: {
                     value: /^\S+@\S+\.\S+$/,
-                    message: "ایمیل معتبر نیست",
+                    message: tr("ایمیل معتبر نیست", "Invalid email address"),
                   },
                 })}
                 className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.email ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
@@ -111,15 +114,15 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                رمز عبور
+                {tr("رمز عبور", "Password")}
               </label>
               <div className="relative">
                 <input
                   type={showPass ? "text" : "password"}
-                  placeholder="حداقل ۶ کاراکتر"
+                  placeholder={tr("حداقل ۶ کاراکتر", "At least 6 characters")}
                   {...register("password", {
-                    required: "رمز عبور را وارد کنید",
-                    minLength: { value: 6, message: "حداقل ۶ کاراکتر" },
+                    required: tr("رمز عبور را وارد کنید", "Enter your password"),
+                    minLength: { value: 6, message: tr("حداقل ۶ کاراکتر", "At least 6 characters") },
                   })}
                   className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.password ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
                 />
@@ -140,17 +143,17 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                تکرار رمز عبور
+                {tr("تکرار رمز عبور", "Repeat Password")}
               </label>
               <div className="relative">
                 <input
                   type={showConfirm ? "text" : "password"}
-                  placeholder="رمز عبور را دوباره وارد کنید"
+                  placeholder={tr("رمز عبور را دوباره وارد کنید", "Enter the password again")}
                   {...register("confirmPassword", {
-                    required: "تکرار رمز عبور را وارد کنید",
+                    required: tr("تکرار رمز عبور را وارد کنید", "Enter the password confirmation"),
                     validate: (val) =>
                       val === watch("password") ||
-                      "رمز عبور و تکرار آن یکسان نیستند",
+                      tr("رمز عبور و تکرار آن یکسان نیستند", "Password and confirmation do not match"),
                   })}
                   className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.confirmPassword ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
                 />
@@ -179,7 +182,7 @@ export default function RegisterPage() {
               ) : (
                 <>
                   <UserPlus size={18} />
-                  ثبت نام
+                  {tr("ثبت نام", "Sign Up")}
                 </>
               )}
             </button>
@@ -187,18 +190,18 @@ export default function RegisterPage() {
 
           <div className="mt-6 pt-5 border-t border-slate-100 text-center">
             <p className="text-sm text-slate-500">
-              قبلاً ثبت نام کردی؟{" "}
+              {tr("قبلاً ثبت نام کردی؟", "Already registered?")}{" "}
               <Link
                 href="/login"
                 className="text-blue-600 font-semibold hover:text-blue-700 hover:underline transition-colors"
               >
-                وارد شو
+                {tr("وارد شو", "Log In")}
               </Link>
             </p>
           </div>
         </div>
         <p className="text-center text-xs text-slate-400 mt-6">
-          با ثبت نام، قوانین و حریم خصوصی flex English را می‌پذیری
+          {tr("با ثبت نام، قوانین و حریم خصوصی flex English را می‌پذیری", "By signing up, you accept the flex English terms and privacy policy")}
         </p>
       </div>
     </div>

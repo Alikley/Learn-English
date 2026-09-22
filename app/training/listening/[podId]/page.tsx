@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
@@ -80,6 +81,7 @@ function StarsResult({ count }: { count: number }) {
 }
 
 export default function ListeningPlayerPage() {
+  const { tr, dir } = useLanguage();
   const { podId } = useParams<{ podId: string }>();
   const router = useRouter();
 
@@ -343,12 +345,12 @@ export default function ListeningPlayerPage() {
   if (!item) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <p className="text-slate-500">قسمت یافت نشد</p>
+        <p className="text-slate-500">{tr("قسمت یافت نشد", "Episode not found")}</p>
         <button
           onClick={() => router.push("/training/listening")}
           className="text-orange-600 text-sm font-bold"
         >
-          بازگشت به لیست
+          {tr("بازگشت به لیست", "Back to List")}
         </button>
       </div>
     );
@@ -358,7 +360,7 @@ export default function ListeningPlayerPage() {
   const levelInfo = getListeningLevel(item.level);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -410,10 +412,10 @@ export default function ListeningPlayerPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-700">
-                  پخش با تلفظ مرورگر
+                  {tr("پخش با تلفظ مرورگر", "Play with browser speech")}
                 </p>
                 <p className="text-[10px] text-slate-400">
-                  دو مجری: Tom و Lena — خطِ در حال پخش هایلایت می‌شود
+                  {tr("دو مجری: Tom و Lena — خطِ در حال پخش هایلایت می‌شود", "Two hosts: Tom and Lena — the playing line is highlighted")}
                 </p>
               </div>
             </div>
@@ -430,7 +432,7 @@ export default function ListeningPlayerPage() {
                       : "text-slate-500 hover:bg-slate-100"
                   }`}
                 >
-                  {s === 1 ? "۱×" : `${s}×`}
+                  {s === 1 ? tr("۱×", "1×") : `${s}×`}
                 </button>
               ))}
             </div>
@@ -440,14 +442,14 @@ export default function ListeningPlayerPage() {
             <button
               onClick={handleStopSpeech}
               className="p-2.5 rounded-full hover:bg-slate-100 transition-colors"
-              title="توقف"
+              title={tr("توقف", "Stop")}
             >
               <Square className="h-4 w-4 text-slate-500" />
             </button>
             <button
               onClick={handleToggleSpeech}
               className="p-4 rounded-full bg-orange-500 hover:bg-orange-600 text-white transition-colors shadow-md"
-              title={playing ? "توقف موقت" : "پخش"}
+              title={playing ? tr("توقف موقت", "Pause") : tr("پخش", "Play")}
             >
               {playing ? (
                 <Pause className="h-6 w-6" />
@@ -458,7 +460,7 @@ export default function ListeningPlayerPage() {
             <button
               onClick={() => speakFrom(0)}
               className="p-2.5 rounded-full hover:bg-slate-100 transition-colors"
-              title="از اول"
+              title={tr("از اول", "Start Over")}
             >
               <RotateCcw className="h-4 w-4 text-slate-500" />
             </button>
@@ -466,8 +468,8 @@ export default function ListeningPlayerPage() {
 
           <p className="text-center text-[11px] text-slate-400 mt-3">
             {playing
-              ? `در حال پخش خط ${currentLine + 1} از ${lines.length}`
-              : `برای شنیدن دوباره یک خط، روی آن کلیک کن`}
+              ? tr(`در حال پخش خط ${currentLine + 1} از ${lines.length}`, `Playing line ${currentLine + 1} of ${lines.length}`)
+              : tr(`برای شنیدن دوباره یک خط، روی آن کلیک کن`, `Click a line to hear it again`)}
           </p>
         </div>
       ) : (
@@ -538,15 +540,15 @@ export default function ListeningPlayerPage() {
         <p className="text-sm text-amber-800 flex items-start gap-2">
           <Lightbulb className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
           <span>
-            گوش بده و کلمه‌ای که جای خالی تلفظ می‌شود را در فرم بنویس. برای
-            راهنمایی روی آیکون لامپ کلیک کن.
+            {tr(`گوش بده و کلمه‌ای که جای خالی تلفظ می‌شود را در فرم بنویس. برای
+            راهنمایی روی آیکون لامپ کلیک کن.`, "Listen and type the word spoken in the blank. Click the lamp icon for a hint.")}
           </span>
         </p>
       </div>
 
       {/* ================= ترنسکریپت خط‌به‌خط ================= */}
       <div className="mt-6 bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
-        <h2 className="font-bold text-slate-800 mb-4 text-sm">متن تمرین</h2>
+        <h2 className="font-bold text-slate-800 mb-4 text-sm">{tr("متن تمرین", "Practice Text")}</h2>
 
         <div className="space-y-1" dir="ltr">
           {lines.map((line, lineIdx) => {
@@ -644,7 +646,7 @@ export default function ListeningPlayerPage() {
                                   }));
                                 }}
                                 className="p-0.5 hover:bg-slate-100 rounded transition-colors"
-                                title="راهنما"
+                                title={tr("راهنما", "Guide")}
                               >
                                 <Lightbulb
                                   className={`h-3.5 w-3.5 ${
@@ -663,7 +665,7 @@ export default function ListeningPlayerPage() {
                                 animate={{ opacity: 1, height: "auto" }}
                                 exit={{ opacity: 0, height: 0 }}
                                 className="block text-[11px] text-amber-600 mt-0.5"
-                                dir="rtl"
+                                dir={dir}
                               >
                                 💡 {gap.hint}
                               </motion.span>
@@ -690,12 +692,12 @@ export default function ListeningPlayerPage() {
             {submitting ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                در حال بررسی...
+                {tr("در حال بررسی...", "Checking...")}
               </>
             ) : (
               <>
                 <CheckCircle2 className="h-4 w-4" />
-                ثبت جواب‌ها
+                {tr("ثبت جواب‌ها", "Submit Answers")}
               </>
             )}
           </button>
@@ -705,7 +707,7 @@ export default function ListeningPlayerPage() {
             className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-sm transition-all flex items-center gap-2"
           >
             <RotateCcw className="h-4 w-4" />
-            تلاش مجدد
+            {tr("تلاش مجدد", "Try Again")}
           </button>
         )}
       </div>
@@ -720,21 +722,21 @@ export default function ListeningPlayerPage() {
             className="mt-8 bg-white rounded-2xl border border-slate-100 shadow-lg p-6 text-center"
           >
             <h3 className="text-lg font-bold text-slate-800 mb-4">
-              نتیجه تمرین
+              {tr("نتیجه تمرین", "Practice Result")}
             </h3>
 
             <StarsResult count={result.stars} />
 
             <div className="mt-4 flex items-center justify-center gap-6 text-sm flex-wrap">
               <div>
-                <span className="text-slate-500">پاسخ صحیح: </span>
+                <span className="text-slate-500">{tr("پاسخ صحیح:", "Correct answer:")} </span>
                 <span className="font-bold text-slate-800">
                   {result.correct}/{result.total}
                 </span>
               </div>
               <div className="text-slate-300">|</div>
               <div>
-                <span className="text-slate-500">درصد: </span>
+                <span className="text-slate-500">{tr("درصد:", "Score:")} </span>
                 <span className="font-bold text-slate-800">
                   {result.percent}%
                 </span>
@@ -750,7 +752,7 @@ export default function ListeningPlayerPage() {
 
             {result.bestResult && (
               <p className="mt-3 text-xs text-slate-400">
-                رکورد قبلی‌ات بهتر بود — بهترین نتیجه حفظ شد
+                {tr("رکورد قبلی‌ات بهتر بود — بهترین نتیجه حفظ شد", "Your previous record was better — your best result is kept")}
               </p>
             )}
 
@@ -759,7 +761,7 @@ export default function ListeningPlayerPage() {
                 onClick={() => router.push("/training/listening")}
                 className="px-6 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-100 transition-colors"
               >
-                بازگشت به لیست شنیداری
+                {tr("بازگشت به لیست شنیداری", "Back to Listening List")}
               </button>
             </div>
           </motion.div>

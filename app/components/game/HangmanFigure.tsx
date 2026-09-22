@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useEffect, useRef } from "react";
 import { motion, useAnimation } from "motion/react";
@@ -27,6 +28,7 @@ export default function HangmanFigure({
   wrongCount: number;
   status: FigureStatus;
 }) {
+  const { tr } = useLanguage();
   const controls = useAnimation();
   const prevWrong = useRef(0);
 
@@ -67,7 +69,7 @@ export default function HangmanFigure({
         viewBox="0 0 220 260"
         className="w-full h-auto drop-shadow-sm"
         role="img"
-        aria-label="فیگور بازی هنگ‌من"
+        aria-label={tr("فیگور بازی هنگ‌من", "Hangman figure")}
       >
         {/* ============ دار ============ */}
         <HangmanGallows />

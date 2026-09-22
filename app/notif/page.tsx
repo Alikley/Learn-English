@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import Link from "next/link";
 import { ArrowLeft, Trash2, ChevronDown, ChevronUp } from "lucide-react";
@@ -6,6 +7,7 @@ import { useNotifications } from "@/app/context/NotificationContext";
 import { useState } from "react";
 
 export default function NotificationsPage() {
+  const { tr } = useLanguage();
   const { notifications, unreadCount, markAsRead, deleteNotification } =
     useNotifications();
 
@@ -28,17 +30,17 @@ export default function NotificationsPage() {
           <Link href="/" className="p-2 rounded-full hover:bg-slate-100">
             <ArrowLeft size={24} className="text-slate-600" />
           </Link>
-          <h1 className="text-2xl font-bold text-slate-800">اعلان‌ها</h1>
+          <h1 className="text-2xl font-bold text-slate-800">{tr("اعلان‌ها", "Notifications")}</h1>
         </div>
         <span className="text-sm text-slate-500">
-          {unreadCount} عدد خوانده نشده
+          {unreadCount} {tr("عدد خوانده نشده", "unread")}
         </span>
       </div>
 
       <div className="space-y-3">
         {notifications.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-xl shadow-sm border border-slate-100">
-            <p className="text-slate-500">هیچ پیامی وجود ندارد.</p>
+            <p className="text-slate-500">{tr("هیچ پیامی وجود ندارد.", "No messages.")}</p>
           </div>
         ) : (
           notifications.map((notif) => (
@@ -59,7 +61,7 @@ export default function NotificationsPage() {
                     </h3>
                     {!notif.isRead && (
                       <span className="bg-blue-500 text-white text-[10px] px-2 py-0.5 rounded-full">
-                        جدید
+                        {tr("جدید", "New")}
                       </span>
                     )}
                   </div>
@@ -86,7 +88,7 @@ export default function NotificationsPage() {
                       className="flex items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg"
                     >
                       <Trash2 size={14} />
-                      <span>حذف پیام</span>
+                      <span>{tr("حذف پیام", "Delete Message")}</span>
                     </button>
                   </div>
                 </div>

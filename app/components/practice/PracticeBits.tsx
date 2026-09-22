@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { Star } from "lucide-react";
 import { motion } from "motion/react";
@@ -38,6 +39,7 @@ export function ScoreRing({
   score: number;
   size?: number;
 }) {
+  const { tr } = useLanguage();
   const stroke = 10;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -79,7 +81,7 @@ export function ScoreRing({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-black text-slate-800">{score}</span>
-        <span className="text-[10px] text-slate-400 font-bold">از ۱۰۰</span>
+        <span className="text-[10px] text-slate-400 font-bold">{tr("از ۱۰۰", "out of 100")}</span>
       </div>
     </div>
   );
@@ -95,14 +97,15 @@ export function ProgressBar({
   total: number;
   color?: string;
 }) {
+  const { tr } = useLanguage();
   const percent = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <div className="w-full">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs font-bold text-slate-500">
-          {value} از {total}
+          {value} {tr("از", "of")} {total}
         </span>
-        <span className="text-xs font-bold text-slate-400">{percent}٪</span>
+        <span className="text-xs font-bold text-slate-400">{percent}{tr("٪", "%")}</span>
       </div>
       <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
         <motion.div

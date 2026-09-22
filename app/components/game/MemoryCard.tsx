@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { HelpCircle, Check } from "lucide-react";
@@ -35,6 +36,7 @@ export default function MemoryCard({
   index: number;
   onClick: () => void;
 }) {
+  const { tr } = useLanguage();
   const faceUp = card.state !== "down";
   const matched = card.state === "matched";
   const clickable = !faceUp && !matched;
@@ -60,7 +62,7 @@ export default function MemoryCard({
       type="button"
       onClick={clickable ? onClick : undefined}
       disabled={!clickable}
-      aria-label={faceUp ? card.text : "کارت بسته"}
+      aria-label={faceUp ? card.text : tr("کارت بسته", "Closed Card")}
       className="relative aspect-[3/4] w-full select-none focus:outline-none"
       style={{ perspective: 900 }}
       initial={{ opacity: 0, scale: 0.8 }}

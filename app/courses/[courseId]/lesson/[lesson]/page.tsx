@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useParams, useRouter } from "next/navigation";
@@ -26,6 +27,7 @@ type LegacyContent = {
 };
 
 export default function LessonPage() {
+  const { tr, dir } = useLanguage();
   const { courseId, lesson: lessonSlug } = useParams<{
     courseId: string;
     lesson: string;
@@ -129,14 +131,14 @@ export default function LessonPage() {
     return (
       <div
         className="flex flex-col items-center justify-center min-h-[60vh] gap-3"
-        dir="rtl"
+        dir={dir}
       >
-        <p className="text-slate-500">درس یافت نشد</p>
+        <p className="text-slate-500">{tr("درس یافت نشد", "Lesson not found")}</p>
         <button
           onClick={() => router.back()}
           className="text-blue-600 text-sm"
         >
-          بازگشت
+          {tr("بازگشت", "Back")}
         </button>
       </div>
     );
@@ -151,7 +153,7 @@ export default function LessonPage() {
     return (
       <div
         className={`relative w-full min-h-full overflow-hidden ${theme.pageBg}`}
-        dir="rtl"
+        dir={dir}
       >
         {/* ابرهای نرم — هماهنگ با صفحه دوره */}
         <div
@@ -192,14 +194,14 @@ export default function LessonPage() {
   const steps =
     parsedContent?.examples && parsedContent.examples.length > 0
       ? [
-          "آموزش",
-          ...parsedContent.examples.map((_, i) => `مثال ${i + 1}`),
-          "تمرین",
+          tr("آموزش", "Tutorial"),
+          ...parsedContent.examples.map((_, i) => tr(`مثال ${i + 1}`, `Example ${i + 1}`)),
+          tr("تمرین", "Practice"),
         ]
-      : ["آموزش", "تمرین"];
+      : [tr("آموزش", "Tutorial"), tr("تمرین", "Practice")];
 
   return (
-    <div className="min-h-screen bg-[#fbfbfb]" dir="rtl">
+    <div className="min-h-screen bg-[#fbfbfb]" dir={dir}>
       <LessonHeader
         title={lesson.title}
         subtitle={courseTitle}
@@ -212,16 +214,16 @@ export default function LessonPage() {
 
         {step === 0 && (
           <ExampleCard
-            title="آموزش"
+            title={tr("آموزش", "Tutorial")}
             text={
               parsedContent?.rule ||
               parsedContent?.title ||
-              "محتوای این درس در حال آماده‌سازی است."
+              tr("محتوای این درس در حال آماده‌سازی است.", "The content of this lesson is being prepared.")
             }
             explanation={
               parsedContent?.explanation ||
               (parsedContent?.rule
-                ? `قانون: ${parsedContent.rule}`
+                ? tr(`قانون: ${parsedContent.rule}`, `Rule: ${parsedContent.rule}`)
                 : undefined)
             }
           />
@@ -233,21 +235,21 @@ export default function LessonPage() {
             return (
               <ExampleCard
                 key={idx}
-                title={`مثال ${idx + 1}`}
+                title={tr(`مثال ${idx + 1}`, `Example ${idx + 1}`)}
                 text={example}
-                explanation="این مثال را به دقت مطالعه کنید"
+                explanation={tr("این مثال را به دقت مطالعه کنید", "Read this example carefully")}
               />
             );
           })}
 
         {step === steps.length - 1 && (
           <ExampleCard
-            title="تمرین"
+            title={tr("تمرین", "Practice")}
             text={
               parsedContent?.practice ||
-              "سعی کنید جملات خودتان بسازید و از قواعد استفاده کنید."
+              tr("سعی کنید جملات خودتان بسازید و از قواعد استفاده کنید.", "Try to build your own sentences using the rules.")
             }
-            explanation="تمرین بیشتر = یادگیری بهتر"
+            explanation={tr("تمرین بیشتر = یادگیری بهتر", "More practice = better learning")}
           />
         )}
 
@@ -255,13 +257,13 @@ export default function LessonPage() {
           {step < steps.length - 1 ? (
             <ContinueButton
               onClick={() => setStep((s) => s + 1)}
-              label="ادامه درس"
+              label={tr("ادامه درس", "Continue Lesson")}
             />
           ) : (
             <ContinueButton
               loading={completing}
               onClick={() => void handleComplete()}
-              label={completing ? "در حال ثبت..." : "تکمیل درس"}
+              label={completing ? tr("در حال ثبت...", "Saving...") : tr("تکمیل درس", "Finish Lesson")}
             />
           )}
         </div>

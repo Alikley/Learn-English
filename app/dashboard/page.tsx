@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useDashboard } from "@/app/hook/useDashboard";
@@ -9,13 +10,14 @@ import PerformanceBox from "../components/dashboarde/PerformanceBox";
 /* ========== صفحه اصلی داشبورد ========== */
 
 export default function DashboardPage() {
+  const { tr, dir } = useLanguage();
   const { data, loading, saving, updateProfile } = useDashboard();
   const { user: authUser } = useAuth();
 
   if (loading || !data) return <PageLoading />;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto" dir={dir}>
       {/* عنوان صفحه */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -34,9 +36,9 @@ export default function DashboardPage() {
           </svg>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800">داشبورد</h1>
+          <h1 className="text-xl font-bold text-slate-800">{tr("داشبورد", "Dashboard")}</h1>
           <p className="text-sm text-slate-500">
-            خلاصه عملکرد و تنظیمات حساب کاربری
+            {tr("خلاصه عملکرد و تنظیمات حساب کاربری", "Performance summary and account settings")}
           </p>
         </div>
       </div>

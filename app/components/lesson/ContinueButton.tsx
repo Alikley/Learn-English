@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { ChevronLeft } from "lucide-react";
 
@@ -11,8 +12,9 @@ type Props = {
 export default function ContinueButton({
   loading,
   onClick,
-  label = "ادامه",
+  label,
 }: Props) {
+  const { tr } = useLanguage();
   return (
     <button
       onClick={onClick}
@@ -31,7 +33,7 @@ export default function ContinueButton({
         <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
       ) : (
         <>
-          {label}
+          {label ?? tr("ادامه", "Continue")}
           <ChevronLeft size={18} />
         </>
       )}

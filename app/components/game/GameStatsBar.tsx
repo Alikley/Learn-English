@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { Trophy, CheckCircle2, Gamepad2 } from "lucide-react";
@@ -46,28 +47,29 @@ function StatChip({
 // ========================================
 export default function GameStatsBar({
   stats,
-  winLabel = "کلمات برده",
+  winLabel,
 }: {
   stats: GameStats | null;
   winLabel?: string;
 }) {
+  const { tr } = useLanguage();
   return (
     <div className="grid grid-cols-3 gap-2 mt-4 mb-5">
       <StatChip
         icon={Trophy}
-        label="بهترین امتیاز"
+        label={tr("بهترین امتیاز", "Best Score")}
         value={stats?.bestScore ?? 0}
         classes="bg-amber-50 border-amber-100 text-amber-600"
       />
       <StatChip
         icon={CheckCircle2}
-        label={winLabel}
+        label={winLabel ?? tr("کلمات برده", "Words Won")}
         value={stats?.totalWins ?? 0}
         classes="bg-emerald-50 border-emerald-100 text-emerald-600"
       />
       <StatChip
         icon={Gamepad2}
-        label="دفعات بازی"
+        label={tr("دفعات بازی", "Games Played")}
         value={stats?.sessionsPlayed ?? 0}
         classes="bg-blue-50 border-blue-100 text-blue-600"
       />

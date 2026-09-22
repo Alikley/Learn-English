@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { ArrowLeft, Zap, PartyPopper, CheckCircle2 } from "lucide-react";
@@ -26,6 +27,7 @@ export default function MemoryRoundOverlay({
   // امتیاز کل دور تا پایان این راند — v1.0.0.8
   score: number;
 }) {
+  const { tr, lang } = useLanguage();
   return (
     <motion.div
       className="absolute inset-0 z-30 bg-white/90 backdrop-blur-sm flex items-center justify-center p-4"
@@ -41,7 +43,7 @@ export default function MemoryRoundOverlay({
           className="absolute top-4 right-4 inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 rounded-full text-amber-600 text-xs font-bold"
         >
           <Zap className="h-3.5 w-3.5" />
-          راند بی‌نقص! +{MEMORY_CONFIG.perfectRoundBonus}
+          {tr("راند بی‌نقص!", "Perfect round!")} +{MEMORY_CONFIG.perfectRoundBonus}
         </motion.div>
       )}
 
@@ -66,12 +68,21 @@ export default function MemoryRoundOverlay({
         </motion.div>
 
         <h3 className="text-lg font-bold text-slate-800">
-          راند {info.round} کامل شد!
+          {tr("راند", "Round")} {info.round} {tr("کامل شد!", "complete!")}
         </h3>
 
         <p className="text-sm text-slate-500">
-          هر <b className="text-emerald-600">{matchedPairs} جفت</b> را پیدا کردی
-          با <b className="text-red-500">{info.mistakes} اشتباه</b>
+          {lang === "en" ? (
+            <>
+              You found <b className="text-emerald-600">{matchedPairs} pairs</b> with{" "}
+              <b className="text-red-500">{info.mistakes} mistakes</b>
+            </>
+          ) : (
+            <>
+              هر <b className="text-emerald-600">{matchedPairs} جفت</b> را پیدا کردی
+              با <b className="text-red-500">{info.mistakes} اشتباه</b>
+            </>
+          )}
         </p>
 
         {/* v1.0.0.8 — امتیاز کل دور روی همین کارت */}
@@ -81,7 +92,7 @@ export default function MemoryRoundOverlay({
           transition={{ delay: 0.35 }}
           className="text-sm text-slate-500"
         >
-          امتیاز کل:{" "}
+          {tr("امتیاز کل:", "Total Score:")}{" "}
           <motion.b
             initial={{ scale: 1.4 }}
             animate={{ scale: 1 }}
@@ -99,7 +110,7 @@ export default function MemoryRoundOverlay({
           className="w-full mt-2 px-6 py-3 bg-linear-to-l from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-medium text-sm transition-all shadow-md flex items-center justify-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          {hasNext ? "راند بعدی" : "دیدن نتیجه نهایی"}
+          {hasNext ? tr("راند بعدی", "Next Round") : tr("دیدن نتیجه نهایی", "See Final Result")}
         </motion.button>
       </motion.div>
     </motion.div>

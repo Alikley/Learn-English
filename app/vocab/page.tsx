@@ -1,4 +1,6 @@
 "use client";
+import { localizeMessage } from "@/lib/message-i18n";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useState } from "react";
@@ -16,6 +18,7 @@ import { BoxCard, EmptyBoxesHint } from "@/app/components/vocabulary/BoxCard";
 // ========================================
 
 export default function VocabPage() {
+  const { tr, dir } = useLanguage();
   const { boxes, loading, authed, error, refetch, addBox, deleteBox, addWord, removeWord } =
     useVocabularyBoxes();
 
@@ -40,16 +43,16 @@ export default function VocabPage() {
   }
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto" dir={dir}>
       {/* هدر + افزودن جعبه */}
       <div className="flex items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-slate-800">
-            لغت‌نامه
+            {tr("لغت‌نامه", "Vocabulary")}
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            روی هر کلمه انگلیسی سایت هاور کن تا ترجمه و «جعبه لغت» باز شود —
-            کلمه‌های اینجا جمع می‌شوند
+            {tr(`روی هر کلمه انگلیسی سایت هاور کن تا ترجمه و «جعبه لغت» باز شود —
+            کلمه‌های اینجا جمع می‌شوند`, "Hover any English word on the site to open its translation and “Word Box” — words you add are collected here")}
           </p>
         </div>
         <button
@@ -60,7 +63,7 @@ export default function VocabPage() {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2.5 text-sm font-bold shadow-sm transition-colors shrink-0"
         >
           <FolderPlus className="w-4 h-4" />
-          جعبه جدید
+          {tr("جعبه جدید", "New Box")}
         </button>
       </div>
 
@@ -81,7 +84,7 @@ export default function VocabPage() {
                 if (e.key === "Enter") void handleCreateBox();
                 if (e.key === "Escape") setShowDialog(false);
               }}
-              placeholder="نام جعبه — مثلاً: کلمات سخت"
+              placeholder={tr("نام جعبه — مثلاً: کلمات سخت", "Box name — e.g. Hard Words")}
               disabled={boxBusy}
               className="flex-1 px-4 py-2.5 text-sm border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
             />
@@ -93,18 +96,18 @@ export default function VocabPage() {
               {boxBusy ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : null}
-              بساز
+              {tr("بساز", "Create")}
             </button>
             <button
               onClick={() => setShowDialog(false)}
               className="p-2.5 rounded-xl hover:bg-slate-100 text-slate-400"
-              title="بی‌خیال"
+              title={tr("بی‌خیال", "Cancel")}
             >
               <X className="w-4 h-4" />
             </button>
           </div>
           {boxError ? (
-            <p className="text-[11px] text-red-500 px-1">{boxError}</p>
+            <p className="text-[11px] text-red-500 px-1">{localizeMessage(boxError)}</p>
           ) : null}
         </motion.div>
       ) : null}
@@ -116,26 +119,26 @@ export default function VocabPage() {
         <div className="flex flex-col items-center gap-3 py-16 text-slate-400">
           <LogIn className="w-8 h-8" />
           <p className="text-sm font-bold">
-            برای دیدن لغت‌نامه، وارد شوید
+            {tr("برای دیدن لغت‌نامه، وارد شوید", "Log in to view your vocabulary")}
           </p>
           <a
             href="/login"
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 py-2 text-sm font-bold transition-colors"
           >
-            ورود
+            {tr("ورود", "Log In")}
           </a>
         </div>
       ) : error && boxes.length === 0 ? (
         <div className="bg-amber-50 border border-amber-100 rounded-2xl px-5 py-6 flex flex-col items-center gap-3 text-center">
           <AlertTriangle className="w-7 h-7 text-amber-500" />
           <p className="text-sm font-bold text-amber-700 leading-7 max-w-lg">
-            {error}
+            {localizeMessage(error)}
           </p>
           <button
             onClick={() => void refetch()}
             className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-4 py-2 text-xs font-bold transition-colors"
           >
-            تلاش دوباره
+            {tr("تلاش دوباره", "Try Again")}
           </button>
         </div>
       ) : (

@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { Smile, Meh, Frown, Play } from "lucide-react";
@@ -34,12 +35,13 @@ export default function LevelSelect({
   // متن زیر عنوان (پیش‌فرض: تعداد کلمات هر دور هنگ‌من)
   subtitle?: string;
 }) {
+  const { tr } = useLanguage();
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-7">
       <div className="text-center mb-5">
-        <h2 className="text-lg font-bold text-slate-800">سطح بازی را انتخاب کن</h2>
+        <h2 className="text-lg font-bold text-slate-800">{tr("سطح بازی را انتخاب کن", "Choose a game level")}</h2>
         <p className="text-sm text-slate-500 mt-1">
-          {subtitle ?? `هر دور ${GAME_CONFIG.wordsPerSession} کلمه از سطح انتخابی دارد`}
+          {subtitle ?? tr(`هر دور ${GAME_CONFIG.wordsPerSession} کلمه از سطح انتخابی دارد`, `Each round has ${GAME_CONFIG.wordsPerSession} words from the selected level`)}
         </p>
       </div>
 
@@ -56,7 +58,7 @@ export default function LevelSelect({
               transition={{ delay: i * 0.08 }}
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className={`w-full flex items-center gap-4 rounded-2xl border-2 p-4 text-right transition-colors ${lvl.theme}`}
+              className={`w-full flex items-center gap-4 rounded-2xl border-2 p-4 text-start transition-colors ${lvl.theme}`}
             >
               {/* آیکون سطح */}
               <div
@@ -69,19 +71,19 @@ export default function LevelSelect({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-extrabold text-slate-800 text-base">
-                    سطح {lvl.fa}
+                    {tr("سطح", "Level")} {tr(lvl.fa, lvl.en)}
                   </span>
                   {/* بج CEFR — مبنای سطح‌بندی کلمات */}
                   <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-800 text-white font-bold tracking-wide">
                     {lvl.cefrLabel}
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1 leading-5">{lvl.desc}</p>
+                <p className="text-xs text-slate-500 mt-1 leading-5">{tr(lvl.desc, lvl.descEn)}</p>
               </div>
 
               {/* دکمه شروع */}
               <div className="shrink-0 w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center">
-                <Play className="w-4 h-4 text-slate-600 rotate-180" />
+                <Play className="w-4 h-4 text-slate-600 rtl:rotate-180" />
               </div>
             </motion.button>
           );

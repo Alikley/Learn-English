@@ -55,7 +55,7 @@ export default function SpeedQuizOptions({
             whileTap={feedback ? undefined : { scale: 0.97 }}
             className={`
               relative flex items-center gap-2.5 rounded-2xl border-2 p-3 md:p-3.5
-              font-bold transition-colors text-right
+              font-bold transition-colors text-start
               ${
                 feedback
                   ? isCorrectOption

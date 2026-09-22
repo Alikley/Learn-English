@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useEffect, useState } from "react";
 import { BookX } from "lucide-react";
@@ -24,6 +25,7 @@ export default function LessonRenderer({
   onComplete,
   completing,
 }: Props) {
+  const { tr, dir } = useLanguage();
   const [content, setContent] = useState<LessonContent | null>(null);
   const [missing, setMissing] = useState(false);
 
@@ -43,11 +45,11 @@ export default function LessonRenderer({
     return (
       <div
         className="bg-white border border-slate-100 rounded-2xl p-8 text-center space-y-3"
-        dir="rtl"
+        dir={dir}
       >
         <BookX size={36} className="mx-auto text-slate-300" />
         <p className="text-slate-500 text-sm font-medium">
-          محتوای این درس پیدا نشد
+          {tr("محتوای این درس پیدا نشد", "Lesson content not found")}
         </p>
       </div>
     );

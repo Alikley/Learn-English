@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -37,6 +38,7 @@ const MIN_WORDS = 30;
 const MAX_WORDS = 200;
 
 export default function WritingEditorPage() {
+  const { tr, dir } = useLanguage();
   const { topicId } = useParams<{ topicId: string }>();
   const router = useRouter();
 
@@ -142,7 +144,7 @@ export default function WritingEditorPage() {
     const words = text.split(/\s+/).filter(Boolean);
     if (words.length < MIN_WORDS) {
       setApiError(
-        `حداقل ${MIN_WORDS} کلمه بنویس — الان ${words.length} کلمه داری`,
+        tr(`حداقل ${MIN_WORDS} کلمه بنویس — الان ${words.length} کلمه داری`, `Write at least ${MIN_WORDS} words — you have ${words.length} now`),
       );
       return;
     }
@@ -161,7 +163,7 @@ export default function WritingEditorPage() {
       if (!res.ok) {
         setApiError(
           (data as { error?: string }).error ??
-            "خطای نامشخص — دوباره تلاش کن",
+            tr("خطای نامشخص — دوباره تلاش کن", "Unknown error — try again"),
         );
         return;
       }
@@ -178,7 +180,7 @@ export default function WritingEditorPage() {
       saveProgress("writing", topic.id, stars, fb.overallScore);
       setBestStars((prev) => Math.max(prev, stars));
     } catch {
-      setApiError("ارتباط با سرور برقرار نشد — دوباره تلاش کن");
+      setApiError(tr("ارتباط با سرور برقرار نشد — دوباره تلاش کن", "Could not connect to the server — try again"));
     } finally {
       setSubmitting(false);
     }
@@ -197,12 +199,12 @@ export default function WritingEditorPage() {
   if (!topic) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <p className="text-slate-500">موضوع یافت نشد</p>
+        <p className="text-slate-500">{tr("موضوع یافت نشد", "Topic not found")}</p>
         <button
           onClick={() => router.push("/training/writing")}
           className="text-emerald-600 text-sm font-bold"
         >
-          بازگشت به لیست
+          {tr("بازگشت به لیست", "Back to List")}
         </button>
       </div>
     );
@@ -216,7 +218,7 @@ export default function WritingEditorPage() {
         : "text-slate-400";
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -279,7 +281,7 @@ export default function WritingEditorPage() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => exec("bold")}
             className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title="درشت"
+            title={tr("درشت", "Bold")}
           >
             <Bold className="w-4 h-4 text-slate-600" />
           </button>
@@ -287,7 +289,7 @@ export default function WritingEditorPage() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => exec("italic")}
             className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title="مورب"
+            title={tr("مورب", "Italic")}
           >
             <Italic className="w-4 h-4 text-slate-600" />
           </button>
@@ -295,7 +297,7 @@ export default function WritingEditorPage() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => exec("underline")}
             className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title="زیرخط"
+            title={tr("زیرخط", "Underline")}
           >
             <Underline className="w-4 h-4 text-slate-600" />
           </button>
@@ -304,7 +306,7 @@ export default function WritingEditorPage() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => exec("insertUnorderedList")}
             className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title="فهرست نقطه‌ای"
+            title={tr("فهرست نقطه‌ای", "Bullet List")}
           >
             <List className="w-4 h-4 text-slate-600" />
           </button>
@@ -312,7 +314,7 @@ export default function WritingEditorPage() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => exec("insertOrderedList")}
             className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title="فهرست شماره‌دار"
+            title={tr("فهرست شماره‌دار", "Numbered List")}
           >
             <ListOrdered className="w-4 h-4 text-slate-600" />
           </button>
@@ -320,7 +322,7 @@ export default function WritingEditorPage() {
             onMouseDown={(e) => e.preventDefault()}
             onClick={clearFormatting}
             className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title="پاک کردن قالب‌بندی"
+            title={tr("پاک کردن قالب‌بندی", "Clear Formatting")}
           >
             <Eraser className="w-4 h-4 text-slate-600" />
           </button>
@@ -374,12 +376,12 @@ export default function WritingEditorPage() {
             {submitting ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                در حال اصلاح متن... (تا یک دقیقه)
+                {tr("در حال اصلاح متن... (تا یک دقیقه)", "Correcting your text... (up to a minute)")}
               </>
             ) : (
               <>
                 <Send className="h-4 w-4" />
-                ارسال برای اصلاح
+                {tr("ارسال برای اصلاح", "Submit for Correction")}
               </>
             )}
           </button>
@@ -389,7 +391,7 @@ export default function WritingEditorPage() {
             className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
           >
             <RotateCcw className="h-4 w-4" />
-            نوشتن دوباره
+            {tr("نوشتن دوباره", "Write Again")}
           </button>
         )}
       </div>
@@ -406,12 +408,12 @@ export default function WritingEditorPage() {
             <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-6">
               <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10">
                 <ScoreRing score={feedback.overallScore} />
-                <div className="flex-1 max-w-sm text-center md:text-right">
+                <div className="flex-1 max-w-sm text-center md:text-start">
                   <p className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2 justify-center md:justify-start">
                     <Sparkles className="w-4 h-4 text-emerald-500" />
                     {feedback.onTopic
-                      ? "متن با موضوع هم‌خوانی دارد"
-                      : "متن کمی از موضوع فاصله دارد"}
+                      ? tr("متن با موضوع هم‌خوانی دارد", "The text matches the topic")
+                      : tr("متن کمی از موضوع فاصله دارد", "The text drifts a bit from the topic")}
                   </p>
                   <p className="text-xs text-slate-500 leading-relaxed mb-3">
                     {feedback.summary}
@@ -445,7 +447,7 @@ export default function WritingEditorPage() {
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
                   <XCircle className="w-4 h-4 text-red-500" />
-                  غلط‌های املایی ({feedback.spellingErrors.length})
+                  {tr("غلط‌های املایی", "Spelling Mistakes")} ({feedback.spellingErrors.length})
                 </h3>
                 <div className="space-y-2">
                   {feedback.spellingErrors.map((e, i) => (
@@ -476,7 +478,7 @@ export default function WritingEditorPage() {
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
                   <XCircle className="w-4 h-4 text-amber-500" />
-                  نکته‌های گرامری ({feedback.grammarErrors.length})
+                  {tr("نکته‌های گرامری", "Grammar Notes")} ({feedback.grammarErrors.length})
                 </h3>
                 <div className="space-y-2">
                   {feedback.grammarErrors.map((e, i) => (
@@ -507,7 +509,7 @@ export default function WritingEditorPage() {
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
                   <ThumbsUp className="w-4 h-4 text-emerald-500" />
-                  نقاط قوت
+                  {tr("نقاط قوت", "Strengths")}
                 </h3>
                 <ul className="space-y-2">
                   {feedback.goodPoints.map((p, i) => (
@@ -528,7 +530,7 @@ export default function WritingEditorPage() {
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
                 <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
                   <Wand2 className="w-4 h-4 text-blue-500" />
-                  پیشنهادهای بهتر شدن
+                  {tr("پیشنهادهای بهتر شدن", "Suggestions for Improvement")}
                 </h3>
                 <ul className="space-y-2">
                   {feedback.suggestions.map((s, i) => (
@@ -552,7 +554,7 @@ export default function WritingEditorPage() {
                 onClick={() => router.push("/training/writing")}
                 className="px-6 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-bold hover:bg-emerald-100 transition-colors"
               >
-                بازگشت به لیست موضوعات
+                {tr("بازگشت به لیست موضوعات", "Back to Topics List")}
               </button>
             </div>
           </motion.div>
@@ -562,7 +564,7 @@ export default function WritingEditorPage() {
       {/* پانویس */}
       <p className="mt-6 text-center text-[10px] text-slate-300 flex items-center justify-center gap-1">
         <PenLine className="w-3 h-3" />
-        سقف متن {MAX_WORDS} کلمه است — حداقل {MIN_WORDS} کلمه برای ارسال لازم است
+        {tr(`سقف متن ${MAX_WORDS} کلمه است — حداقل ${MIN_WORDS} کلمه برای ارسال لازم است`, `Text limit is ${MAX_WORDS} words — at least ${MIN_WORDS} words are needed to submit`)}
       </p>
     </div>
   );

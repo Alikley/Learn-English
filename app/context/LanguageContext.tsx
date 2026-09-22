@@ -13,7 +13,7 @@ import {
 // - فارسی (پیش‌فرض، راست‌به‌چپ) / English (چپ‌به‌راست)
 // - lang و dir روی <html> تنظیم می‌شود
 // - انتخاب کاربر در localStorage (flex-lang) ذخیره می‌شود
-// - صفحهٔ اصلی به این زبان واکنش نشان می‌دهد (MainBox)
+// - کل سایت با tr() به زبان انتخابی واکنش نشان می‌دهد (v1.0.2.3 — گام ۳)
 // ========================================
 
 export type SiteLang = "fa" | "en";
@@ -24,6 +24,10 @@ type LanguageContextValue = {
   mounted: boolean;
   toggle: () => void;
   setLang: (l: SiteLang) => void;
+  /** ترجمهٔ رشته بر اساس زبان فعلی سایت — tr("داشبورد", "Dashboard") */
+  tr: (fa: string, en: string) => string;
+  /** جهت سند بر اساس زبان فعلی — "rtl" / "ltr" (قبل از مانت: rtl) */
+  dir: "rtl" | "ltr";
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -65,8 +69,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLang(document.documentElement.lang === "en" ? "fa" : "en");
   }, [setLang]);
 
+  // v1.0.2.3 — گام ۳: ترجمهٔ رشته بر اساس زبان فعلی
+  // قبل از مانت lang = "fa" است → رندر سرور فارسی → بدون ناهمخوانی hydration
+  const tr = useCallback(
+    (fa: string, en: string) => (lang === "en" ? en : fa),
+    [lang]
+  );
+
+  const dir: "rtl" | "ltr" = lang === "en" ? "ltr" : "rtl";
+
   return (
-    <LanguageContext.Provider value={{ lang, mounted, toggle, setLang }}>
+    <LanguageContext.Provider value={{ lang, mounted, toggle, setLang, tr, dir }}>
       {children}
     </LanguageContext.Provider>
   );

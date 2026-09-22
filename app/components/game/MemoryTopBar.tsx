@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { Zap, Heart, Flame } from "lucide-react";
@@ -31,11 +32,13 @@ export default function MemoryTopBar({
   combo: number;
   score: number;
 }) {
+  const { tr } = useLanguage();
+
   return (
     <div className="flex items-center justify-between flex-wrap gap-2 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
       <div className="flex items-center gap-2.5">
         <span className="text-sm font-bold text-slate-700">
-          راند {Math.min(round + 1, totalRounds)} از {totalRounds}
+          {tr("راند", "Round")} {Math.min(round + 1, totalRounds)} {tr("از", "of")} {totalRounds}
         </span>
         {/* نقاط پیشرفت جفت‌ها */}
         {totalPairs > 0 && (
@@ -96,7 +99,7 @@ export default function MemoryTopBar({
           >
             <Flame className="h-3.5 w-3.5 text-orange-500" />
             <span className="text-xs font-bold text-orange-600">
-              کمبو ×{combo}
+              {tr("کمبو", "Combo")} ×{combo}
             </span>
           </motion.div>
         )}

@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { ArrowLeft, Zap, PartyPopper, Ghost } from "lucide-react";
@@ -29,6 +30,7 @@ export default function WordResultOverlay({
   // امتیاز کل دور تا این لحظه — چه برد چه باخت نمایش داده می‌شود
   score: number;
 }) {
+  const { tr } = useLanguage();
   return (
     <motion.div
       className="absolute inset-0 z-30 bg-white/90 backdrop-blur-sm flex items-center justify-center p-4"
@@ -57,7 +59,7 @@ export default function WordResultOverlay({
           )}
         </motion.div>
         <h3 className="text-lg font-bold text-slate-800">
-          {won ? "آفرین! کلمه رو نجات دادی" : "آخ! هنگ‌من کامل شد"}
+          {won ? tr("آفرین! کلمه رو نجات دادی", "Well done! You saved the word") : tr("آخ! هنگ‌من کامل شد", "Oh no! The hangman is complete")}
         </h3>
         <p
           dir="ltr"
@@ -74,7 +76,7 @@ export default function WordResultOverlay({
             className="text-amber-600 font-bold text-sm flex items-center justify-center gap-1"
           >
             <Zap className="h-4 w-4" />
-            +{bonus} امتیاز پاداش
+            +{bonus} {tr("امتیاز پاداش", "bonus points")}
           </motion.p>
         )}
 
@@ -85,7 +87,7 @@ export default function WordResultOverlay({
           transition={{ delay: won ? 0.42 : 0.3 }}
           className="text-sm text-slate-500 pt-0.5"
         >
-          امتیاز کل:{" "}
+          {tr("امتیاز کل:", "Total Score:")}{" "}
           <motion.b
             initial={{ scale: 1.4 }}
             animate={{ scale: 1 }}
@@ -102,7 +104,7 @@ export default function WordResultOverlay({
           className="w-full mt-2 px-6 py-3 bg-linear-to-l from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-medium text-sm transition-all shadow-md flex items-center justify-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          {hasNext ? "کلمه بعدی" : "دیدن نتیجه نهایی"}
+          {hasNext ? tr("کلمه بعدی", "Next Word") : tr("دیدن نتیجه نهایی", "See Final Result")}
         </motion.button>
       </motion.div>
     </motion.div>

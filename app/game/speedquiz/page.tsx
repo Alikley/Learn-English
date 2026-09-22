@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
@@ -30,6 +31,7 @@ import {
 // ========================================
 
 export default function SpeedQuizPage() {
+  const { tr, dir } = useLanguage();
   const { stats, submitting, isNewRecord, submitSessionStart, submitAnswerResult, submitSession } =
     useSpeedQuizStats();
 
@@ -65,11 +67,11 @@ export default function SpeedQuizPage() {
     handleBackToLevels,
   } = game;
 
-  const levelFa = getGameLevel(level).fa;
+  const levelFa = tr(getGameLevel(level).fa, getGameLevel(level).en);
   const currentQuestion = questions[qIndex] ?? null;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
@@ -78,7 +80,7 @@ export default function SpeedQuizPage() {
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">Quiz Hot</h1>
           <p className="text-sm text-slate-500">
-            سریع جواب بده — هر ثانیه که می‌گذره، امتیاز کمتره!
+            {tr("سریع جواب بده — هر ثانیه که می‌گذره، امتیاز کمتره!", "Answer fast — every second that passes is worth fewer points!")}
           </p>
         </div>
         {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
@@ -88,7 +90,7 @@ export default function SpeedQuizPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            بازگشت
+            {tr("بازگشت", "Back")}
           </Link>
         ) : (
           <button
@@ -96,7 +98,7 @@ export default function SpeedQuizPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            بازی‌ها
+            {tr("بازی‌ها", "Games")}
           </button>
         )}
       </div>
@@ -104,7 +106,7 @@ export default function SpeedQuizPage() {
       {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
       {/* v1.0.0.7 — گام ۲: مثل دو بازی دیگر، نوار آمار همیشه نمایان است؛
           اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
-      <GameStatsBar stats={stats} winLabel="پاسخ‌های درست" />
+      <GameStatsBar stats={stats} winLabel={tr("پاسخ‌های درست", "Correct Answers")} />
 
       {/* ================= انتخاب سطح + برترین امتیازها (v1.0.2.۲ — گام ۲) ================= */}
       {phase === "levelSelect" && (
@@ -112,7 +114,7 @@ export default function SpeedQuizPage() {
           <LevelSelect
             onSelect={startGame}
             levels={SPEEDQUIZ_LEVELS}
-            subtitle={`هر دور ${SPEEDQUIZ_CONFIG.questionsPerSession} سوال چهارگزینه‌ای — کلمه و جمله، هر کدام ${SPEEDQUIZ_CONFIG.secondsPerQuestion} ثانیه`}
+            subtitle={tr(`هر دور ${SPEEDQUIZ_CONFIG.questionsPerSession} سوال چهارگزینه‌ای — کلمه و جمله، هر کدام ${SPEEDQUIZ_CONFIG.secondsPerQuestion} ثانیه`, `Each round has ${SPEEDQUIZ_CONFIG.questionsPerSession} multiple-choice questions — words and sentences, ${SPEEDQUIZ_CONFIG.secondsPerQuestion} seconds each`)}
           />
           <LeaderboardBox game="speedquiz" />
         </div>
@@ -153,8 +155,8 @@ export default function SpeedQuizPage() {
               <p className="text-sm text-slate-500">
                 {/* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
                 {hideLevel
-                  ? "در حال آماده‌سازی سوال‌های مرحله بعدی..."
-                  : `در حال آماده‌سازی سوال‌های سطح ${levelFa}...`}
+                  ? tr("در حال آماده‌سازی سوال‌های مرحله بعدی...", "Preparing questions for the next stage...")
+                  : tr(`در حال آماده‌سازی سوال‌های سطح ${levelFa}...`, `Preparing questions for level ${levelFa}...`)}
               </p>
             </div>
           )}
@@ -163,14 +165,14 @@ export default function SpeedQuizPage() {
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <XCircle className="h-14 w-14 text-red-200" />
               <p className="text-slate-500 text-sm">
-                خطا در بارگذاری بازی. دوباره تلاش کنید.
+                {tr("خطا در بارگذاری بازی. دوباره تلاش کنید.", "Error loading the game. Please try again.")}
               </p>
               <button
                 onClick={handleRestart}
                 className="px-5 py-2 bg-amber-50 text-amber-600 rounded-xl text-sm font-medium hover:bg-amber-100 transition-colors flex items-center gap-2"
               >
                 <RotateCcw className="h-4 w-4" />
-                تلاش مجدد
+                {tr("تلاش مجدد", "Try Again")}
               </button>
             </div>
           )}
@@ -208,8 +210,8 @@ export default function SpeedQuizPage() {
               losses={wrongCount}
               stats={stats}
               isNewRecord={isNewRecord}
-              winLabel="درست"
-              lossLabel="غلط"
+              winLabel={tr("درست", "Correct")}
+              lossLabel={tr("غلط", "Wrong")}
               onRestart={handleRestart}
               onBack={handleBackToLevels}
               onNext={handleNextLevel}
@@ -222,15 +224,15 @@ export default function SpeedQuizPage() {
       {phase !== "levelSelect" && (
         <div className="mt-4 flex items-center justify-center gap-3 text-[11px] text-slate-400 flex-wrap">
           {/* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
-          {!hideLevel && <span>سطح: {levelFa}</span>}
+          {!hideLevel && <span>{tr("سطح:", "Level:")} {levelFa}</span>}
           {!hideLevel && <span className="text-slate-200">|</span>}
-          <span>هر پاسخ درست: +{SPEEDQUIZ_CONFIG.basePoints}</span>
-          <span>هر ثانیه باقی‌مانده: +{SPEEDQUIZ_CONFIG.timeBonusPerSecond}</span>
-          <span>کمبو: +{SPEEDQUIZ_CONFIG.comboStepBonus} بیشتر</span>
-          <span>دور بی‌نقص: +{SPEEDQUIZ_CONFIG.perfectSessionBonus}</span>
+          <span>{tr("هر پاسخ درست:", "Each correct answer:")} +{SPEEDQUIZ_CONFIG.basePoints}</span>
+          <span>{tr("هر ثانیه باقی‌مانده:", "Each second left:")} +{SPEEDQUIZ_CONFIG.timeBonusPerSecond}</span>
+          <span>{tr("کمبو:", "Combo:")} +{SPEEDQUIZ_CONFIG.comboStepBonus} {tr("بیشتر", "extra")}</span>
+          <span>{tr("دور بی‌نقص:", "Perfect round:")} +{SPEEDQUIZ_CONFIG.perfectSessionBonus}</span>
           <span>
-            جان‌ها: {SPEEDQUIZ_CONFIG.lives} | هر بازی: {totalQuestions} سوال ×{" "}
-            {SPEEDQUIZ_CONFIG.secondsPerQuestion} ثانیه
+            {tr("جان‌ها:", "Lives:")} {SPEEDQUIZ_CONFIG.lives} | {tr("هر بازی:", "each game:")} {totalQuestions} {tr("سوال", "questions")} ×{" "}
+            {SPEEDQUIZ_CONFIG.secondsPerQuestion} {tr("ثانیه", "s")}
           </span>
         </div>
       )}

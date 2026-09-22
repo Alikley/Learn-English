@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
@@ -147,6 +148,7 @@ function StarsResult({ count }: { count: number }) {
 
 /* ========== صفحه اصلی ========== */
 export default function ListeningExercisePage() {
+  const { tr, dir } = useLanguage();
   const { episodeId } = useParams<{ episodeId: string }>();
   const router = useRouter();
 
@@ -270,12 +272,12 @@ export default function ListeningExercisePage() {
   if (!episode) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-        <p className="text-slate-500">قسمت یافت نشد</p>
+        <p className="text-slate-500">{tr("قسمت یافت نشد", "Episode not found")}</p>
         <button
           onClick={() => router.push("/training")}
           className="text-orange-600 text-sm"
         >
-          بازگشت
+          {tr("بازگشت", "Back")}
         </button>
       </div>
     );
@@ -287,7 +289,7 @@ export default function ListeningExercisePage() {
   const levelInfo = getListeningLevel(episode.level);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir={dir}>
       {/* هدر */}
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -325,8 +327,8 @@ export default function ListeningExercisePage() {
         <p className="text-sm text-amber-800 flex items-start gap-2">
           <Lightbulb className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
           <span>
-            ابتدا به فایل صوتی گوش بده. سپس کلمات جاخالی رو توی فرم‌ها بنویس.
-            برای راهنمایی روی آیکون لامپ کلیک کن.
+            {tr(`ابتدا به فایل صوتی گوش بده. سپس کلمات جاخالی رو توی فرم‌ها بنویس.
+            برای راهنمایی روی آیکون لامپ کلیک کن.`, "First listen to the audio. Then fill the blanks in the forms. Click the lamp icon for a hint.")}
           </span>
         </p>
       </div>
@@ -337,7 +339,7 @@ export default function ListeningExercisePage() {
           <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xs">
             📝
           </span>
-          متن تمرین
+          {tr("متن تمرین", "Practice Text")}
         </h2>
 
         <div className="text-sm md:text-base leading-[2.2] text-slate-700">
@@ -395,7 +397,7 @@ export default function ListeningExercisePage() {
                     <button
                       onClick={() => toggleHint(gapId)}
                       className="p-0.5 hover:bg-slate-100 rounded transition-colors"
-                      title="راهنما"
+                      title={tr("راهنما", "Guide")}
                     >
                       <Lightbulb
                         className={`h-3.5 w-3.5 ${hint ? "text-amber-500" : "text-slate-300"}`}
@@ -433,12 +435,12 @@ export default function ListeningExercisePage() {
             {submitting ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                در حال بررسی...
+                {tr("در حال بررسی...", "Checking...")}
               </>
             ) : (
               <>
                 <CheckCircle2 className="h-4 w-4" />
-                ثبت جواب‌ها
+                {tr("ثبت جواب‌ها", "Submit Answers")}
               </>
             )}
           </button>
@@ -448,7 +450,7 @@ export default function ListeningExercisePage() {
             className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-sm transition-all flex items-center gap-2"
           >
             <RotateCcw className="h-4 w-4" />
-            تلاش مجدد
+            {tr("تلاش مجدد", "Try Again")}
           </button>
         )}
       </div>
@@ -463,21 +465,21 @@ export default function ListeningExercisePage() {
             className="mt-8 bg-white rounded-2xl border border-slate-100 shadow-lg p-6 text-center"
           >
             <h3 className="text-lg font-bold text-slate-800 mb-4">
-              نتیجه تمرین
+              {tr("نتیجه تمرین", "Practice Result")}
             </h3>
 
             <StarsResult count={result.stars} />
 
             <div className="mt-4 flex items-center justify-center gap-6 text-sm">
               <div>
-                <span className="text-slate-500">پاسخ صحیح: </span>
+                <span className="text-slate-500">{tr("پاسخ صحیح:", "Correct answer:")} </span>
                 <span className="font-bold text-slate-800">
                   {result.correct}/{result.total}
                 </span>
               </div>
               <div className="text-slate-300">|</div>
               <div>
-                <span className="text-slate-500">درصد: </span>
+                <span className="text-slate-500">{tr("درصد:", "Score:")} </span>
                 <span className="font-bold text-slate-800">
                   {result.percent}%
                 </span>
@@ -496,7 +498,7 @@ export default function ListeningExercisePage() {
                 onClick={() => router.push("/training")}
                 className="px-6 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-100 transition-colors"
               >
-                بازگشت به لیست تمرین‌ها
+                {tr("بازگشت به لیست تمرین‌ها", "Back to Practice List")}
               </button>
             </div>
           </motion.div>

@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 import Link from "next/link";
 import { Brain, RotateCcw, XCircle, ArrowRight } from "lucide-react";
@@ -28,6 +29,7 @@ import {
 // ========================================
 
 export default function MemoryPage() {
+  const { tr, dir } = useLanguage();
   const { stats, submitting, isNewRecord, submitSessionStart, submitMatchResult, submitSession } =
     useMemoryStats();
 
@@ -64,10 +66,10 @@ export default function MemoryPage() {
     handleBackToLevels,
   } = game;
 
-  const levelFa = getGameLevel(level).fa;
+  const levelFa = tr(getGameLevel(level).fa, getGameLevel(level).en);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
@@ -76,7 +78,10 @@ export default function MemoryPage() {
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">Match Card</h1>
           <p className="text-sm text-slate-500">
-            کارت‌ها را باز کن و جفت کلمه انگلیسی + معنی فارسی را پیدا کن!
+            {tr(
+              "کارت‌ها را باز کن و جفت کلمه انگلیسی + معنی فارسی را پیدا کن!",
+              "Flip the cards and match English words with their Persian meanings!"
+            )}
           </p>
         </div>
         {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
@@ -86,7 +91,7 @@ export default function MemoryPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            بازگشت
+            {tr("بازگشت", "Back")}
           </Link>
         ) : (
           <button
@@ -94,14 +99,14 @@ export default function MemoryPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            بازی‌ها
+            {tr("بازی‌ها", "Games")}
           </button>
         )}
       </div>
 
       {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
       {/* اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
-      <GameStatsBar stats={stats} winLabel="جفت‌های درست" />
+      <GameStatsBar stats={stats} winLabel={tr("جفت‌های درست", "Matched Pairs")} />
 
       {/* ================= انتخاب سطح + برترین امتیازها (v1.0.2.۲ — گام ۲) ================= */}
       {phase === "levelSelect" && (
@@ -109,7 +114,7 @@ export default function MemoryPage() {
           <LevelSelect
             onSelect={startGame}
             levels={MEMORY_LEVELS}
-            subtitle={`هر بازی ${MEMORY_CONFIG.roundsPerSession} راند پشت سر هم — کارت‌ها را باز کن و جفت‌ها را مچ کن`}
+            subtitle={tr(`هر بازی ${MEMORY_CONFIG.roundsPerSession} راند پشت سر هم — کارت‌ها را باز کن و جفت‌ها را مچ کن`, `Each game is ${MEMORY_CONFIG.roundsPerSession} rounds in a row — flip the cards and match the pairs`)}
           />
           <LeaderboardBox game="memory" />
         </div>
@@ -143,8 +148,8 @@ export default function MemoryPage() {
               <p className="text-sm text-slate-500">
                 {/* گام ۳ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
                 {hideLevel
-                  ? "در حال آماده‌سازی مرحله بعدی..."
-                  : `در حال آماده‌سازی تخته سطح ${levelFa}...`}
+                  ? tr("در حال آماده‌سازی مرحله بعدی...", "Preparing the next stage...")
+                  : tr(`در حال آماده‌سازی تخته سطح ${levelFa}...`, `Preparing the level ${levelFa} board...`)}
               </p>
             </div>
           )}
@@ -153,14 +158,14 @@ export default function MemoryPage() {
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <XCircle className="h-14 w-14 text-red-200" />
               <p className="text-slate-500 text-sm">
-                خطا در بارگذاری بازی. دوباره تلاش کنید.
+                {tr("خطا در بارگذاری بازی. دوباره تلاش کنید.", "Error loading the game. Please try again.")}
               </p>
               <button
                 onClick={handleRestart}
                 className="px-5 py-2 bg-violet-50 text-violet-600 rounded-xl text-sm font-medium hover:bg-violet-100 transition-colors flex items-center gap-2"
               >
                 <RotateCcw className="h-4 w-4" />
-                تلاش مجدد
+                {tr("تلاش مجدد", "Try Again")}
               </button>
             </div>
           )}
@@ -197,8 +202,8 @@ export default function MemoryPage() {
               losses={sessionMistakes}
               stats={stats}
               isNewRecord={isNewRecord}
-              winLabel="جفت"
-              lossLabel="اشتباه"
+              winLabel={tr("جفت", "pair")}
+              lossLabel={tr("اشتباه", "Wrong")}
               onRestart={handleRestart}
               onBack={handleBackToLevels}
               onNext={handleNextLevel}
@@ -210,13 +215,13 @@ export default function MemoryPage() {
       {/* راهنمای امتیازدهی */}
       {phase !== "levelSelect" && (
         <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-400 flex-wrap">
-          <span>هر جفت درست: +{MEMORY_CONFIG.pointsPerMatch}</span>
+          <span>{tr("هر جفت درست:", "Each correct pair:")} +{MEMORY_CONFIG.pointsPerMatch}</span>
           <span className="text-slate-200">|</span>
-          <span>هر جفت پشت سر هم: +{MEMORY_CONFIG.comboStepBonus} بیشتر</span>
-          <span>راند بی‌نقص: +{MEMORY_CONFIG.perfectRoundBonus}</span>
+          <span>{tr("هر جفت پشت سر هم:", "Back-to-back pairs:")} +{MEMORY_CONFIG.comboStepBonus} {tr("بیشتر", "extra")}</span>
+          <span>{tr("راند بی‌نقص:", "Perfect round:")} +{MEMORY_CONFIG.perfectRoundBonus}</span>
           <span>
-            جان‌ها: {MEMORY_CONFIG.startLives} (هر جفت درست +۱ تا سقف {MEMORY_CONFIG.maxLives}) | هر بازی: {MEMORY_CONFIG.roundsPerSession} راند ×{" "}
-            {MEMORY_CONFIG.pairsPerBoard[level]} جفت
+            {tr("جان‌ها:", "Lives:")} {MEMORY_CONFIG.startLives} ({tr("هر جفت درست +۱ تا سقف", "each correct pair +1 up to")} {MEMORY_CONFIG.maxLives}) | {tr("هر بازی:", "each game:")} {MEMORY_CONFIG.roundsPerSession} {tr("راند", "rounds")} ×{" "}
+            {MEMORY_CONFIG.pairsPerBoard[level]} {tr("جفت", "pairs")}
           </span>
         </div>
       )}
