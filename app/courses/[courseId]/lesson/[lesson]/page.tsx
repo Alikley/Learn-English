@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import { useParams, useRouter } from "next/navigation";
 import ContinueButton from "@/app/components/lesson/ContinueButton";
@@ -9,7 +10,6 @@ import ProgressStepper from "@/app/components/lesson/ProgressStepper";
 import { useState, useEffect } from "react";
 import { getCourseTheme } from "@/lib/course-theme";
 import { CEFR_LABEL, type Cefr } from "@/data/lessons/types";
-import PageLoader from "@/app/components/PageLoader";
 
 type LessonContentMeta = {
   kind?: string;
@@ -123,10 +123,7 @@ export default function LessonPage() {
     }
   };
 
-  // لودر یکپارچهٔ سایت — v1.0.1.9
-  if (loading) {
-    return <PageLoader />;
-  }
+  if (loading) return <PageLoading />;
 
   if (!lesson) {
     return (

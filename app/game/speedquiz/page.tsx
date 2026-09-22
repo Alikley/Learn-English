@@ -6,6 +6,7 @@ import { Zap, RotateCcw, XCircle, ArrowRight } from "lucide-react";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
 import GameOutcomeOverlay from "@/app/components/game/GameOutcomeOverlay";
 import LevelSelect from "@/app/components/game/LevelSelect";
+import LeaderboardBox from "@/app/components/game/LeaderboardBox";
 import SpeedQuizTopBar from "@/app/components/game/SpeedQuizTopBar";
 import SpeedQuizTimer from "@/app/components/game/SpeedQuizTimer";
 import SpeedQuizQuestionCard from "@/app/components/game/SpeedQuizQuestionCard";
@@ -17,7 +18,6 @@ import {
   SPEEDQUIZ_LEVELS,
   getGameLevel,
 } from "@/types/game";
-import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
 // صفحه بازی کوییز سرعتی
@@ -67,10 +67,9 @@ export default function SpeedQuizPage() {
 
   const levelFa = getGameLevel(level).fa;
   const currentQuestion = questions[qIndex] ?? null;
-  const { t } = useLanguage();
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
@@ -78,7 +77,9 @@ export default function SpeedQuizPage() {
         </div>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">Quiz Hot</h1>
-          <p className="text-sm text-slate-500">{t("games.speedquiz.sub")}</p>
+          <p className="text-sm text-slate-500">
+            سریع جواب بده — هر ثانیه که می‌گذره، امتیاز کمتره!
+          </p>
         </div>
         {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
         {phase === "levelSelect" ? (
@@ -87,7 +88,7 @@ export default function SpeedQuizPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            {t("games.back")}
+            بازگشت
           </Link>
         ) : (
           <button
@@ -105,13 +106,16 @@ export default function SpeedQuizPage() {
           اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
       <GameStatsBar stats={stats} winLabel="پاسخ‌های درست" />
 
-      {/* ================= انتخاب سطح ================= */}
+      {/* ================= انتخاب سطح + برترین امتیازها (v1.0.2.۲ — گام ۲) ================= */}
       {phase === "levelSelect" && (
-        <LevelSelect
-          onSelect={startGame}
-          levels={SPEEDQUIZ_LEVELS}
-          subtitle={`هر دور ${SPEEDQUIZ_CONFIG.questionsPerSession} سوال چهارگزینه‌ای — کلمه و جمله، هر کدام ${SPEEDQUIZ_CONFIG.secondsPerQuestion} ثانیه`}
-        />
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_330px] gap-4 items-start">
+          <LevelSelect
+            onSelect={startGame}
+            levels={SPEEDQUIZ_LEVELS}
+            subtitle={`هر دور ${SPEEDQUIZ_CONFIG.questionsPerSession} سوال چهارگزینه‌ای — کلمه و جمله، هر کدام ${SPEEDQUIZ_CONFIG.secondsPerQuestion} ثانیه`}
+          />
+          <LeaderboardBox game="speedquiz" />
+        </div>
       )}
 
       {/* ================= کارت بازی ================= */}

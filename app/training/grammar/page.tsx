@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -33,8 +34,6 @@ import {
 import { Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress } from "@/lib/practice-progress";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
-import PageLoader from "@/app/components/PageLoader";
-import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
 // لیست تمرین گرامری (نسخه ۱.۰.۱.۴)
@@ -102,36 +101,31 @@ export default function GrammarListPage() {
     [sets, tab],
   );
 
-  const { t } = useLanguage();
-
-  // لودر یکپارچهٔ سایت — v1.0.1.9
-  if (loading) {
-    return <PageLoader />;
-  }
+  if (loading) return <PageLoading />;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
           <BookMarked className="w-5 h-5 text-blue-600" />
         </div>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">{t("training.grammar.title")}</h1>
+          <h1 className="text-xl font-bold text-slate-800">تمرین گرامری</h1>
           <p className="text-sm text-slate-500">
-            {sets.length} {t("training.grammar.sub")}
+            {sets.length} مجموعه — هر کدام ۱۰ سؤال از مبتدی تا پیشرفته
           </p>
         </div>
         <Link
           href="/training"
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
         >
-          {t("training.back")}
+          بازگشت
         </Link>
       </div>
 
       {/* ================= تب‌های سطح ================= */}
-      <div className="flex items-center gap-2 mt-6 bg-white border border-slate-100 rounded-2xl p-1.5 shadow-sm w-fit mx-auto md:mx-0">
+      <div className="flex flex-wrap justify-center items-center gap-2 mt-6 bg-white border border-slate-100 rounded-2xl p-1.5 shadow-sm w-fit max-w-full mx-auto md:mx-0">
         {TABS.map((t) => {
           const count =
             t.key === "ALL"

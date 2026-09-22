@@ -1,10 +1,9 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import CourseCard from "@/app/components/course/CourseCard";
 import EmptyState from "@/app/components/course/EmptyState";
 import GirlCharacter from "@/app/components/courses/GirlCharacter";
-import PageLoader from "@/app/components/PageLoader";
-import { useLanguage } from "@/app/context/LanguageContext";
 import { TOPIC_GROUPS } from "@/types/course";
 import { useCourses } from "../hook/useCourses";
 
@@ -28,23 +27,19 @@ import { useCourses } from "../hook/useCourses";
 
 export default function MyCoursePage() {
   const { courses, loading, enrolling, enroll } = useCourses();
-  const { t } = useLanguage();
 
-  // لودر یکپارچهٔ سایت — v1.0.1.9
-  if (loading) {
-    return <PageLoader />;
-  }
+  if (loading) return <PageLoading />;
 
   if (courses.length === 0) return <EmptyState />;
 
   return (
-    <div className="w-full min-h-full bg-[#fbfbfb] pb-12">
+    <div className="w-full min-h-full bg-[#fbfbfb] dark:bg-[#0b1220] pb-12" dir="rtl">
       <div className="bg-white border-b border-slate-100 px-4 md:px-6 py-5">
         <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-          {t("courses.title")}
+          دوره‌های من
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          {t("courses.sub")}
+          مسیر یادگیری خود را انتخاب کن
         </p>
       </div>
 
@@ -66,7 +61,7 @@ export default function MyCoursePage() {
                       {group.label}
                     </h2>
                     <span className="text-slate-400 text-sm">
-                      ({grouped.length} {t("courses.count")})
+                      ({grouped.length} دوره)
                     </span>
                   </div>
                   {/* کارت‌ها کنار هم — همان حس صفحهٔ اصلی */}
@@ -85,11 +80,11 @@ export default function MyCoursePage() {
             })}
           </div>
 
-          {/* ===== کاراکتر دختر — بزرگ‌تر و قشنگ‌تر (درخواست v1.0.1.9)، سمت چپِ دوره‌ها ===== */}
-          <aside className="w-52 lg:w-64 xl:w-72 shrink-0 mx-auto lg:mx-0 lg:sticky lg:top-6 flex flex-col items-center">
+          {/* ===== کاراکتر دختر — کوچک‌تر، سمت چپِ دوره‌ها ===== */}
+          <aside className="w-40 lg:w-44 xl:w-48 shrink-0 mx-auto lg:mx-0 lg:sticky lg:top-6 flex flex-col items-center">
             <GirlCharacter />
-            <p className="mt-2 text-center text-[11px] leading-5 text-slate-400">
-              {t("courses.caption")}
+            <p className="mt-2 text-center text-[10px] leading-4 text-slate-400">
+              چشم‌هایم به موس توست — بیا یاد بگیریم!
             </p>
           </aside>
         </div>

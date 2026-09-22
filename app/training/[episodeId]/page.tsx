@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -16,7 +17,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import PageLoader from "@/app/components/PageLoader";
 import {
   getListeningLevel,
   ListeningEpisode,
@@ -265,9 +265,7 @@ export default function ListeningExercisePage() {
     setResult(null);
   };
 
-  if (loading) {
-    return <PageLoader />;
-  }
+  if (loading) return <PageLoading />;
 
   if (!episode) {
     return (
@@ -289,7 +287,7 @@ export default function ListeningExercisePage() {
   const levelInfo = getListeningLevel(episode.level);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
       {/* هدر */}
       <div className="flex items-center gap-3 mb-6">
         <button

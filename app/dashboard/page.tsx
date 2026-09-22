@@ -1,24 +1,21 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import { useDashboard } from "@/app/hook/useDashboard";
 import { useAuth } from "@/app/context/AuthContext";
 import ProfileBox from "../components/dashboarde/ProfileBox";
 import PerformanceBox from "../components/dashboarde/PerformanceBox";
-import PageLoader from "@/app/components/PageLoader";
-import { useLanguage } from "@/app/context/LanguageContext";
 
 /* ========== صفحه اصلی داشبورد ========== */
 
 export default function DashboardPage() {
   const { data, loading, saving, updateProfile } = useDashboard();
   const { user: authUser } = useAuth();
-  const { t } = useLanguage();
 
-  // لودر یکپارچهٔ سایت — v1.0.1.9
-  if (loading || !data) return <PageLoader />;
+  if (loading || !data) return <PageLoading />;
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto" dir="rtl">
       {/* عنوان صفحه */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -37,8 +34,10 @@ export default function DashboardPage() {
           </svg>
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800">{t("dashboard.title")}</h1>
-          <p className="text-sm text-slate-500">{t("dashboard.sub")}</p>
+          <h1 className="text-xl font-bold text-slate-800">داشبورد</h1>
+          <p className="text-sm text-slate-500">
+            خلاصه عملکرد و تنظیمات حساب کاربری
+          </p>
         </div>
       </div>
 

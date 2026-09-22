@@ -1,24 +1,17 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useBook } from "@/app/hook/useBook";
 import { getLevelInfo } from "@/types/book";
-import PageLoader from "@/app/components/PageLoader";
 
 export default function BookDetailPage() {
   const params = useParams();
   const bookId = params.bookId as string;
   const { book, loading, notFound } = useBook(bookId);
 
-  if (loading) {
-    // لودر یکپارچه — پس‌زمینهٔ تیرهٔ صفحهٔ جزئیات کتاب حفظ می‌شود
-    return (
-      <div className="min-h-screen bg-gray-950">
-        <PageLoader />
-      </div>
-    );
-  }
+  if (loading) return <PageLoading minHeightClass="min-h-screen bg-gray-950" />;
 
   if (notFound || !book) {
     return (
@@ -149,6 +142,12 @@ export default function BookDetailPage() {
                   بازگشت به کتابخانه
                 </Link>
               </div>
+
+              {/* v1.0.2.۲ — گام ۱: مطالعه برگه‌ای به‌جای PDF */}
+              <p className="text-xs text-blue-300/70 flex items-center gap-1.5">
+                <span>📖</span>
+                صفحه‌به‌صفحه و بدون PDF — با هاور روی هر کلمه، ترجمه و جعبه لغت
+              </p>
             </div>
 
             <div className="md:w-72 lg:w-80 flex items-center justify-center p-8 md:p-10">

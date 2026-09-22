@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -22,7 +23,6 @@ import { getListeningLevel } from "@/types/listening";
 import type { PodcastEpisode } from "@/types/training";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
-import PageLoader from "@/app/components/PageLoader";
 
 // ========================================
 // پلیر تمرین شنیداری (نسخه ۱.۰.۱.۴)
@@ -338,10 +338,7 @@ export default function ListeningPlayerPage() {
   };
 
   /* ---------- رندر ---------- */
-  // لودر یکپارچهٔ سایت — v1.0.1.9
-  if (loading) {
-    return <PageLoader />;
-  }
+  if (loading) return <PageLoading />;
 
   if (!item) {
     return (

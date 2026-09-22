@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowLeft, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { useState } from "react";
-import { useLanguage } from "@/app/context/LanguageContext";
 
 export default function NotificationsPage() {
   const { notifications, unreadCount, markAsRead, deleteNotification } =
@@ -12,7 +11,6 @@ export default function NotificationsPage() {
 
   // برای باز/بسته شدن
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const { t } = useLanguage();
 
   const handleToggle = (id: number) => {
     if (expandedId === id) {
@@ -30,17 +28,17 @@ export default function NotificationsPage() {
           <Link href="/" className="p-2 rounded-full hover:bg-slate-100">
             <ArrowLeft size={24} className="text-slate-600" />
           </Link>
-          <h1 className="text-2xl font-bold text-slate-800">{t("notif.title")}</h1>
+          <h1 className="text-2xl font-bold text-slate-800">اعلان‌ها</h1>
         </div>
         <span className="text-sm text-slate-500">
-          {unreadCount} {t("notif.unread")}
+          {unreadCount} عدد خوانده نشده
         </span>
       </div>
 
       <div className="space-y-3">
         {notifications.length === 0 ? (
           <div className="text-center py-10 bg-white rounded-xl shadow-sm border border-slate-100">
-            <p className="text-slate-500">{t("notif.empty")}</p>
+            <p className="text-slate-500">هیچ پیامی وجود ندارد.</p>
           </div>
         ) : (
           notifications.map((notif) => (

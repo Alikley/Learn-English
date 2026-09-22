@@ -1,22 +1,5 @@
 "use client";
 
-// ========================================
-// کانتکست زبان سایت (فارسی/RTL ↔ انگلیسی/LTR) — v1.0.1.9
-//
-// - زبان پیش‌فرض: فارسی (مثل همیشه)
-// - انتخاب کاربر در localStorage ذخیره می‌شود — فقط هنگام کلیک
-//   کاربر (نه در mount اولیه؛ وگرنه مقدار ذخیره‌شده قبل از
-//   خوانده‌شدن دوباره‌نویسی می‌شد — باگ رقابت)
-// - تغییر زبان: lang و dir روی <html> اعمال می‌شود،
-//   عنوان تب مرورگر هم همان لحظه دوزبانه می‌شود
-// - t(key): ترجمهٔ رشته‌های پوسته از دیکشنری
-//
-// نکتهٔ هیدریشن: رندر اول همیشه «فارسی» است تا با
-// SSR یکی باشد؛ زبان ذخیره‌شده بعد از mount در یک
-// تایمر صفر-میلی‌ثانیه‌ای خوانده و اعمال می‌شود
-// (همان الگوی جایگزال در صفحه تمرین‌ها).
-// ========================================
-
 import {
   createContext,
   useCallback,
@@ -24,110 +7,74 @@ import {
   useEffect,
   useState,
 } from "react";
-import { usePathname } from "next/navigation";
-import { DICT, LANG_STORAGE_KEY, pageTitleFor, type Lang } from "@/app/i18n/dictionary";
+
+// ========================================
+// زمینه زبان سایت (بازسازی قابلیت v1.0.1.9)
+// - فارسی (پیش‌فرض، راست‌به‌چپ) / English (چپ‌به‌راست)
+// - lang و dir روی <html> تنظیم می‌شود
+// - انتخاب کاربر در localStorage (flex-lang) ذخیره می‌شود
+// - صفحهٔ اصلی به این زبان واکنش نشان می‌دهد (MainBox)
+// ========================================
+
+export type SiteLang = "fa" | "en";
 
 type LanguageContextValue = {
-  lang: Lang;
-  dir: "rtl" | "ltr";
-  setLang: (lang: Lang) => void;
-  toggleLang: () => void;
-  /** ترجمهٔ یک کلید دیکشنری بر اساس زبان فعلی */
-  t: (key: string) => string;
+  lang: SiteLang;
+  /** آیا کامپوننت روی کلاینت مانت شده */
+  mounted: boolean;
+  toggle: () => void;
+  setLang: (l: SiteLang) => void;
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>("fa");
+  const [lang, setLangState] = useState<SiteLang>("fa");
+  const [mounted, setMounted] = useState(false);
 
-  // خواندن زبان ذخیره‌شده بعد از mount (بدون خطای هیدریشن)
   useEffect(() => {
+    // بازیابی انتخاب قبلی کاربر — الگوی تاخیری سازگار با React Compiler
     const id = setTimeout(() => {
       try {
-        const stored = window.localStorage.getItem(LANG_STORAGE_KEY);
-        if (stored === "en" || stored === "fa") {
-          setLangState((current) => (current === stored ? current : stored));
-          // نکتهٔ مهم: بعد از full-load، هیدریشن React ممکن است
-          // <title> سراسری (SSR فارسی) را دوباره روی عنوانِ اعمال‌شده
-          // تحمیل کند. عنوان را چند بار با تاخیر دوباره اعمال می‌کنیم
-          // (idempotent — اگر درست باشد تغییری ایجاد نمی‌کند)
-          const reassert = () => {
-            document.title = pageTitleFor(window.location.pathname, stored);
-          };
-          setTimeout(reassert, 400);
-          setTimeout(reassert, 1500);
-          setTimeout(reassert, 3000);
+        const saved = localStorage.getItem("flex-lang");
+        if (saved === "en" || saved === "fa") {
+          setLangState(saved);
+          document.documentElement.lang = saved;
+          document.documentElement.dir = saved === "fa" ? "rtl" : "ltr";
         }
       } catch {
-        // localStorage در حالت خصوصی بعضی مرورگرها بسته است — بی‌خیال
+        /* بی‌خیال */
       }
+      setMounted(true);
     }, 0);
     return () => clearTimeout(id);
   }, []);
 
-  // اعمال lang و dir روی <html> (بدون نوشتن در localStorage —
-  // ذخیره فقط با کلیک کاربر انجام می‌شود)
-  useEffect(() => {
-    document.documentElement.lang = lang;
-    document.documentElement.dir = lang === "fa" ? "rtl" : "ltr";
-  }, [lang]);
-
-  // عنوان تب بر اساس مسیر + زبان (همگام با متادیتای سرور)
-  const pathname = usePathname();
-  useEffect(() => {
-    document.title = pageTitleFor(pathname, lang);
-  }, [pathname, lang]);
-
-  const setLang = useCallback((next: Lang) => {
-    setLangState(next);
-    // ذخیرهٔ انتخاب کاربر — عمداً اینجا (نه در افکت) تا مقدار
-    // ذخیره‌شدهٔ قبلی در mount اولیه دوباره‌نویسی نشود
+  const setLang = useCallback((l: SiteLang) => {
+    setLangState(l);
+    document.documentElement.lang = l;
+    document.documentElement.dir = l === "fa" ? "rtl" : "ltr";
     try {
-      window.localStorage.setItem(LANG_STORAGE_KEY, next);
+      localStorage.setItem("flex-lang", l);
     } catch {
-      // نادیده بگیر
+      /* بی‌خیال */
     }
   }, []);
 
-  const toggleLang = useCallback(() => {
-    setLangState((current) => {
-      const next = current === "fa" ? "en" : "fa";
-      try {
-        window.localStorage.setItem(LANG_STORAGE_KEY, next);
-      } catch {
-        // نادیده بگیر
-      }
-      return next;
-    });
-  }, []);
-
-  const t = useCallback(
-    (key: string) => {
-      const entry = DICT[key];
-      if (!entry) return key;
-      return entry[lang === "fa" ? 0 : 1];
-    },
-    [lang],
-  );
+  const toggle = useCallback(() => {
+    setLang(document.documentElement.lang === "en" ? "fa" : "en");
+  }, [setLang]);
 
   return (
-    <LanguageContext.Provider
-      value={{
-        lang,
-        dir: lang === "fa" ? "rtl" : "ltr",
-        setLang,
-        toggleLang,
-        t,
-      }}
-    >
+    <LanguageContext.Provider value={{ lang, mounted, toggle, setLang }}>
       {children}
     </LanguageContext.Provider>
   );
 }
 
-export function useLanguage(): LanguageContextValue {
+export function useLanguage() {
   const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error("useLanguage باید داخل LanguageProvider استفاده شود");
+  if (!ctx)
+    throw new Error("useLanguage باید داخل LanguageProvider استفاده شود");
   return ctx;
 }

@@ -9,6 +9,7 @@ import Keyboard from "@/app/components/game/Keyboard";
 import WordDisplay from "@/app/components/game/WordDisplay";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
 import LevelSelect from "@/app/components/game/LevelSelect";
+import LeaderboardBox from "@/app/components/game/LeaderboardBox";
 import SessionTopBar from "@/app/components/game/SessionTopBar";
 import WordResultOverlay from "@/app/components/game/WordResultOverlay";
 import SessionEndOverlay from "@/app/components/game/SessionEndOverlay";
@@ -20,7 +21,6 @@ import {
   HANGMAN_TIMER_SECONDS,
   getGameLevel,
 } from "@/types/game";
-import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
 // صفحه بازی هنگ‌من
@@ -67,10 +67,9 @@ export default function HangmanPage() {
   } = game;
 
   const levelFa = getGameLevel(level).fa;
-  const { t } = useLanguage();
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir="rtl">
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
@@ -78,7 +77,9 @@ export default function HangmanPage() {
         </div>
         <div className="flex-1">
           <h1 className="text-xl font-bold text-slate-800">Hangman</h1>
-          <p className="text-sm text-slate-500">{t("games.hangman.sub")}</p>
+          <p className="text-sm text-slate-500">
+            حروف را حدس بزن و کلمه را نجات بده!
+          </p>
         </div>
         {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
         {phase === "levelSelect" ? (
@@ -87,7 +88,7 @@ export default function HangmanPage() {
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
           >
             <ArrowRight className="w-3.5 h-3.5" />
-            {t("games.back")}
+            بازگشت
           </Link>
         ) : (
           <button
@@ -104,8 +105,13 @@ export default function HangmanPage() {
       {/* اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
       <GameStatsBar stats={stats} />
 
-      {/* ================= انتخاب سطح ================= */}
-      {phase === "levelSelect" && <LevelSelect onSelect={startGame} />}
+      {/* ================= انتخاب سطح + برترین امتیازها (v1.0.2.۲ — گام ۲) ================= */}
+      {phase === "levelSelect" && (
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_330px] gap-4 items-start">
+          <LevelSelect onSelect={startGame} />
+          <LeaderboardBox game="hangman" />
+        </div>
+      )}
 
       {/* ================= کارت بازی ================= */}
       {phase !== "levelSelect" && (

@@ -1,9 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/app/components/AppShell";
 import AuthGuard from "@/app/components/AuthGuard";
 import { WordHoverProvider } from "@/app/components/vocabulary/WordHoverProvider";
+import { ThemeProvider } from "@/app/context/ThemeContext";
+import { LanguageProvider } from "@/app/context/LanguageContext";
 import Providers from "./Providers";
 
 const geistSans = Geist({
@@ -16,22 +18,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// ========================================
-// متادیتای ریشه — v1.0.2.0
-// قالب عنوان: «صفحه | Flex English» — هر مسیر
-// عنوان خودش را از layout همان مسیر می‌گیرد.
-// زبان پیش‌فرض فارسی و راست‌چین؛ دکمهٔ زبان در نوبار.
-// اسکریپت کوچک زیر (قبل از رنگ‌آمیزی اولیه) کلاس dark را
-// از localStorage / ترجیح سیستمی روی <html> می‌گذارد تا
-// در حالت تیره فلشِ سفید دیده نشود (همگام با ThemeContext).
-// ========================================
 export const metadata: Metadata = {
-  title: {
-    default: "Flex English — یادگیری زبان انگلیسی",
-    template: "%s | Flex English",
-  },
-  description: "یادگیری زبان انگلیسی به ساده‌ترین شکل — تمرین، بازی، کتاب و لغت‌نامه",
+  title: "Flex English",
+  description: "یادگیری زبان انگلیسی به ساده‌ترین شکل",
 };
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
+// اسکریپت ضدفلش حالت تیره (v1.0.2.0) — قبل از رنگ‌آمیزی صفحه
+// کلاس dark را از حافظه مرورگر می‌خواند تا صفحه نپرد
+// + زبان انتخابی کاربر (v1.0.1.9) را روی <html> اعمال می‌کند
+const themeInitScript = `(function(){try{var t=localStorage.getItem('flex-theme');if(!t){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}if(t==='dark'){document.documentElement.classList.add('dark');}var l=localStorage.getItem('flex-lang');if(l==='en'){document.documentElement.lang='en';document.documentElement.dir='ltr';}}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -40,30 +40,23 @@ export default function RootLayout({
     <html
       lang="fa"
       dir="rtl"
-      /* v1.0.2.0 — اسکریپت تم قبل از هیدریشن کلاس dark می‌گذارد؛
-         suppressHydrationWarning جلوی هشدار/بازنشانیِ React را می‌گیرد
-         (همان الگوی next-themes) */
-      suppressHydrationWarning
-      /* v1.0.2.0 — data-scroll-behavior: پیشنهاد خود Next برای اینکه
-         هنگام جابه‌جایی بین مسیرها اسکرول نرم لحظه‌ای غیر فعال شود
-         و پرش صفحه انیمیشنیِ ناخواسته نباشد */
-      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="h-full flex flex-col bg-gray-50">
-        {/* v1.0.2.0 — اعمال تم قبل از اولین رنگ‌آمیزی (بدون فلش) */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              "(function(){try{var t=localStorage.getItem('flex-english-theme');if(t==='dark'||(!t&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}}catch(e){}})();",
-          }}
-        />
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="h-full flex flex-col bg-gray-50 dark:bg-[#0b1220] transition-colors duration-300">
         <Providers>
-          <AuthGuard>
-            <WordHoverProvider>
-              <AppShell>{children}</AppShell>
-            </WordHoverProvider>
-          </AuthGuard>
+          <ThemeProvider>
+            <LanguageProvider>
+              <AuthGuard>
+                <WordHoverProvider>
+                  <AppShell>{children}</AppShell>
+                </WordHoverProvider>
+              </AuthGuard>
+            </LanguageProvider>
+          </ThemeProvider>
         </Providers>
       </body>
     </html>

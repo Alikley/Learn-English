@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -26,7 +27,6 @@ import type { WritingFeedback, WritingTopic } from "@/types/training";
 import { ScoreRing, Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
-import PageLoader from "@/app/components/PageLoader";
 
 // ========================================
 // ادیتور نوشتاری (نسخه ۱.۰.۱.۴)
@@ -192,10 +192,7 @@ export default function WritingEditorPage() {
   };
 
   /* ---------- رندر ---------- */
-  // لودر یکپارچهٔ سایت — v1.0.1.9
-  if (loading) {
-    return <PageLoader />;
-  }
+  if (loading) return <PageLoading />;
 
   if (!topic) {
     return (
@@ -349,7 +346,6 @@ export default function WritingEditorPage() {
           dir="ltr"
           data-placeholder="Start writing here..."
           className="min-h-[16rem] max-h-[32rem] overflow-y-auto p-5 text-[15px] leading-[1.9] text-slate-800 outline-none focus:ring-2 focus:ring-emerald-100 [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-slate-300"
-          data-lenis-prevent
         />
       </div>
 

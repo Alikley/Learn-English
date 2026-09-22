@@ -269,7 +269,6 @@ export default function ConversationView({
             <div
               ref={scrollRef}
               className="bg-white border border-slate-100 rounded-2xl shadow-sm h-[380px] overflow-y-auto p-4 space-y-3 scroll-smooth"
-              data-lenis-prevent
             >
               {revealed === 0 && !running && (
                 <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">

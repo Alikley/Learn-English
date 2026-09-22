@@ -266,7 +266,7 @@ function PickerPanel({
 
   return (
     <div>
-      <div className="max-h-44 overflow-y-auto space-y-1.5" data-lenis-prevent>
+      <div className="max-h-44 overflow-y-auto space-y-1.5">
         {boxes.map((box) => {
           const isFull = box.wordCount >= VOCAB_BOX_WORD_LIMIT;
           const added = addedBoxId === box.id;

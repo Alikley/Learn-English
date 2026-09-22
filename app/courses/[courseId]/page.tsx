@@ -1,4 +1,5 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import { useParams, useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
@@ -7,7 +8,6 @@ import EmptyState from "@/app/components/course/EmptyState";
 import { LEVEL_LABEL } from "@/types/course";
 import { getCourseTheme } from "@/lib/course-theme";
 import { useCourseDetail } from "@/app/hook/useCourseDetail";
-import PageLoader from "@/app/components/PageLoader";
 
 // ========================================
 // صفحه جزئیات دوره — v1.0.1.1
@@ -30,10 +30,7 @@ export default function CourseDetailPage() {
   const { course, loading, completing, completeLesson, stats } =
     useCourseDetail(courseId);
 
-  // لودر یکپارچهٔ سایت — v1.0.1.9
-  if (loading) {
-    return <PageLoader />;
-  }
+  if (loading) return <PageLoading />;
 
   if (!course) {
     return (

@@ -1,8 +1,10 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { motion } from "motion/react";
 import { useCategories } from "../hook/useCategories";
 
 const exercises = [
@@ -65,50 +67,55 @@ export default function Cards() {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-          </div>
+          <PageLoading minHeightClass="py-16" />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-6">
-            {categories.map((card) => (
-              <Link
-                href="/courses"
+            {categories.map((card, i) => (
+              <motion.div
                 key={card.key}
-                className="group overflow-hidden rounded-2xl md:rounded-3xl bg-white shadow-[0_4px_18px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] block"
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ duration: 0.5, delay: i * 0.08, ease: "easeOut" }}
               >
-                <div className="relative aspect-[2.37/1] overflow-hidden">
-                  <Image
-                    src={card.image}
-                    alt={card.title}
-                    fill
-                    sizes="25vw"
-                    className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                  />
-                </div>
-                <div className="p-3 md:p-5">
-                  <div className="text-right">
-                    <h3 className="text-[16px] md:text-[20px] font-bold text-slate-900">
-                      {card.title}
-                    </h3>
-                  </div>
-
-                  {/* میانگین پیشرفت */}
-                  <div className="mt-3 md:mt-4 flex items-center justify-between">
-                    <span className="text-xs text-slate-500">
-                      میانگین پیشرفت
-                    </span>
-                    <span className="text-sm font-bold text-slate-700">
-                      {card.avgProgress}%
-                    </span>
-                  </div>
-                  <div className="mt-1.5 h-1.5 md:h-2 overflow-hidden rounded-full bg-slate-200">
-                    <div
-                      className={`h-full rounded-full ${card.color}`}
-                      style={{ width: `${card.avgProgress}%` }}
+                <Link
+                  href="/courses"
+                  className="group overflow-hidden rounded-2xl md:rounded-3xl bg-white dark:bg-slate-900 shadow-[0_4px_18px_rgba(15,23,42,0.06)] dark:shadow-[0_4px_18px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] dark:hover:shadow-[0_12px_28px_rgba(0,0,0,0.6)] block"
+                >
+                  <div className="relative aspect-[2.37/1] overflow-hidden">
+                    <Image
+                      src={card.image}
+                      alt={card.title}
+                      fill
+                      sizes="25vw"
+                      className="object-cover transition-transform duration-500 ease-out group-hover:scale-110"
                     />
                   </div>
-                </div>
-              </Link>
+                  <div className="p-3 md:p-5">
+                    <div className="text-right">
+                      <h3 className="text-[16px] md:text-[20px] font-bold text-slate-900 dark:text-slate-100">
+                        {card.title}
+                      </h3>
+                    </div>
+
+                    {/* میانگین پیشرفت */}
+                    <div className="mt-3 md:mt-4 flex items-center justify-between">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        میانگین پیشرفت
+                      </span>
+                      <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                        {card.avgProgress}%
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 md:h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
+                      <div
+                        className={`h-full rounded-full ${card.color}`}
+                        style={{ width: `${card.avgProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                </Link>
+              </motion.div>
             ))}
           </div>
         )}
@@ -130,10 +137,14 @@ export default function Cards() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-6">
-          {exercises.map((item) => (
-            <div
+          {exercises.map((item, i) => (
+            <motion.div
               key={item.title}
-              className={`${item.bgColor} rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 md:gap-4 shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition hover:-translate-y-1 hover:shadow-lg`}
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: i * 0.08, ease: "easeOut" }}
+              className={`${item.bgColor} dark:bg-slate-900/70 dark:border dark:border-slate-800 rounded-2xl md:rounded-3xl p-4 md:p-5 flex flex-col gap-3 md:gap-4 shadow-[0_4px_14px_rgba(15,23,42,0.04)] dark:shadow-[0_4px_14px_rgba(0,0,0,0.35)] transition hover:-translate-y-1 hover:shadow-lg`}
             >
               <div className="flex items-start gap-3">
                 <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 relative">
@@ -155,12 +166,12 @@ export default function Cards() {
               </div>
               <Link href={item.href} className="flex justify-end">
                 <button
-                  className={`${item.btnColor} px-4 md:px-6 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-semibold transition hover:opacity-90`}
+                  className={`${item.btnColor} dark:brightness-90 px-4 md:px-6 py-1.5 md:py-2 rounded-xl text-xs md:text-sm font-semibold transition hover:opacity-90`}
                 >
                   {item.btnLabel}
                 </button>
               </Link>
-            </div>
+            </motion.div>
           ))}
         </div>
       </section>

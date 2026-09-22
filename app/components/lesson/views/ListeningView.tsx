@@ -306,7 +306,7 @@ export default function ListeningView({
             </div>
 
             {/* متن داستان (کاراته) */}
-            <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm space-y-2 max-h-[340px] overflow-y-auto" data-lenis-prevent>
+            <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm space-y-2 max-h-[340px] overflow-y-auto">
               {lesson.paragraphs.map((para, i) => {
                 const active = i === currentPara;
                 return (

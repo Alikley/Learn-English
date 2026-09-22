@@ -5,6 +5,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import Link from "next/link";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 import { useState } from "react";
+import { ThemeToggle } from "@/app/components/ThemeToggle";
 
 type RegisterForm = {
   name: string;
@@ -33,20 +34,23 @@ export default function RegisterPage() {
 
   return (
     <div
-      className="min-h-screen bg-linear-to-br from-blue-50 via-white to-slate-50 flex items-center justify-center p-4"
+      className="min-h-screen bg-linear-to-br from-blue-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-[#0b1220] relative flex items-center justify-center p-4"
       dir="rtl"
     >
-      <div className="w-full max-w-md">
+      <div className="absolute top-4 left-4 z-10 rounded-2xl bg-white/70 dark:bg-slate-800/70 backdrop-blur border border-slate-100 dark:border-slate-700 shadow-sm">
+            <ThemeToggle />
+          </div>
+        <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-blue-600">
-            flex <span className="text-slate-900">English</span>
+            flex <span className="text-slate-900 dark:text-slate-100">English</span>
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
             یادگیری رو همین الان شروع کن
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 p-8 border border-slate-100">
+        <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 dark:shadow-black/40 p-8 border border-slate-100 dark:border-slate-700">
           <h2 className="text-xl font-bold text-slate-800 mb-6">
             ساخت حساب جدید
           </h2>
@@ -73,7 +77,7 @@ export default function RegisterPage() {
                   required: "نام را وارد کنید",
                   minLength: { value: 3, message: "حداقل ۳ کاراکتر" },
                 })}
-                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.name ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
+                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.name ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
               />
               {errors.name && (
                 <p className="text-red-500 text-xs mt-1.5">
@@ -96,7 +100,7 @@ export default function RegisterPage() {
                     message: "ایمیل معتبر نیست",
                   },
                 })}
-                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.email ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
+                className={`w-full px-4 py-3 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.email ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
               />
               {errors.email && (
                 <p className="text-red-500 text-xs mt-1.5">
@@ -117,7 +121,7 @@ export default function RegisterPage() {
                     required: "رمز عبور را وارد کنید",
                     minLength: { value: 6, message: "حداقل ۶ کاراکتر" },
                   })}
-                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.password ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
+                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.password ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
                 />
                 <button
                   type="button"
@@ -148,7 +152,7 @@ export default function RegisterPage() {
                       val === watch("password") ||
                       "رمز عبور و تکرار آن یکسان نیستند",
                   })}
-                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.confirmPassword ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:bg-white"}`}
+                  className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.confirmPassword ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
                 />
                 <button
                   type="button"

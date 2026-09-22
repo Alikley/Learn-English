@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { countCompleted } from "@/lib/practice-progress";
 import { ProgressBar } from "@/app/components/practice/PracticeBits";
-import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
 // هاب تمرین‌ها (نسخه ۱.۰.۱.۴)
@@ -27,8 +26,8 @@ const SECTIONS = [
   {
     key: "listening" as const,
     href: "/training/listening",
-    titleKey: "training.listening.title",
-    subtitleKey: "training.listening.sub2",
+    title: "تمرین شنیداری",
+    subtitle: "پادکست‌ها گوش بده و جاهای خالی را پر کن",
     icon: Headphones,
     iconBg: "bg-orange-50",
     iconColor: "text-orange-600",
@@ -38,8 +37,8 @@ const SECTIONS = [
   {
     key: "grammar" as const,
     href: "/training/grammar",
-    titleKey: "training.grammar.title",
-    subtitleKey: "training.grammar.sub2",
+    title: "تمرین گرامری",
+    subtitle: "۱۵ مجموعه از مبتدی تا پیشرفته با کوئیز",
     icon: BookMarked,
     iconBg: "bg-blue-50",
     iconColor: "text-blue-600",
@@ -49,8 +48,8 @@ const SECTIONS = [
   {
     key: "writing" as const,
     href: "/training/writing",
-    titleKey: "training.writing.title",
-    subtitleKey: "training.writing.sub2",
+    title: "تمرین نوشتاری",
+    subtitle: "بنویس و با هوش مصنوعی اصلاحش کن",
     icon: PenLine,
     iconBg: "bg-emerald-50",
     iconColor: "text-emerald-600",
@@ -62,7 +61,6 @@ const SECTIONS = [
 export default function TrainingPage() {
   const [totals, setTotals] = useState<Totals | null>(null);
   const [completed, setCompleted] = useState<Totals | null>(null);
-  const { t } = useLanguage();
 
   useEffect(() => {
     const id = setTimeout(() => {
@@ -95,15 +93,17 @@ export default function TrainingPage() {
   }, []);
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto" dir="rtl">
       {/* ================= هدر ================= */}
       <div className="flex items-center gap-3 mb-2">
         <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
           <Zap className="w-5 h-5 text-violet-600" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-800">{t("training.title")}</h1>
-          <p className="text-sm text-slate-500">{t("training.sub")}</p>
+          <h1 className="text-xl font-bold text-slate-800">تمرین‌ها</h1>
+          <p className="text-sm text-slate-500">
+            هر روز کمی تمرین — شنیداری، گرامر و نوشتن
+          </p>
         </div>
       </div>
 
@@ -133,12 +133,12 @@ export default function TrainingPage() {
                   <span
                     className={`text-[10px] font-bold px-2 py-1 rounded-full ${s.chip}`}
                   >
-                    {total > 0 ? `${total} ${t("common.items")}` : "..."}
+                    {total > 0 ? `${total} آیتم` : "..."}
                   </span>
                 </div>
-                <h2 className="font-bold text-slate-800 mb-1">{t(s.titleKey)}</h2>
+                <h2 className="font-bold text-slate-800 mb-1">{s.title}</h2>
                 <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                  {t(s.subtitleKey)}
+                  {s.subtitle}
                 </p>
                 <ProgressBar
                   value={done}
@@ -159,7 +159,13 @@ export default function TrainingPage() {
         className="mt-6 bg-slate-50 border border-slate-100 rounded-2xl p-4 flex items-start gap-3"
       >
         <Clock className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
-        <p className="text-xs text-slate-500 leading-relaxed">{t("training.guide")}</p>
+        <p className="text-xs text-slate-500 leading-relaxed">
+          هر تمرین شنیداری حدود ۵ تا ۷ دقیقه وقت می‌برد، هر مجموعه گرامری ۱۰
+          سؤال کوتاه دارد و در نوشتاری متنِ حداکثر ۲۰۰ کلمه‌ای می‌نویسی و
+          هوش مصنوعی آن را برایت اصلاح می‌کند. ستاره‌ها بر اساس بهترین نتیجه
+          تو ذخیره می‌شوند — ۸۰٪ به بالا سه ستاره، ۶۰٪ دو ستاره و ۴۰٪ یک
+          ستاره.
+        </p>
       </motion.div>
 
       {/* لینک قدیمی اپیزودها هنوز از مسیر /training/[episodeId] کار می‌کند */}
@@ -169,7 +175,7 @@ export default function TrainingPage() {
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-400 hover:text-slate-600 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          {t("training.backToDashboard")}
+          بازگشت به داشبورد
         </Link>
       </div>
     </div>

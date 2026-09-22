@@ -1,56 +1,138 @@
 "use client";
+import PageLoading from "@/app/components/PageLoading";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  BookOpen,
+  RotateCcw,
+  Sparkles,
+  BookMarked,
+  Library,
+} from "lucide-react";
 import { useBook } from "@/app/hook/useBook";
-import PageLoader from "@/app/components/PageLoader";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
+import { getStory } from "@/data/books/stories";
+
+// ========================================
+// صفحه مطالعه کتاب — حالت برگه‌های کتاب (نسخه ۱.۰.۲.۲ — گام ۱)
+// به‌جای PDF: متن داستان روی برگه‌های کاغذی + دکمه صفحه بعد
+// کلمه‌های انگلیسی با هاور → ترجمه + جعبه لغات (مثل کل سایت)
+// پیشرفت مطالعه در localStorage ذخیره می‌شود
+// ========================================
+
+type Direction = 1 | -1;
+
+function progressKey(bookId: string) {
+  return `flex-book-progress-${bookId}`;
+}
 
 export default function BookReaderPage() {
   const params = useParams();
-  const router = useRouter();
   const bookId = params.bookId as string;
   const { book, loading, notFound } = useBook(bookId);
-  const [zoom, setZoom] = useState(100);
-  const [showBar, setShowBar] = useState(false);
-  const [pdfReady, setPdfReady] = useState(false);
 
+  const [page, setPage] = useState(0);
+  const [direction, setDirection] = useState<Direction>(1);
+  const [savedPage, setSavedPage] = useState<number | null>(null);
+  const [finished, setFinished] = useState(false);
+  const [resumed, setResumed] = useState(false);
+
+  const story = useMemo(() => {
+    if (!book) return null;
+    return getStory(bookId, book.title);
+  }, [book, bookId]);
+
+  const totalPages = story?.length ?? 0;
+
+  // بازیابی پیشرفت ذخیره‌شده — الگوی تاخیری سازگار با React Compiler
   useEffect(() => {
-    if (!showBar) return;
-    const t = setTimeout(() => setShowBar(false), 3000);
-    return () => clearTimeout(t);
-  }, [showBar]);
+    if (!story) return;
+    const id = setTimeout(() => {
+      try {
+        const saved = Number(localStorage.getItem(progressKey(bookId)));
+        if (Number.isFinite(saved) && saved > 0 && saved < totalPages) {
+          setSavedPage(saved);
+        }
+      } catch {
+        /* بی‌خیال */
+      }
+    }, 0);
+    return () => clearTimeout(id);
+  }, [story, bookId, totalPages]);
 
+  // ذخیره پیشرفت با هر تغییر صفحه
+  useEffect(() => {
+    if (!story || finished) return;
+    try {
+      localStorage.setItem(progressKey(bookId), String(page));
+    } catch {
+      /* بی‌خیال */
+    }
+  }, [page, story, finished, bookId]);
+
+  const goTo = useCallback(
+    (next: number) => {
+      if (!story) return;
+      if (next < 0 || next > totalPages - 1) return;
+      setDirection(next > page ? 1 : -1);
+      setPage(next);
+    },
+    [story, page, totalPages],
+  );
+
+  const goNext = useCallback(() => {
+    if (page >= totalPages - 1) {
+      // آخرین صفحه → پایان کتاب
+      setDirection(1);
+      setFinished(true);
+      try {
+        localStorage.setItem(progressKey(bookId), "0");
+      } catch {
+        /* بی‌خیال */
+      }
+      return;
+    }
+    goTo(page + 1);
+  }, [page, totalPages, goTo, bookId]);
+
+  const goPrev = useCallback(() => {
+    if (finished) {
+      setFinished(false);
+      setDirection(-1);
+      return;
+    }
+    goTo(page - 1);
+  }, [finished, goTo, page]);
+
+  // کیبورد: فلش‌ها (در چیدمان راست‌به‌چپ فلش چپ = جلو)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") router.push(`/library/${bookId}`);
+      if (e.key === "ArrowLeft") goNext();
+      if (e.key === "ArrowRight") goPrev();
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [bookId, router]);
+  }, [goNext, goPrev]);
 
-  const handleZoom = useCallback((d: number) => {
-    setZoom((z) => Math.min(200, Math.max(60, z + d)));
-    setShowBar(true);
-  }, []);
-
-  if (loading) {
-    // لودر یکپارچه — پس‌زمینهٔ کاغذی کتاب‌خوان حفظ می‌شود
-    return (
-      <div className="min-h-screen bg-[#F5F0E8]">
-        <PageLoader />
-      </div>
-    );
-  }
+  // ---------- حالت‌های بارگذاری / نبود کتاب ----------
+  if (loading) return <PageLoading minHeightClass="min-h-[70vh]" />;
 
   if (notFound || !book) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-[#F5F0E8]">
+      <div className="flex flex-col items-center justify-center min-h-[70vh]">
         <span className="text-5xl mb-4">😕</span>
-        <p className="text-amber-900/60 mb-4">کتاب مورد نظر یافت نشد</p>
+        <p className="text-slate-600 dark:text-slate-300 mb-4">
+          کتاب مورد نظر یافت نشد
+        </p>
         <Link
           href="/library"
-          className="px-5 py-2 bg-amber-800 text-white rounded-xl text-sm hover:bg-amber-700 transition"
+          className="px-5 py-2 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-sm transition"
         >
           بازگشت
         </Link>
@@ -58,91 +140,291 @@ export default function BookReaderPage() {
     );
   }
 
-  return (
-    <div className="h-screen flex flex-col bg-[#F5F0E8] overflow-hidden">
-      {/* نوار بالایی */}
+  // ---------- کتاب متن آماده ندارد → پیشنهاد PDF (رفتار قدیمی حفظ می‌شود) ----------
+  if (!story) {
+    return (
       <div
-        className={`absolute top-0 left-0 right-0 z-50 bg-linear-to-b from-black/60 via-black/30 to-transparent px-6 py-4 flex items-center justify-between transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        className="flex items-center justify-center min-h-[70vh] px-4"
+        dir="rtl"
       >
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.push(`/library/${book.id}`)}
-            className="flex items-center gap-2 text-white/80 hover:text-white transition text-sm"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-700 shadow-xl p-8 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2">
+            متن این کتاب هنوز آماده نشده است
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-7 mb-6">
+            صفحه مطالعه برگه‌ای در حال حاضر برای «{book.titleFa}» موجود نیست.
+            می‌توانید نسخه PDF را ببینید یا به کتابخانه برگردید.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href={`/api/books/${book.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-sm font-medium transition"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-            بستن
-          </button>
-          <div className="h-4 w-px bg-white/20" />
-          <span className="text-white/60 text-xs">
-            {book.titleFa} — {book.author}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur rounded-xl px-2 py-1">
-          <button
-            onClick={() => handleZoom(-10)}
-            className="w-7 h-7 rounded-lg hover:bg-white/10 text-white flex items-center justify-center transition text-sm font-bold"
-          >
-            −
-          </button>
-          <span className="text-white/80 text-xs w-10 text-center font-mono">
-            {zoom}%
-          </span>
-          <button
-            onClick={() => handleZoom(10)}
-            className="w-7 h-7 rounded-lg hover:bg-white/10 text-white flex items-center justify-center transition text-sm font-bold"
-          >
-            +
-          </button>
+              <FileText className="h-4 w-4" />
+              مشاهده PDF
+            </a>
+            <Link
+              href={`/library/${book.id}`}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-sm font-medium transition"
+            >
+              بازگشت به کتاب
+            </Link>
+          </div>
         </div>
       </div>
+    );
+  }
 
-      {/* نوار پایین */}
-      <div
-        className={`absolute bottom-0 left-0 right-0 z-50 bg-linear-to-t from-black/50 to-transparent px-6 py-4 flex items-center justify-center transition-all duration-500 ${showBar ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-      >
-        <span className="text-white/40 text-xs">
-          برای نمایش منو روی صفحه کلیک کنید · Escape برای خروج
-        </span>
-      </div>
+  const currentPage = story[page];
+  const isLast = page === totalPages - 1;
 
-      {/* PDF */}
-      <div
-        className="flex-1 relative cursor-pointer"
-        onClick={() => setShowBar(!showBar)}
-      >
-        {!pdfReady && (
-          <div className="absolute inset-0 flex items-center justify-center z-10 bg-[#F5F0E8]">
-            <div className="flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-amber-700/40 border-t-amber-700" />
-              <span className="text-amber-800/50 text-sm">
-                در حال آماده‌سازی کتاب...
-              </span>
+  // ---------- صفحه مطالعه برگه‌ای ----------
+  return (
+    <div className="min-h-[80vh] px-3 md:px-6 py-4 md:py-8" dir="rtl">
+      {/* نوار بالای ریدر */}
+      <div className="max-w-3xl mx-auto mb-4 md:mb-8">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <Link
+              href={`/library/${book.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 shadow-sm text-xs font-bold transition-colors shrink-0"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+              بازگشت
+            </Link>
+            <div className="min-w-0">
+              <h1 className="text-sm md:text-base font-bold text-slate-800 dark:text-slate-100 truncate">
+                {book.titleFa}
+              </h1>
+              <p className="text-[11px] md:text-xs text-slate-400 dark:text-slate-500 truncate">
+                <HoverableText text={book.title} /> · {book.author}
+              </p>
             </div>
           </div>
+
+          <a
+            href={`/api/books/${book.id}/pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="نسخه PDF کتاب"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 shadow-sm text-xs transition-colors shrink-0"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            PDF
+          </a>
+        </div>
+
+        {/* پیشنهاد ادامه مطالعه */}
+        {savedPage !== null && !resumed && page === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 flex items-center justify-between gap-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-xl px-4 py-2.5"
+          >
+            <span className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+              📖 دفعه قبل تا صفحه {savedPage + 1} خوانده بودی
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  goTo(savedPage);
+                  setResumed(true);
+                }}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold transition-colors"
+              >
+                ادامه بده
+              </button>
+              <button
+                onClick={() => setResumed(true)}
+                className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-[11px] font-bold border border-slate-200 dark:border-slate-700 transition-colors"
+              >
+                از اول
+              </button>
+            </div>
+          </motion.div>
         )}
-        <iframe
-          src={`/api/books/${book.id}/pdf`}
-          className="w-full h-full border-0 bg-white"
-          style={{
-            transform: `scale(${zoom / 100})`,
-            transformOrigin: "top center",
-          }}
-          title={book.title}
-          onLoad={() => setPdfReady(true)}
-        />
+      </div>
+
+      {/* ---------- برگه کتاب ---------- */}
+      <div className="max-w-3xl mx-auto">
+        <div className="relative">
+          {/* لبه‌های برگه‌های بعدی (حس کتاب فیزیکی) */}
+          <div className="absolute inset-y-2 -right-2 left-2 bg-[#EFE6D4] dark:bg-slate-800 rounded-3xl rotate-[0.6deg] shadow-sm" />
+          <div className="absolute inset-y-1 -right-1 left-1 bg-[#F5EDDD] dark:bg-slate-800/80 rounded-3xl rotate-[0.3deg] shadow-sm" />
+
+          <div className="relative bg-[#FDF9F0] dark:bg-[#141c2b] rounded-3xl shadow-xl shadow-amber-900/10 dark:shadow-black/40 border border-amber-100/60 dark:border-slate-700/70 overflow-hidden transition-colors duration-300">
+            {/* سایه عطف کتاب (سمت راست — کتاب فارسی) */}
+            <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-black/10 dark:from-black/40 to-transparent" />
+
+            {/* نوار پیشرفت مطالعه */}
+            <div className="h-1 bg-amber-100/50 dark:bg-slate-700/50">
+              <div
+                className="h-full bg-linear-to-l from-amber-500 to-amber-600 dark:from-amber-400 dark:to-amber-500 transition-all duration-500"
+                style={{
+                  width: `${((finished ? totalPages : page + 1) / totalPages) * 100}%`,
+                }}
+              />
+            </div>
+
+            <div className="px-6 md:px-14 py-8 md:py-12 min-h-[24rem] md:min-h-[28rem] flex flex-col">
+              <AnimatePresence mode="wait" custom={direction}>
+                {finished ? (
+                  // ---------- کارت پایان کتاب ----------
+                  <motion.div
+                    key="finished"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex-1 flex flex-col items-center justify-center text-center"
+                  >
+                    <motion.div
+                      initial={{ rotate: -10, scale: 0 }}
+                      animate={{ rotate: 0, scale: 1 }}
+                      transition={{ type: "spring", delay: 0.15 }}
+                      className="w-20 h-20 rounded-3xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mb-5"
+                    >
+                      <Sparkles className="h-10 w-10 text-emerald-500" />
+                    </motion.div>
+                    <h2 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100 mb-2">
+                      آفرین! کتاب را تمام کردی 🎉
+                    </h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-7 mb-2">
+                      «{book.titleFa}» را در {totalPages} برگه خواندی.
+                    </p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 leading-6 mb-8 max-w-sm">
+                      کلمه‌های ناآشنا را با هاور به جعبه لغات اضافه کردی؟ در
+                      لغت‌نامه می‌توانی آن‌ها را مرور کنی.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={() => {
+                          setFinished(false);
+                          setDirection(-1);
+                          goTo(0);
+                        }}
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-700 hover:bg-amber-600 text-white rounded-xl text-sm font-bold transition-colors"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        خواندن دوباره
+                      </button>
+                      <Link
+                        href="/library"
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-50 dark:bg-slate-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-slate-700 rounded-xl text-sm font-bold border border-amber-200/60 dark:border-slate-700 transition-colors"
+                      >
+                        <Library className="h-4 w-4" />
+                        کتابخانه
+                      </Link>
+                    </div>
+                  </motion.div>
+                ) : (
+                  // ---------- برگه متن ----------
+                  <motion.div
+                    key={page}
+                    custom={direction}
+                    initial={{ opacity: 0, x: direction * -48, rotateY: 4 }}
+                    animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                    exit={{ opacity: 0, x: direction * 48, rotateY: -4 }}
+                    transition={{ duration: 0.35, ease: "easeOut" }}
+                    className="flex-1"
+                  >
+                    {currentPage.heading && (
+                      <h2 className="font-serif text-xl md:text-2xl font-bold text-amber-900 dark:text-amber-300 mb-6 flex items-center gap-3">
+                        <BookMarked className="h-5 w-5 text-amber-500/70 dark:text-amber-400/70 shrink-0" />
+                        <span dir="ltr">{currentPage.heading}</span>
+                      </h2>
+                    )}
+
+                    <div dir="ltr" className="space-y-5">
+                      {currentPage.paragraphs.map((p, i) => (
+                        <p
+                          key={i}
+                          className="font-serif text-[17px] md:text-[19px] leading-[2.1] text-slate-800 dark:text-slate-200 text-justify"
+                        >
+                          <HoverableText text={p} />
+                        </p>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* شماره برگه */}
+              {!finished && (
+                <div className="pt-6 mt-2 border-t border-dashed border-amber-200/70 dark:border-slate-700 flex items-center justify-center">
+                  <span className="font-serif text-xs text-amber-700/70 dark:text-slate-500 tracking-widest">
+                    — {page + 1} —
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ---------- کنترل صفحه ---------- */}
+        {!finished && (
+          <div className="mt-5 md:mt-7 flex items-center justify-between gap-3">
+            {/* قبلی (سمت راست در چیدمان راست‌به‌چپ) */}
+            <button
+              onClick={goPrev}
+              disabled={page === 0}
+              className="inline-flex items-center gap-1.5 px-4 md:px-6 py-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-bold shadow-sm transition-all hover:border-amber-300 dark:hover:border-amber-500/40 hover:text-amber-700 dark:hover:text-amber-300 disabled:opacity-40 disabled:pointer-events-none"
+            >
+              <ChevronRight className="w-4 h-4" />
+              صفحه قبل
+            </button>
+
+            {/* نقاط صفحه‌ها */}
+            <div className="hidden md:flex items-center gap-1.5">
+              {story.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => goTo(i)}
+                  aria-label={`صفحه ${i + 1}`}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    i === page
+                      ? "w-7 bg-amber-600 dark:bg-amber-400"
+                      : "w-2 bg-slate-200 dark:bg-slate-700 hover:bg-amber-300 dark:hover:bg-amber-500/50"
+                  }`}
+                />
+              ))}
+            </div>
+
+            <span className="md:hidden text-xs text-slate-400 dark:text-slate-500 font-medium">
+              {page + 1} از {totalPages}
+            </span>
+
+            {/* بعدی (سمت چپ) */}
+            <button
+              onClick={goNext}
+              className={`inline-flex items-center gap-1.5 px-5 md:px-7 py-3 rounded-2xl text-white text-sm font-bold shadow-md transition-all hover:scale-[1.03] active:scale-95 ${
+                isLast
+                  ? "bg-linear-to-l from-emerald-600 to-emerald-500 shadow-emerald-600/25"
+                  : "bg-linear-to-l from-amber-600 to-amber-500 shadow-amber-600/25"
+              }`}
+            >
+              {isLast ? "پایان کتاب" : "صفحه بعد"}
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* راهنمای هاور — فقط صفحه اول */}
+        {page === 0 && !finished && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+            className="mt-4 text-center text-[11px] text-slate-400 dark:text-slate-500"
+          >
+            💡 روی هر کلمه انگلیسی هاور کن تا ترجمه و گزینه «افزودن به جعبه لغت» را ببینی
+          </motion.p>
+        )}
       </div>
     </div>
   );
