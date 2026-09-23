@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import { BookX } from "lucide-react";
 import { loadLessonContent } from "@/data/lessons";
 import type { LessonContent } from "@/data/lessons/types";
-import GrammarView from "./views/GrammarView";
-import ConversationView from "./views/ConversationView";
-import VocabularyView from "./views/VocabularyView";
-import ListeningView from "./views/ListeningView";
+import GrammarView from "./views/grammar/GrammarView";
+import ConversationView from "./views/conversation/ConversationView";
+import VocabularyView from "./views/vocabulary/VocabularyView";
+import ListeningView from "./views/listening/ListeningView";
 
 type Props = {
   slug: string;

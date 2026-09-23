@@ -1,24 +1,23 @@
 "use client";
 import { useLanguage } from "@/app/context/LanguageContext";
 
-import { motion } from "motion/react";
-import Link from "next/link";
-import { Gamepad2, Lightbulb, RotateCcw, XCircle, ArrowRight } from "lucide-react";
-import HangmanFigure from "@/app/components/game/HangmanFigure";
-import HangmanTimer from "@/app/components/game/HangmanTimer";
-import Keyboard from "@/app/components/game/Keyboard";
-import WordDisplay from "@/app/components/game/WordDisplay";
+import { Gamepad2 } from "lucide-react";
+import HangmanFigure from "@/app/components/game/hangman/HangmanFigure";
+import HangmanTimer from "@/app/components/game/hangman/HangmanTimer";
+import Keyboard from "@/app/components/game/hangman/Keyboard";
+import WordDisplay from "@/app/components/game/hangman/WordDisplay";
+import WordHintCard from "@/app/components/game/hangman/WordHintCard";
+import SessionTopBar from "@/app/components/game/hangman/SessionTopBar";
+import WordResultOverlay from "@/app/components/game/hangman/WordResultOverlay";
+import SessionEndOverlay from "@/app/components/game/hangman/SessionEndOverlay";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
 import LevelSelect from "@/app/components/game/LevelSelect";
-import LeaderboardBox from "@/app/components/game/LeaderboardBox";
-import SessionTopBar from "@/app/components/game/SessionTopBar";
-import WordResultOverlay from "@/app/components/game/WordResultOverlay";
-import SessionEndOverlay from "@/app/components/game/SessionEndOverlay";
-import { useHangmanGame } from "@/app/hook/useHangmanGame";
-import { useGameStats } from "@/app/hook/useGameStats";
+import LeaderboardBox from "@/app/components/game/leaderboard/LeaderboardBox";
+import GameHeader from "@/app/components/game/shared/GameHeader";
+import { GameLoading, GameError, GameScoringGuide } from "@/app/components/game/shared/GameStates";
+import { useHangmanGame } from "@/app/hook/game/useHangmanGame";
+import { useGameStats } from "@/app/hook/game/useGameStats";
 import {
-  CATEGORY_LABELS,
-  CATEGORY_LABELS_EN,
   GAME_CONFIG,
   HANGMAN_TIMER_SECONDS,
   getGameLevel,
@@ -29,6 +28,8 @@ import {
 // منطق در useHangmanGame + useGameStats — اینجا فقط رندر
 // v1.0.0.6 — گام ۲: تایمر حدس بر اساس سطح (۵/۷/۱۰ ثانیه)
 // v1.0.0.6 — گام ۱: آمار زنده + حذف کارت استریک از صفحه
+// v1.0.2.7 — ریفکتوری: هدر/لودینگ/خطا/راهنمای امتیاز مشترک
+// (game/shared) + کارت راهنمای کلمه (hangman/WordHintCard)
 // ========================================
 
 export default function HangmanPage() {
@@ -74,35 +75,14 @@ export default function HangmanPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-          <Gamepad2 className="w-5 h-5 text-emerald-600" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">Hangman</h1>
-          <p className="text-sm text-slate-500">
-            {tr("حروف را حدس بزن و کلمه را نجات بده!", "Guess the letters and save the word!")}
-          </p>
-        </div>
-        {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
-        {phase === "levelSelect" ? (
-          <Link
-            href="/game"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-            {tr("بازگشت", "Back")}
-          </Link>
-        ) : (
-          <button
-            onClick={handleBackToLevels}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-            {tr("بازی‌ها", "Games")}
-          </button>
-        )}
-      </div>
+      <GameHeader
+        icon={Gamepad2}
+        iconClassName="bg-emerald-50"
+        title="Hangman"
+        subtitle={tr("حروف را حدس بزن و کلمه را نجات بده!", "Guess the letters and save the word!")}
+        isLevelSelect={phase === "levelSelect"}
+        onBackToLevels={handleBackToLevels}
+      />
 
       {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
       {/* اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
@@ -142,28 +122,16 @@ export default function HangmanPage() {
 
           {/* ---- بدنه بازی ---- */}
           {phase === "loading" && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-              <p className="text-sm text-slate-500">
-                {tr(`در حال آماده‌سازی کلمات سطح ${levelFa}...`, `Preparing words for level ${levelFa}...`)}
-              </p>
-            </div>
+            <GameLoading
+              text={tr(`در حال آماده‌سازی کلمات سطح ${levelFa}...`, `Preparing words for level ${levelFa}...`)}
+            />
           )}
 
           {phase === "error" && (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <XCircle className="h-14 w-14 text-red-200" />
-              <p className="text-slate-500 text-sm">
-                {tr("خطا در بارگذاری بازی. دوباره تلاش کنید.", "Error loading the game. Please try again.")}
-              </p>
-              <button
-                onClick={handleRestart}
-                className="px-5 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-medium hover:bg-emerald-100 transition-colors flex items-center gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                {tr("تلاش مجدد", "Try Again")}
-              </button>
-            </div>
+            <GameError
+              onRetry={handleRestart}
+              accent="bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+            />
           )}
 
           {(phase === "playing" || phase === "wordResult" || phase === "sessionEnd") &&
@@ -177,36 +145,7 @@ export default function HangmanPage() {
 
                   {/* راهنما + کلمه */}
                   <div className="order-1 md:order-2 space-y-4">
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-amber-50 border border-amber-100 rounded-xl p-3.5"
-                    >
-                      <p className="text-sm text-amber-800 flex items-center gap-2 flex-wrap">
-                        <Lightbulb className="h-4 w-4 shrink-0 text-amber-500" />
-                        <span className="font-medium">{tr("راهنما:", "Guide:")}</span>
-                        <span className="font-bold">{currentWord.hint}</span>
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-2.5 flex-wrap">
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
-                          {tr(
-                            CATEGORY_LABELS[currentWord.category] ?? currentWord.category,
-                            CATEGORY_LABELS_EN[currentWord.category] ?? currentWord.category
-                          )}
-                        </span>
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getGameLevel(currentWord.level).color}`}
-                        >
-                          {tr("سطح", "Level")} {tr(getGameLevel(currentWord.level).fa, getGameLevel(currentWord.level).en)}
-                        </span>
-                        {/* بج CEFR کلمه */}
-                        {currentWord.cefr && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-white font-bold tracking-wide">
-                            {currentWord.cefr}
-                          </span>
-                        )}
-                      </div>
-                    </motion.div>
+                    <WordHintCard currentWord={currentWord} />
 
                     {/* خانه‌های حروف */}
                     <WordDisplay
@@ -263,7 +202,7 @@ export default function HangmanPage() {
 
       {/* راهنمای امتیازدهی */}
       {phase !== "levelSelect" && (
-        <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-400 flex-wrap">
+        <GameScoringGuide>
           <span>{tr("سطح:", "Level:")} {levelFa}</span>
           <span className="text-slate-200">|</span>
           <span>{tr("زمان هر حدس:", "Time per guess:")} {HANGMAN_TIMER_SECONDS[level]} {tr("ثانیه", "s")}</span>
@@ -274,7 +213,7 @@ export default function HangmanPage() {
             +{GAME_CONFIG.winBaseBonus + GAME_CONFIG.maxWrong * GAME_CONFIG.pointsPerLife}
           </span>
           <span>{tr("هر دور:", "Each round:")} {GAME_CONFIG.wordsPerSession} {tr("کلمه", "words")}</span>
-        </div>
+        </GameScoringGuide>
       )}
     </div>
   );

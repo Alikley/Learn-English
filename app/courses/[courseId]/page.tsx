@@ -8,7 +8,7 @@ import LessonCard from "@/app/components/course/LessonCard";
 import EmptyState from "@/app/components/course/EmptyState";
 import { LEVEL_LABEL } from "@/types/course";
 import { getCourseTheme } from "@/lib/course-theme";
-import { useCourseDetail } from "@/app/hook/useCourseDetail";
+import { useCourseDetail } from "@/app/hook/course/useCourseDetail";
 
 // ========================================
 // صفحه جزئیات دوره — v1.0.1.1

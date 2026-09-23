@@ -2,8 +2,8 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
-import { useGaze } from "@/app/hook/useGaze";
-import { useBlink } from "@/app/hook/useBlink";
+import { useGaze } from "@/app/hook/ui/useGaze";
+import { useBlink } from "@/app/hook/ui/useBlink";
 
 // ========================================
 // کاراکتر انسان متحرک صفحه بازی‌ها — v1.0.0.9

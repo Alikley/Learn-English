@@ -4,7 +4,7 @@ import PageLoading from "@/app/components/PageLoading";
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useBook } from "@/app/hook/useBook";
+import { useBook } from "@/app/hook/library/useBook";
 import { getLevelInfo } from "@/types/book";
 
 export default function BookDetailPage() {

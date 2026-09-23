@@ -2,151 +2,28 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  Play,
-  Pause,
-  RotateCcw,
-  Volume2,
-  Star,
-  Zap,
-  CheckCircle2,
-  XCircle,
-  Lightbulb,
-  ChevronDown,
-} from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { ArrowRight, Lightbulb, Zap } from "lucide-react";
 import {
   getListeningLevel,
   ListeningEpisode,
   ListeningGap,
 } from "@/types/listening";
+import AudioPlayer from "./_components/AudioPlayer";
+import GapTranscript, { type TranscriptSegment } from "./_components/GapTranscript";
+import ResultCard, { type EpisodeResult } from "./_components/ResultCard";
+import {
+  SubmitAnswersButton,
+  RetryButton,
+} from "@/app/training/_components/PracticeResultBits";
 
-/* ========== کامپوننت پلیر صوتی ========== */
-function AudioPlayer({ src }: { src: string }) {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [currentTime, setCurrent] = useState(0);
-  const [duration, setDuration] = useState(0);
+// ========================================
+// تمرین شنیداری [episodeId] — پلیر + ترنسکریپت با جای خالی
+// منطق دریافت/ارسال اینجا؛ پلیر/ترنسکریپت/نتیجه در _components
+// (v1.0.2.7 — ریفکتوری گام ۲)
+// ========================================
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onTime = () => setCurrent(audio.currentTime);
-    const onLoaded = () => setDuration(audio.duration);
-    audio.addEventListener("timeupdate", onTime);
-    audio.addEventListener("loadedmetadata", onLoaded);
-    return () => {
-      audio.removeEventListener("timeupdate", onTime);
-      audio.removeEventListener("loadedmetadata", onLoaded);
-    };
-  }, []);
-
-  const toggle = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (playing) audio.pause();
-    else audio.play();
-    setPlaying(!playing);
-  };
-
-  const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = Number(e.target.value);
-    setCurrent(audio.currentTime);
-  };
-
-  const restart = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = 0;
-    setCurrent(0);
-  };
-
-  const fmt = (s: number) => {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, "0")}`;
-  };
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-      <audio ref={audioRef} src={src} preload="metadata" />
-      {/* پروگرس بار */}
-      <div className="relative w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
-        <div
-          className="absolute top-0 right-0 h-full bg-linear-to-l from-orange-500 to-amber-400 rounded-full transition-all duration-200"
-          style={{ width: `${progress}%` }}
-        />
-        <input
-          type="range"
-          min={0}
-          max={duration || 0}
-          value={currentTime}
-          onChange={seek}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-        />
-      </div>
-      {/* کنترل‌ها */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-slate-500">{fmt(currentTime)}</span>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={restart}
-            className="p-2 rounded-full hover:bg-slate-100 transition-colors"
-          >
-            <RotateCcw className="h-4 w-4 text-slate-600" />
-          </button>
-          <button
-            onClick={toggle}
-            className="p-3 rounded-full bg-orange-500 hover:bg-orange-600 text-white transition-colors shadow-md"
-          >
-            {playing ? (
-              <Pause className="h-5 w-5" />
-            ) : (
-              <Play className="h-5 w-5 -mr-0.5" />
-            )}
-          </button>
-          <div className="flex items-center gap-1 text-xs text-slate-500">
-            <Volume2 className="h-4 w-4" />
-          </div>
-        </div>
-        <span className="text-xs text-slate-500">{fmt(duration)}</span>
-      </div>
-    </div>
-  );
-}
-
-/* ========== کامپوننت ستاره‌ها ========== */
-function StarsResult({ count }: { count: number }) {
-  return (
-    <div className="flex items-center justify-center gap-2">
-      {[1, 2, 3].map((s) => (
-        <motion.div
-          key={s}
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ delay: 0.3 + s * 0.2, type: "spring" }}
-        >
-          <Star
-            className={`h-10 w-10 ${
-              s <= count
-                ? "text-amber-400 fill-amber-400 drop-shadow-md"
-                : "text-slate-200"
-            }`}
-          />
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-/* ========== صفحه اصلی ========== */
 export default function ListeningExercisePage() {
   const { tr, dir } = useLanguage();
   const { episodeId } = useParams<{ episodeId: string }>();
@@ -157,13 +34,7 @@ export default function ListeningExercisePage() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [hints, setHints] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{
-    correct: number;
-    total: number;
-    stars: number;
-    xpEarned: number;
-    percent: number;
-  } | null>(null);
+  const [result, setResult] = useState<EpisodeResult | null>(null);
 
   // دریافت اطلاعات قسمت
   useEffect(() => {
@@ -195,10 +66,10 @@ export default function ListeningExercisePage() {
   }, [episodeId]);
 
   // پارس transcript → قطعات متنی + blanks
-  const segments = useMemo(() => {
+  const segments = useMemo<TranscriptSegment[]>(() => {
     if (!episode) return [];
     const regex = /\{(\d+)\}/g;
-    const parts: { type: "text" | "gap"; value: string; gapId?: number }[] = [];
+    const parts: TranscriptSegment[] = [];
     let lastIndex = 0;
     let match: RegExpExecArray | null;
 
@@ -334,176 +205,35 @@ export default function ListeningExercisePage() {
       </div>
 
       {/* متن ترنسکرایب + blanks */}
-      <div className="mt-6 bg-white rounded-2xl border border-slate-100 shadow-sm p-5 md:p-6">
-        <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xs">
-            📝
-          </span>
-          {tr("متن تمرین", "Practice Text")}
-        </h2>
-
-        <div className="text-sm md:text-base leading-[2.2] text-slate-700">
-          {segments.map((seg, i) => {
-            if (seg.type === "text") {
-              return <span key={i}>{seg.value}</span>;
-            }
-
-            const gapId = seg.gapId!;
-            const gap = gapsMap.get(gapId);
-            const userAns = answers[gapId] || "";
-            const hint = hints[gapId];
-
-            // بررسی صحت بعد از ارسال
-            let status: "correct" | "wrong" | "idle" = "idle";
-            if (result && gap) {
-              status =
-                userAns.trim().toLowerCase() === gap.answer.trim().toLowerCase()
-                  ? "correct"
-                  : "wrong";
-            }
-
-            return (
-              <span key={i} className="inline mx-0.5">
-                <span className="relative inline-flex items-center gap-1">
-                  <input
-                    type="text"
-                    value={userAns}
-                    onChange={(e) => setAnswer(gapId, e.target.value)}
-                    placeholder={`(${gapId})`}
-                    dir="ltr"
-                    disabled={!!result}
-                    className={`w-28 md:w-36 px-2 py-1 text-sm border rounded-lg text-center outline-none transition-all font-medium ${
-                      status === "correct"
-                        ? "border-green-300 bg-green-50 text-green-700"
-                        : status === "wrong"
-                          ? "border-red-300 bg-red-50 text-red-700"
-                          : "border-slate-200 bg-slate-50 text-slate-800 focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
-                    }`}
-                  />
-                  {/* آیکون صحت/غلط */}
-                  {result && status === "correct" && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  )}
-                  {result && status === "wrong" && (
-                    <span className="flex items-center gap-0.5">
-                      <XCircle className="h-4 w-4 text-red-500" />
-                      <span className="text-xs text-green-600 font-medium">
-                        {gap?.answer}
-                      </span>
-                    </span>
-                  )}
-                  {/* دکمه راهنما */}
-                  {!result && (
-                    <button
-                      onClick={() => toggleHint(gapId)}
-                      className="p-0.5 hover:bg-slate-100 rounded transition-colors"
-                      title={tr("راهنما", "Guide")}
-                    >
-                      <Lightbulb
-                        className={`h-3.5 w-3.5 ${hint ? "text-amber-500" : "text-slate-300"}`}
-                      />
-                    </button>
-                  )}
-                </span>
-                {/* متن راهنما */}
-                <AnimatePresence>
-                  {hint && gap && (
-                    <motion.span
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="block text-[11px] text-amber-600 mt-0.5"
-                    >
-                      💡 {gap.hint}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </span>
-            );
-          })}
-        </div>
-      </div>
+      <GapTranscript
+        segments={segments}
+        gapsMap={gapsMap}
+        answers={answers}
+        hints={hints}
+        hasResult={result !== null}
+        onSetAnswer={setAnswer}
+        onToggleHint={toggleHint}
+      />
 
       {/* دکمه ارسال / تلاش مجدد */}
       <div className="mt-6 flex justify-center gap-3">
         {!result ? (
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="px-8 py-3 bg-linear-to-l from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:opacity-60 text-white rounded-xl font-medium text-sm transition-all shadow-md flex items-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                {tr("در حال بررسی...", "Checking...")}
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="h-4 w-4" />
-                {tr("ثبت جواب‌ها", "Submit Answers")}
-              </>
-            )}
-          </button>
+          <SubmitAnswersButton
+            submitting={submitting}
+            onSubmit={() => void handleSubmit()}
+          />
         ) : (
-          <button
-            onClick={handleRetry}
-            className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium text-sm transition-all flex items-center gap-2"
-          >
-            <RotateCcw className="h-4 w-4" />
-            {tr("تلاش مجدد", "Try Again")}
-          </button>
+          <RetryButton onRetry={handleRetry} />
         )}
       </div>
 
       {/* نتیجه */}
-      <AnimatePresence>
-        {result && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="mt-8 bg-white rounded-2xl border border-slate-100 shadow-lg p-6 text-center"
-          >
-            <h3 className="text-lg font-bold text-slate-800 mb-4">
-              {tr("نتیجه تمرین", "Practice Result")}
-            </h3>
-
-            <StarsResult count={result.stars} />
-
-            <div className="mt-4 flex items-center justify-center gap-6 text-sm">
-              <div>
-                <span className="text-slate-500">{tr("پاسخ صحیح:", "Correct answer:")} </span>
-                <span className="font-bold text-slate-800">
-                  {result.correct}/{result.total}
-                </span>
-              </div>
-              <div className="text-slate-300">|</div>
-              <div>
-                <span className="text-slate-500">{tr("درصد:", "Score:")} </span>
-                <span className="font-bold text-slate-800">
-                  {result.percent}%
-                </span>
-              </div>
-              <div className="text-slate-300">|</div>
-              <div className="flex items-center gap-1">
-                <Zap className="h-4 w-4 text-orange-500" />
-                <span className="font-bold text-orange-600">
-                  +{result.xpEarned} XP
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <button
-                onClick={() => router.push("/training")}
-                className="px-6 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-sm font-medium hover:bg-blue-100 transition-colors"
-              >
-                {tr("بازگشت به لیست تمرین‌ها", "Back to Practice List")}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {result && (
+        <ResultCard
+          result={result}
+          onBack={() => router.push("/training")}
+        />
+      )}
     </div>
   );
 }

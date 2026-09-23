@@ -1,17 +1,18 @@
 "use client";
 import { useLanguage } from "@/app/context/LanguageContext";
 
-import Link from "next/link";
-import { Brain, RotateCcw, XCircle, ArrowRight } from "lucide-react";
+import { Brain } from "lucide-react";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
-import GameOutcomeOverlay from "@/app/components/game/GameOutcomeOverlay";
+import GameOutcomeOverlay from "@/app/components/game/outcome/GameOutcomeOverlay";
 import LevelSelect from "@/app/components/game/LevelSelect";
-import LeaderboardBox from "@/app/components/game/LeaderboardBox";
-import MemoryBoard from "@/app/components/game/MemoryBoard";
-import MemoryTopBar from "@/app/components/game/MemoryTopBar";
-import MemoryRoundOverlay from "@/app/components/game/MemoryRoundOverlay";
-import { useMemoryGame } from "@/app/hook/useMemoryGame";
-import { useMemoryStats } from "@/app/hook/useMemoryStats";
+import LeaderboardBox from "@/app/components/game/leaderboard/LeaderboardBox";
+import MemoryBoard from "@/app/components/game/memory/MemoryBoard";
+import MemoryTopBar from "@/app/components/game/memory/MemoryTopBar";
+import MemoryRoundOverlay from "@/app/components/game/memory/MemoryRoundOverlay";
+import GameHeader from "@/app/components/game/shared/GameHeader";
+import { GameLoading, GameError, GameScoringGuide } from "@/app/components/game/shared/GameStates";
+import { useMemoryGame } from "@/app/hook/game/useMemoryGame";
+import { useMemoryStats } from "@/app/hook/game/useMemoryStats";
 import {
   MEMORY_CONFIG,
   MEMORY_LEVELS,
@@ -26,6 +27,7 @@ import {
 // v1.0.0.6 — گام ۳: ۳ اشتباه = Game Over انیمیشنی، برد = مرحله بعد
 //   بدون نمایش شماره مرحله + جان‌ها در نوار بالا
 // v1.0.0.6 — گام ۱: آمار زنده + حذف کارت استریک از صفحه
+// v1.0.2.7 — ریفکتوری: هدر/لودینگ/خطا/راهنمای امتیاز مشترک (game/shared)
 // ========================================
 
 export default function MemoryPage() {
@@ -71,38 +73,17 @@ export default function MemoryPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
-          <Brain className="w-5 h-5 text-violet-600" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">Match Card</h1>
-          <p className="text-sm text-slate-500">
-            {tr(
-              "کارت‌ها را باز کن و جفت کلمه انگلیسی + معنی فارسی را پیدا کن!",
-              "Flip the cards and match English words with their Persian meanings!"
-            )}
-          </p>
-        </div>
-        {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
-        {phase === "levelSelect" ? (
-          <Link
-            href="/game"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-            {tr("بازگشت", "Back")}
-          </Link>
-        ) : (
-          <button
-            onClick={handleBackToLevels}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-            {tr("بازی‌ها", "Games")}
-          </button>
+      <GameHeader
+        icon={Brain}
+        iconClassName="bg-violet-50"
+        title="Match Card"
+        subtitle={tr(
+          "کارت‌ها را باز کن و جفت کلمه انگلیسی + معنی فارسی را پیدا کن!",
+          "Flip the cards and match English words with their Persian meanings!"
         )}
-      </div>
+        isLevelSelect={phase === "levelSelect"}
+        onBackToLevels={handleBackToLevels}
+      />
 
       {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
       {/* اعداد همزمان با بازی زنده تغییر می‌کنند؛ کارت استریک حذف شده است */}
@@ -143,31 +124,21 @@ export default function MemoryPage() {
 
           {/* ---- بدنه بازی ---- */}
           {phase === "loading" && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-              <p className="text-sm text-slate-500">
-                {/* گام ۳ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
-                {hideLevel
+            <GameLoading
+              text={
+                /* گام ۳ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */
+                hideLevel
                   ? tr("در حال آماده‌سازی مرحله بعدی...", "Preparing the next stage...")
-                  : tr(`در حال آماده‌سازی تخته سطح ${levelFa}...`, `Preparing the level ${levelFa} board...`)}
-              </p>
-            </div>
+                  : tr(`در حال آماده‌سازی تخته سطح ${levelFa}...`, `Preparing the level ${levelFa} board...`)
+              }
+            />
           )}
 
           {phase === "error" && (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <XCircle className="h-14 w-14 text-red-200" />
-              <p className="text-slate-500 text-sm">
-                {tr("خطا در بارگذاری بازی. دوباره تلاش کنید.", "Error loading the game. Please try again.")}
-              </p>
-              <button
-                onClick={handleRestart}
-                className="px-5 py-2 bg-violet-50 text-violet-600 rounded-xl text-sm font-medium hover:bg-violet-100 transition-colors flex items-center gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                {tr("تلاش مجدد", "Try Again")}
-              </button>
-            </div>
+            <GameError
+              onRetry={handleRestart}
+              accent="bg-violet-50 text-violet-600 hover:bg-violet-100"
+            />
           )}
 
           {(phase === "playing" ||
@@ -214,7 +185,7 @@ export default function MemoryPage() {
 
       {/* راهنمای امتیازدهی */}
       {phase !== "levelSelect" && (
-        <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-slate-400 flex-wrap">
+        <GameScoringGuide>
           <span>{tr("هر جفت درست:", "Each correct pair:")} +{MEMORY_CONFIG.pointsPerMatch}</span>
           <span className="text-slate-200">|</span>
           <span>{tr("هر جفت پشت سر هم:", "Back-to-back pairs:")} +{MEMORY_CONFIG.comboStepBonus} {tr("بیشتر", "extra")}</span>
@@ -223,7 +194,7 @@ export default function MemoryPage() {
             {tr("جان‌ها:", "Lives:")} {MEMORY_CONFIG.startLives} ({tr("هر جفت درست +۱ تا سقف", "each correct pair +1 up to")} {MEMORY_CONFIG.maxLives}) | {tr("هر بازی:", "each game:")} {MEMORY_CONFIG.roundsPerSession} {tr("راند", "rounds")} ×{" "}
             {MEMORY_CONFIG.pairsPerBoard[level]} {tr("جفت", "pairs")}
           </span>
-        </div>
+        </GameScoringGuide>
       )}
     </div>
   );

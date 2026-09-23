@@ -5,7 +5,7 @@ import Sidebar from "@/app/components/Sidebar";
 import StreakLoginAlert from "@/app/components/StreakLoginAlert";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { useIsPublicPath } from "@/app/components/AuthGuard";
-import { useSidebar } from "../hook/useSidebar";
+import { useSidebar } from "../hook/ui/useSidebar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { isOpen, toggle } = useSidebar();

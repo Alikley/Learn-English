@@ -5,9 +5,9 @@ import { Gamepad2 } from "lucide-react";
 import GameCard from "@/app/components/game/GameCard";
 import GameCardStats from "@/app/components/game/GameCardStats";
 import MascotCharacter from "@/app/components/game/MascotCharacter";
-import { useGameStats } from "@/app/hook/useGameStats";
-import { useMemoryStats } from "@/app/hook/useMemoryStats";
-import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
+import { useGameStats } from "@/app/hook/game/useGameStats";
+import { useMemoryStats } from "@/app/hook/game/useMemoryStats";
+import { useSpeedQuizStats } from "@/app/hook/game/useSpeedQuizStats";
 
 // ========================================
 // هاب بازی‌ها — کارت هر بازی

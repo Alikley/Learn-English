@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { VocabBox, VocabWordItem } from "@/types/vocabulary";
 import { VOCAB_BOX_NAME_MAX, VOCAB_BOX_WORD_LIMIT } from "@/types/vocabulary";
+import { fetchWithTimeout, netErrorMessage } from "./vocabApi";
 
 // ========================================
 // هوک جعبه‌های لغت‌نامه (نسخه 1.0.1.8 — رفع اسپینر ابدی)
@@ -22,28 +23,10 @@ import { VOCAB_BOX_NAME_MAX, VOCAB_BOX_WORD_LIMIT } from "@/types/vocabulary";
 // ⏱ سقف انتظار ۲۰ ثانیه: اگر سرور پاسخ نداد (هر دلیلی — کندی دیتابیس،
 // قفل شبکه، سرور گیرکرده)، خطای فارسی روشن + دکمه تلاش دوباره نشان
 // می‌دهیم — دیگر «اسپینر ابدی» غیرممکن است.
+//
+// v1.0.2.7 — ریفکتوری: فِچ با سقف زمانی و پیام‌های خطا
+// به vocabApi.ts منتقل شد.
 // ========================================
-
-/** سقف انتظار هر درخواست لغت‌نامه (میلی‌ثانیه) */
-const VOCAB_REQ_TIMEOUT_MS = 20_000;
-
-/** فِچ با سقف زمانی — بعد از مهلت، درخواست لغو و خطا نمایش داده می‌شود */
-async function fetchWithTimeout(url: string, init?: RequestInit) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), VOCAB_REQ_TIMEOUT_MS);
-  try {
-    return await fetch(url, { ...init, signal: ctrl.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/** پیام فارسی خطای شبکه/تایم‌اوت */
-function netErrorMessage(e: unknown): string {
-  if (e instanceof DOMException && e.name === "AbortError")
-    return "پاسخ سرور بیش از حد طول کشید — دوباره تلاش کنید";
-  return "ارتباط با سرور برقرار نشد";
-}
 
 export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
   const [boxes, setBoxes] = useState<VocabBox[]>([]);

@@ -2,36 +2,24 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  PenLine,
-  Bold,
-  Italic,
-  Underline,
-  List,
-  ListOrdered,
-  Eraser,
-  Send,
-  RotateCcw,
-  Lightbulb,
-  Sparkles,
-  CheckCircle2,
-  XCircle,
-  ThumbsUp,
-  Wand2,
-  BookOpen,
-} from "lucide-react";
+import { PenLine } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { WritingFeedback, WritingTopic } from "@/types/training";
-import { ScoreRing, Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
-import { HoverableText } from "@/app/components/vocabulary/HoverableText";
+import PromptCard from "./_components/PromptCard";
+import EditorToolbar from "./_components/EditorToolbar";
+import WritingFeedbackView, { starsOfScore } from "./_components/WritingFeedbackView";
+import WritingHeader from "./_components/WritingHeader";
+import WritingActionButtons from "./_components/WritingActionButtons";
+import useWordLimitedEditor from "./_components/useWordLimitedEditor";
 
 // ========================================
 // ادیتور نوشتاری (نسخه ۱.۰.۱.۴)
 // ادیتور شبیه Word با سقف سخت ۲۰۰ کلمه + اصلاح با هوش مصنوعی
+// v1.0.2.7 — ریفکتوری گام ۲: صورت موضوع، نوار ابزار، نتیجهٔ اصلاح،
+// هدر، دکمه‌ها و منطق سقف کلمه به _components تفکیک شدند (بدون تغییر رفتار)
 // ========================================
 
 const MIN_WORDS = 30;
@@ -46,11 +34,24 @@ export default function WritingEditorPage() {
   const [loading, setLoading] = useState(true);
   const [bestStars, setBestStars] = useState(0);
 
-  const editorRef = useRef<HTMLDivElement>(null);
-  const [wordCount, setWordCount] = useState(0);
   const [feedback, setFeedback] = useState<WritingFeedback | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  /* ---------- ادیتور با سقف سخت کلمه ---------- */
+  const {
+    editorRef,
+    wordCount,
+    handleInput: capEditorInput,
+    handleKeyDown,
+    handlePaste,
+    reset: resetEditor,
+  } = useWordLimitedEditor(MAX_WORDS, feedback !== null);
+
+  const handleInput = () => {
+    setApiError(null);
+    capEditorInput();
+  };
 
   /* ---------- دریافت موضوع ---------- */
   useEffect(() => {
@@ -78,64 +79,16 @@ export default function WritingEditorPage() {
     };
   }, [topicId]);
 
-  /* ---------- شمارش کلمه‌ها + سقف سخت ---------- */
-  const recount = useCallback(() => {
-    const el = editorRef.current;
-    if (!el) return 0;
-    const words = el.innerText.split(/\s+/).filter(Boolean);
-    setWordCount(words.length);
-    return words.length;
-  }, []);
-
-  const handleInput = () => {
-    setApiError(null);
-    const count = recount();
-    // سقف سخت — اگر به هر دلیل رد شد، اضافه‌ها حذف می‌شوند
-    if (count > MAX_WORDS && editorRef.current) {
-      const words = editorRef.current.innerText
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, MAX_WORDS);
-      editorRef.current.innerText = words.join(" ");
-      setWordCount(MAX_WORDS);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (feedback) {
-      e.preventDefault();
-      return;
-    }
-    // جلوگیری از تایپ بعد از سقف — حذف و حرکت آزاد است
-    const addsWord =
-      e.key.length === 1 || e.key === " " || e.key === "Enter";
-    if (addsWord && wordCount >= MAX_WORDS) {
-      e.preventDefault();
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData("text/plain");
-    const remaining = MAX_WORDS - wordCount;
-    const pastedWords = text.split(/\s+/).filter(Boolean);
-    const fitted = pastedWords.slice(0, Math.max(0, remaining)).join(" ");
-    if (fitted) {
-      document.execCommand("insertText", false, fitted);
-      recount();
-    }
-  };
-
   /* ---------- نوار ابزار ---------- */
-  const exec = (cmd: string) => {
+  const exec = useCallback((cmd: string) => {
     editorRef.current?.focus();
     document.execCommand(cmd);
-  };
+  }, [editorRef]);
 
-  const clearFormatting = () => {
+  const clearFormatting = useCallback(() => {
     editorRef.current?.focus();
     document.execCommand("removeFormat");
-  };
+  }, [editorRef]);
 
   /* ---------- ارسال برای اصلاح ---------- */
   const handleSubmit = async () => {
@@ -169,14 +122,7 @@ export default function WritingEditorPage() {
       }
       const fb = data as WritingFeedback;
       setFeedback(fb);
-      const stars =
-        fb.overallScore >= 80
-          ? 3
-          : fb.overallScore >= 60
-            ? 2
-            : fb.overallScore >= 40
-              ? 1
-              : 0;
+      const stars = starsOfScore(fb.overallScore);
       saveProgress("writing", topic.id, stars, fb.overallScore);
       setBestStars((prev) => Math.max(prev, stars));
     } catch {
@@ -187,10 +133,9 @@ export default function WritingEditorPage() {
   };
 
   const handleRestart = () => {
-    if (editorRef.current) editorRef.current.innerText = "";
+    resetEditor();
     setFeedback(null);
     setApiError(null);
-    setWordCount(0);
   };
 
   /* ---------- رندر ---------- */
@@ -220,122 +165,26 @@ export default function WritingEditorPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => router.push("/training/writing")}
-          className="p-2 rounded-xl hover:bg-slate-100 transition-colors"
-        >
-          <ArrowRight className="h-5 w-5 text-slate-600" />
-        </button>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h1 className="text-lg font-bold text-slate-800">
-              {topic.titleFa}
-            </h1>
-            {bestStars > 0 && <Stars count={bestStars} />}
-          </div>
-          <p className="text-sm text-slate-500 truncate">
-            <HoverableText text={topic.titleEn} />
-          </p>
-        </div>
-      </div>
+      <WritingHeader
+        onBack={() => router.push("/training/writing")}
+        titleFa={topic.titleFa}
+        titleEn={topic.titleEn}
+        bestStars={bestStars}
+      />
 
       {/* ================= صورت موضوع ================= */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-4">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-            <BookOpen className="w-5 h-5 text-emerald-600" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm text-slate-700 leading-relaxed mb-2" dir="ltr">
-              <HoverableText text={topic.prompt} />
-            </p>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              {topic.promptFa}
-            </p>
-            {/* واژه‌های کاربردی */}
-            <div className="flex items-center gap-1.5 flex-wrap mt-3">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-              {topic.usefulWords.map((w) => (
-                <span
-                  key={w.en}
-                  className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 px-2 py-1 rounded-full"
-                  title={w.fa}
-                >
-                  <span dir="ltr">
-                    <HoverableText text={w.en} />
-                  </span>{" "}
-                  — {w.fa}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <PromptCard topic={topic} />
 
       {/* ================= ادیتور ================= */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {/* نوار ابزار */}
-        <div className="flex items-center gap-1 p-2 border-b border-slate-100 bg-slate-50/60">
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => exec("bold")}
-            className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title={tr("درشت", "Bold")}
-          >
-            <Bold className="w-4 h-4 text-slate-600" />
-          </button>
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => exec("italic")}
-            className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title={tr("مورب", "Italic")}
-          >
-            <Italic className="w-4 h-4 text-slate-600" />
-          </button>
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => exec("underline")}
-            className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title={tr("زیرخط", "Underline")}
-          >
-            <Underline className="w-4 h-4 text-slate-600" />
-          </button>
-          <span className="w-px h-5 bg-slate-200 mx-1" />
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => exec("insertUnorderedList")}
-            className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title={tr("فهرست نقطه‌ای", "Bullet List")}
-          >
-            <List className="w-4 h-4 text-slate-600" />
-          </button>
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => exec("insertOrderedList")}
-            className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title={tr("فهرست شماره‌دار", "Numbered List")}
-          >
-            <ListOrdered className="w-4 h-4 text-slate-600" />
-          </button>
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={clearFormatting}
-            className="p-2 rounded-lg hover:bg-white transition-colors font-black"
-            title={tr("پاک کردن قالب‌بندی", "Clear Formatting")}
-          >
-            <Eraser className="w-4 h-4 text-slate-600" />
-          </button>
-
-          {/* شمارنده کلمه */}
-          <div className="flex-1" />
-          <span
-            className={`text-xs font-bold ${counterColor} px-2`}
-            dir="ltr"
-          >
-            {wordCount} / {MAX_WORDS}
-          </span>
-        </div>
+        <EditorToolbar
+          wordCount={wordCount}
+          maxWords={MAX_WORDS}
+          counterColor={counterColor}
+          onExec={exec}
+          onClearFormatting={clearFormatting}
+        />
 
         {/* ناحیه نوشتن */}
         <div
@@ -366,198 +215,21 @@ export default function WritingEditorPage() {
       </AnimatePresence>
 
       {/* ================= دکمه‌ها ================= */}
-      <div className="mt-5 flex justify-center gap-3">
-        {!feedback ? (
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || wordCount < MIN_WORDS}
-            className="px-8 py-3 bg-linear-to-l from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2"
-          >
-            {submitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                {tr("در حال اصلاح متن... (تا یک دقیقه)", "Correcting your text... (up to a minute)")}
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4" />
-                {tr("ارسال برای اصلاح", "Submit for Correction")}
-              </>
-            )}
-          </button>
-        ) : (
-          <button
-            onClick={handleRestart}
-            className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
-          >
-            <RotateCcw className="h-4 w-4" />
-            {tr("نوشتن دوباره", "Write Again")}
-          </button>
-        )}
-      </div>
+      <WritingActionButtons
+        feedbackShown={feedback !== null}
+        submitting={submitting}
+        canSubmit={wordCount >= MIN_WORDS}
+        onSubmit={handleSubmit}
+        onRestart={handleRestart}
+      />
 
       {/* ================= نتیجه اصلاح ================= */}
       <AnimatePresence>
         {feedback && (
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-8 space-y-4"
-          >
-            {/* کارت امتیاز */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-lg p-6">
-              <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10">
-                <ScoreRing score={feedback.overallScore} />
-                <div className="flex-1 max-w-sm text-center md:text-start">
-                  <p className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2 justify-center md:justify-start">
-                    <Sparkles className="w-4 h-4 text-emerald-500" />
-                    {feedback.onTopic
-                      ? tr("متن با موضوع هم‌خوانی دارد", "The text matches the topic")
-                      : tr("متن کمی از موضوع فاصله دارد", "The text drifts a bit from the topic")}
-                  </p>
-                  <p className="text-xs text-slate-500 leading-relaxed mb-3">
-                    {feedback.summary}
-                  </p>
-                  <div className="flex items-center justify-center md:justify-start gap-3 text-[11px] font-bold text-slate-400">
-                    <span>{feedback.wordCount} کلمه</span>
-                    <span className="text-slate-200">|</span>
-                    <Stars
-                      count={
-                        feedback.overallScore >= 80
-                          ? 3
-                          : feedback.overallScore >= 60
-                            ? 2
-                            : feedback.overallScore >= 40
-                              ? 1
-                              : 0
-                      }
-                    />
-                  </div>
-                </div>
-              </div>
-              {feedback.topicNote && (
-                <p className="mt-4 text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-center">
-                  {feedback.topicNote}
-                </p>
-              )}
-            </div>
-
-            {/* غلط‌های املایی */}
-            {feedback.spellingErrors.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                  {tr("غلط‌های املایی", "Spelling Mistakes")} ({feedback.spellingErrors.length})
-                </h3>
-                <div className="space-y-2">
-                  {feedback.spellingErrors.map((e, i) => (
-                    <div
-                      key={i}
-                      className="bg-red-50/70 border border-red-100 rounded-xl px-4 py-3"
-                    >
-                      <p className="text-sm font-bold" dir="ltr">
-                        <span className="text-red-500 line-through">
-                          {e.original}
-                        </span>
-                        {" → "}
-                        <span className="text-green-600">{e.correction}</span>
-                      </p>
-                      {e.note && (
-                        <p className="text-[11px] text-slate-500 mt-1">
-                          {e.note}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* خطاهای گرامری */}
-            {feedback.grammarErrors.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                  <XCircle className="w-4 h-4 text-amber-500" />
-                  {tr("نکته‌های گرامری", "Grammar Notes")} ({feedback.grammarErrors.length})
-                </h3>
-                <div className="space-y-2">
-                  {feedback.grammarErrors.map((e, i) => (
-                    <div
-                      key={i}
-                      className="bg-amber-50/70 border border-amber-100 rounded-xl px-4 py-3"
-                    >
-                      <p className="text-sm font-bold" dir="ltr">
-                        <span className="text-amber-600 line-through">
-                          {e.original}
-                        </span>
-                        {" → "}
-                        <span className="text-green-600">{e.correction}</span>
-                      </p>
-                      {e.note && (
-                        <p className="text-[11px] text-slate-500 mt-1">
-                          {e.note}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* نقاط قوت */}
-            {feedback.goodPoints.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                  <ThumbsUp className="w-4 h-4 text-emerald-500" />
-                  {tr("نقاط قوت", "Strengths")}
-                </h3>
-                <ul className="space-y-2">
-                  {feedback.goodPoints.map((p, i) => (
-                    <li
-                      key={i}
-                      className="text-xs text-slate-600 leading-relaxed flex items-start gap-2"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                      {p}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* پیشنهادها */}
-            {feedback.suggestions.length > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                  <Wand2 className="w-4 h-4 text-blue-500" />
-                  {tr("پیشنهادهای بهتر شدن", "Suggestions for Improvement")}
-                </h3>
-                <ul className="space-y-2">
-                  {feedback.suggestions.map((s, i) => (
-                    <li
-                      key={i}
-                      className="text-xs text-slate-600 leading-relaxed flex items-start gap-2"
-                    >
-                      <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-500 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
-                        {i + 1}
-                      </span>
-                      {s}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* بازگشت */}
-            <div className="text-center pt-2">
-              <button
-                onClick={() => router.push("/training/writing")}
-                className="px-6 py-2.5 bg-emerald-50 text-emerald-600 rounded-xl text-sm font-bold hover:bg-emerald-100 transition-colors"
-              >
-                {tr("بازگشت به لیست موضوعات", "Back to Topics List")}
-              </button>
-            </div>
-          </motion.div>
+          <WritingFeedbackView
+            feedback={feedback}
+            onBack={() => router.push("/training/writing")}
+          />
         )}
       </AnimatePresence>
 

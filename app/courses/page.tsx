@@ -4,9 +4,9 @@ import PageLoading from "@/app/components/PageLoading";
 
 import CourseCard from "@/app/components/course/CourseCard";
 import EmptyState from "@/app/components/course/EmptyState";
-import GirlCharacter from "@/app/components/courses/GirlCharacter";
+import GirlCharacter from "@/app/components/course/GirlCharacter";
 import { TOPIC_GROUPS } from "@/types/course";
-import { useCourses } from "../hook/useCourses";
+import { useCourses } from "../hook/course/useCourses";
 
 // ========================================
 // صفحه «دوره‌های من» — اصلاح چیدمان v1.0.1.3

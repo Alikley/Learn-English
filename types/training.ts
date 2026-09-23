@@ -107,6 +107,13 @@ export const GRAMMAR_LEVEL_LABEL: Record<GrammarLevel, string> = {
   ADVANCED: "پیشرفته",
 };
 
+// v1.0.2.3 — گام ۳: برچسب انگلیسی سطح گرامر
+export const GRAMMAR_LEVEL_LABEL_EN: Record<GrammarLevel, string> = {
+  BEGINNER: "Beginner",
+  INTERMEDIATE: "Intermediate",
+  ADVANCED: "Advanced",
+};
+
 export const GRAMMAR_LEVEL_COLOR: Record<GrammarLevel, string> = {
   BEGINNER: "bg-green-100 text-green-700 border-green-200",
   INTERMEDIATE: "bg-amber-100 text-amber-700 border-amber-200",

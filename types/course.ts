@@ -53,8 +53,8 @@ export const LEVEL_COLOR: Record<string, string> = {
 };
 
 export const TOPIC_GROUPS = [
-  { key: "Grammar", label: "گرامر", icon: "📝" },
-  { key: "Conversation", label: "مکالمه", icon: "💬" },
-  { key: "Vocabulary", label: "لغات", icon: "📚" },
-  { key: "Listening", label: "لیسنینگ", icon: "🎧" },
+  { key: "Grammar", label: "گرامر", labelEn: "Grammar", icon: "📝" },
+  { key: "Conversation", label: "مکالمه", labelEn: "Conversation", icon: "💬" },
+  { key: "Vocabulary", label: "لغات", labelEn: "Vocabulary", icon: "📚" },
+  { key: "Listening", label: "لیسنینگ", labelEn: "Listening", icon: "🎧" },
 ];

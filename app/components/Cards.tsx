@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { useCategories } from "../hook/useCategories";
+import { useCategories } from "../hook/library/useCategories";
 import { useLanguage } from "@/app/context/LanguageContext";
 
 const exercises = [

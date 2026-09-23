@@ -17,7 +17,7 @@ import {
   Globe,
   X,
 } from "lucide-react";
-import { useStreak } from "@/app/hook/useStreak";
+import { useStreak } from "@/app/hook/ui/useStreak";
 import { useTheme } from "@/app/context/ThemeContext";
 import { useLanguage } from "@/app/context/LanguageContext";
 

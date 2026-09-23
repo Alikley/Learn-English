@@ -16,7 +16,7 @@ import {
 import Link from "next/link";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { useAuth } from "@/app/context/AuthContext";
-import { useStreak } from "@/app/hook/useStreak";
+import { useStreak } from "@/app/hook/ui/useStreak";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { LanguageToggle } from "@/app/components/LanguageToggle";
 import { useLanguage } from "@/app/context/LanguageContext";

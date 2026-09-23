@@ -1,19 +1,20 @@
 "use client";
 import { useLanguage } from "@/app/context/LanguageContext";
 
-import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Zap, RotateCcw, XCircle, ArrowRight } from "lucide-react";
+import { Zap } from "lucide-react";
 import GameStatsBar from "@/app/components/game/GameStatsBar";
-import GameOutcomeOverlay from "@/app/components/game/GameOutcomeOverlay";
+import GameOutcomeOverlay from "@/app/components/game/outcome/GameOutcomeOverlay";
 import LevelSelect from "@/app/components/game/LevelSelect";
-import LeaderboardBox from "@/app/components/game/LeaderboardBox";
-import SpeedQuizTopBar from "@/app/components/game/SpeedQuizTopBar";
-import SpeedQuizTimer from "@/app/components/game/SpeedQuizTimer";
-import SpeedQuizQuestionCard from "@/app/components/game/SpeedQuizQuestionCard";
-import SpeedQuizOptions from "@/app/components/game/SpeedQuizOptions";
-import { useSpeedQuizGame } from "@/app/hook/useSpeedQuizGame";
-import { useSpeedQuizStats } from "@/app/hook/useSpeedQuizStats";
+import LeaderboardBox from "@/app/components/game/leaderboard/LeaderboardBox";
+import SpeedQuizTopBar from "@/app/components/game/speedquiz/SpeedQuizTopBar";
+import SpeedQuizTimer from "@/app/components/game/speedquiz/SpeedQuizTimer";
+import SpeedQuizQuestionCard from "@/app/components/game/speedquiz/SpeedQuizQuestionCard";
+import SpeedQuizOptions from "@/app/components/game/speedquiz/SpeedQuizOptions";
+import GameHeader from "@/app/components/game/shared/GameHeader";
+import { GameLoading, GameError, GameScoringGuide } from "@/app/components/game/shared/GameStates";
+import { useSpeedQuizGame } from "@/app/hook/game/useSpeedQuizGame";
+import { useSpeedQuizStats } from "@/app/hook/game/useSpeedQuizStats";
 import {
   SPEEDQUIZ_CONFIG,
   SPEEDQUIZ_LEVELS,
@@ -28,6 +29,7 @@ import {
 // v1.0.0.6 — گام ۴: اتمام جان‌ها = GAME OVER قرمز، برد = CONGRATULATIONS سبز
 //   + دکمه «مرحله بعد» بدون نمایش شماره مرحله
 // v1.0.0.6 — گام ۱: آمار زنده + حذف کارت استریک از صفحه
+// v1.0.2.7 — ریفکتوری: هدر/لودینگ/خطا/راهنمای امتیاز مشترک (game/shared)
 // ========================================
 
 export default function SpeedQuizPage() {
@@ -73,35 +75,14 @@ export default function SpeedQuizPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-4xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
-      <div className="flex items-center gap-3 mb-2">
-        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
-          <Zap className="w-5 h-5 text-amber-500" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold text-slate-800">Quiz Hot</h1>
-          <p className="text-sm text-slate-500">
-            {tr("سریع جواب بده — هر ثانیه که می‌گذره، امتیاز کمتره!", "Answer fast — every second that passes is worth fewer points!")}
-          </p>
-        </div>
-        {/* بازگشت — در صفحه سطح‌بندی به هاب بازی‌ها، وسط بازی به سطح‌بندی */}
-        {phase === "levelSelect" ? (
-          <Link
-            href="/game"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 hover:border-slate-300 shadow-sm text-slate-600 text-xs font-bold transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-            {tr("بازگشت", "Back")}
-          </Link>
-        ) : (
-          <button
-            onClick={handleBackToLevels}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors"
-          >
-            <ArrowRight className="w-3.5 h-3.5" />
-            {tr("بازی‌ها", "Games")}
-          </button>
-        )}
-      </div>
+      <GameHeader
+        icon={Zap}
+        iconClassName="bg-amber-50"
+        title="Quiz Hot"
+        subtitle={tr("سریع جواب بده — هر ثانیه که می‌گذره، امتیاز کمتره!", "Answer fast — every second that passes is worth fewer points!")}
+        isLevelSelect={phase === "levelSelect"}
+        onBackToLevels={handleBackToLevels}
+      />
 
       {/* ============ نوار آمار (فقط اینجا — گام ۱) ============ */}
       {/* v1.0.0.7 — گام ۲: مثل دو بازی دیگر، نوار آمار همیشه نمایان است؛
@@ -150,31 +131,21 @@ export default function SpeedQuizPage() {
 
           {/* ---- بدنه بازی ---- */}
           {phase === "loading" && (
-            <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" />
-              <p className="text-sm text-slate-500">
-                {/* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
-                {hideLevel
+            <GameLoading
+              text={
+                /* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */
+                hideLevel
                   ? tr("در حال آماده‌سازی سوال‌های مرحله بعدی...", "Preparing questions for the next stage...")
-                  : tr(`در حال آماده‌سازی سوال‌های سطح ${levelFa}...`, `Preparing questions for level ${levelFa}...`)}
-              </p>
-            </div>
+                  : tr(`در حال آماده‌سازی سوال‌های سطح ${levelFa}...`, `Preparing questions for level ${levelFa}...`)
+              }
+            />
           )}
 
           {phase === "error" && (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <XCircle className="h-14 w-14 text-red-200" />
-              <p className="text-slate-500 text-sm">
-                {tr("خطا در بارگذاری بازی. دوباره تلاش کنید.", "Error loading the game. Please try again.")}
-              </p>
-              <button
-                onClick={handleRestart}
-                className="px-5 py-2 bg-amber-50 text-amber-600 rounded-xl text-sm font-medium hover:bg-amber-100 transition-colors flex items-center gap-2"
-              >
-                <RotateCcw className="h-4 w-4" />
-                {tr("تلاش مجدد", "Try Again")}
-              </button>
-            </div>
+            <GameError
+              onRetry={handleRestart}
+              accent="bg-amber-50 text-amber-600 hover:bg-amber-100"
+            />
           )}
 
           {/* ---- سوال‌ها با انیمیشن ورود/خروج ---- */}
@@ -222,7 +193,7 @@ export default function SpeedQuizPage() {
 
       {/* راهنمای امتیازدهی */}
       {phase !== "levelSelect" && (
-        <div className="mt-4 flex items-center justify-center gap-3 text-[11px] text-slate-400 flex-wrap">
+        <GameScoringGuide gapClass="gap-3">
           {/* گام ۴ — بعد از «مرحله بعد» نام سطح نمایش داده نمی‌شود */}
           {!hideLevel && <span>{tr("سطح:", "Level:")} {levelFa}</span>}
           {!hideLevel && <span className="text-slate-200">|</span>}
@@ -234,7 +205,7 @@ export default function SpeedQuizPage() {
             {tr("جان‌ها:", "Lives:")} {SPEEDQUIZ_CONFIG.lives} | {tr("هر بازی:", "each game:")} {totalQuestions} {tr("سوال", "questions")} ×{" "}
             {SPEEDQUIZ_CONFIG.secondsPerQuestion} {tr("ثانیه", "s")}
           </span>
-        </div>
+        </GameScoringGuide>
       )}
     </div>
   );

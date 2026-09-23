@@ -3,27 +3,24 @@ import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useParams, useRouter } from "next/navigation";
-import ContinueButton from "@/app/components/lesson/ContinueButton";
-import ExampleCard from "@/app/components/lesson/ExampleCard";
 import LessonHeader from "@/app/components/lesson/LessonHeader";
 import LessonRenderer from "@/app/components/lesson/LessonRenderer";
-import ProgressStepper from "@/app/components/lesson/ProgressStepper";
 import { useState, useEffect } from "react";
 import { getCourseTheme } from "@/lib/course-theme";
 import { CEFR_LABEL, type Cefr } from "@/data/lessons/types";
+import DecorativeClouds from "./_components/DecorativeClouds";
+import LegacyLessonView, { type LegacyContent } from "./_components/LegacyLessonView";
+
+// ========================================
+// صفحه درس — مسیر جدید (LessonRenderer) + مسیر قدیمی (fallback)
+// v1.0.2.7 — ریفکتوری: ابرهای تزئینی و مسیر قدیمی به
+// _components تفکیک شدند؛ اینجا فقط دریافت + ناوبری.
+// ========================================
 
 type LessonContentMeta = {
   kind?: string;
   slug?: string;
   cefr?: string;
-};
-
-type LegacyContent = {
-  title?: string;
-  rule?: string;
-  examples?: string[];
-  explanation?: string;
-  practice?: string;
 };
 
 export default function LessonPage() {
@@ -34,7 +31,6 @@ export default function LessonPage() {
   }>();
   const router = useRouter();
 
-  const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [lesson, setLesson] = useState<{
     id: string;
@@ -156,17 +152,7 @@ export default function LessonPage() {
         dir={dir}
       >
         {/* ابرهای نرم — هماهنگ با صفحه دوره */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
-        >
-          <div className="absolute -top-16 -right-10 w-72 h-72 rounded-full bg-white/40 blur-3xl" />
-          <div className="absolute top-24 -left-16 w-64 h-64 rounded-full bg-white/30 blur-3xl" />
-          <div className="absolute top-[42%] right-[12%] w-40 h-40 rounded-full bg-white/25 blur-2xl" />
-          <div className="absolute bottom-[18%] -left-10 w-72 h-72 rounded-full bg-white/30 blur-3xl" />
-          <div className="absolute -bottom-20 right-[28%] w-80 h-80 rounded-full bg-white/35 blur-3xl" />
-          <div className="absolute top-[64%] left-[38%] w-24 h-24 rounded-full bg-white/20 blur-2xl" />
-        </div>
+        <DecorativeClouds />
 
         <div className="relative z-10">
           <LessonHeader
@@ -191,83 +177,13 @@ export default function LessonPage() {
   }
 
   // ===== مسیر قدیمی: درس‌های عمومی (fallback) =====
-  const steps =
-    parsedContent?.examples && parsedContent.examples.length > 0
-      ? [
-          tr("آموزش", "Tutorial"),
-          ...parsedContent.examples.map((_, i) => tr(`مثال ${i + 1}`, `Example ${i + 1}`)),
-          tr("تمرین", "Practice"),
-        ]
-      : [tr("آموزش", "Tutorial"), tr("تمرین", "Practice")];
-
   return (
-    <div className="min-h-screen bg-[#fbfbfb]" dir={dir}>
-      <LessonHeader
-        title={lesson.title}
-        subtitle={courseTitle}
-        xp={lesson.xp}
-        index={step}
-      />
-
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        <ProgressStepper sections={steps} currentIndex={step} />
-
-        {step === 0 && (
-          <ExampleCard
-            title={tr("آموزش", "Tutorial")}
-            text={
-              parsedContent?.rule ||
-              parsedContent?.title ||
-              tr("محتوای این درس در حال آماده‌سازی است.", "The content of this lesson is being prepared.")
-            }
-            explanation={
-              parsedContent?.explanation ||
-              (parsedContent?.rule
-                ? tr(`قانون: ${parsedContent.rule}`, `Rule: ${parsedContent.rule}`)
-                : undefined)
-            }
-          />
-        )}
-
-        {parsedContent?.examples &&
-          parsedContent.examples.map((example, idx) => {
-            if (step !== idx + 1) return null;
-            return (
-              <ExampleCard
-                key={idx}
-                title={tr(`مثال ${idx + 1}`, `Example ${idx + 1}`)}
-                text={example}
-                explanation={tr("این مثال را به دقت مطالعه کنید", "Read this example carefully")}
-              />
-            );
-          })}
-
-        {step === steps.length - 1 && (
-          <ExampleCard
-            title={tr("تمرین", "Practice")}
-            text={
-              parsedContent?.practice ||
-              tr("سعی کنید جملات خودتان بسازید و از قواعد استفاده کنید.", "Try to build your own sentences using the rules.")
-            }
-            explanation={tr("تمرین بیشتر = یادگیری بهتر", "More practice = better learning")}
-          />
-        )}
-
-        <div className="pt-4">
-          {step < steps.length - 1 ? (
-            <ContinueButton
-              onClick={() => setStep((s) => s + 1)}
-              label={tr("ادامه درس", "Continue Lesson")}
-            />
-          ) : (
-            <ContinueButton
-              loading={completing}
-              onClick={() => void handleComplete()}
-              label={completing ? tr("در حال ثبت...", "Saving...") : tr("تکمیل درس", "Finish Lesson")}
-            />
-          )}
-        </div>
-      </div>
-    </div>
+    <LegacyLessonView
+      lesson={lesson}
+      courseTitle={courseTitle}
+      parsedContent={parsedContent}
+      completing={completing}
+      onComplete={() => void handleComplete()}
+    />
   );
 }
