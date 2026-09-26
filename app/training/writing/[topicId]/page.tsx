@@ -2,24 +2,23 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { PenLine } from "lucide-react";
+import { ArrowRight, PenLine, Send, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { WritingFeedback, WritingTopic } from "@/types/training";
+import { Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
+import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 import PromptCard from "./_components/PromptCard";
 import EditorToolbar from "./_components/EditorToolbar";
 import WritingFeedbackView, { starsOfScore } from "./_components/WritingFeedbackView";
-import WritingHeader from "./_components/WritingHeader";
-import WritingActionButtons from "./_components/WritingActionButtons";
-import useWordLimitedEditor from "./_components/useWordLimitedEditor";
 
 // ========================================
 // ادیتور نوشتاری (نسخه ۱.۰.۱.۴)
 // ادیتور شبیه Word با سقف سخت ۲۰۰ کلمه + اصلاح با هوش مصنوعی
-// v1.0.2.7 — ریفکتوری گام ۲: صورت موضوع، نوار ابزار، نتیجهٔ اصلاح،
-// هدر، دکمه‌ها و منطق سقف کلمه به _components تفکیک شدند (بدون تغییر رفتار)
+// v1.0.2.7 — ریفکتوری: صورت موضوع، نوار ابزار و نتیجهٔ اصلاح
+// به _components تفکیک شدند.
 // ========================================
 
 const MIN_WORDS = 30;
@@ -34,24 +33,11 @@ export default function WritingEditorPage() {
   const [loading, setLoading] = useState(true);
   const [bestStars, setBestStars] = useState(0);
 
+  const editorRef = useRef<HTMLDivElement>(null);
+  const [wordCount, setWordCount] = useState(0);
   const [feedback, setFeedback] = useState<WritingFeedback | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
-
-  /* ---------- ادیتور با سقف سخت کلمه ---------- */
-  const {
-    editorRef,
-    wordCount,
-    handleInput: capEditorInput,
-    handleKeyDown,
-    handlePaste,
-    reset: resetEditor,
-  } = useWordLimitedEditor(MAX_WORDS, feedback !== null);
-
-  const handleInput = () => {
-    setApiError(null);
-    capEditorInput();
-  };
 
   /* ---------- دریافت موضوع ---------- */
   useEffect(() => {
@@ -79,16 +65,64 @@ export default function WritingEditorPage() {
     };
   }, [topicId]);
 
+  /* ---------- شمارش کلمه‌ها + سقف سخت ---------- */
+  const recount = useCallback(() => {
+    const el = editorRef.current;
+    if (!el) return 0;
+    const words = el.innerText.split(/\s+/).filter(Boolean);
+    setWordCount(words.length);
+    return words.length;
+  }, []);
+
+  const handleInput = () => {
+    setApiError(null);
+    const count = recount();
+    // سقف سخت — اگر به هر دلیل رد شد، اضافه‌ها حذف می‌شوند
+    if (count > MAX_WORDS && editorRef.current) {
+      const words = editorRef.current.innerText
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, MAX_WORDS);
+      editorRef.current.innerText = words.join(" ");
+      setWordCount(MAX_WORDS);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (feedback) {
+      e.preventDefault();
+      return;
+    }
+    // جلوگیری از تایپ بعد از سقف — حذف و حرکت آزاد است
+    const addsWord =
+      e.key.length === 1 || e.key === " " || e.key === "Enter";
+    if (addsWord && wordCount >= MAX_WORDS) {
+      e.preventDefault();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    const remaining = MAX_WORDS - wordCount;
+    const pastedWords = text.split(/\s+/).filter(Boolean);
+    const fitted = pastedWords.slice(0, Math.max(0, remaining)).join(" ");
+    if (fitted) {
+      document.execCommand("insertText", false, fitted);
+      recount();
+    }
+  };
+
   /* ---------- نوار ابزار ---------- */
-  const exec = useCallback((cmd: string) => {
+  const exec = (cmd: string) => {
     editorRef.current?.focus();
     document.execCommand(cmd);
-  }, [editorRef]);
+  };
 
-  const clearFormatting = useCallback(() => {
+  const clearFormatting = () => {
     editorRef.current?.focus();
     document.execCommand("removeFormat");
-  }, [editorRef]);
+  };
 
   /* ---------- ارسال برای اصلاح ---------- */
   const handleSubmit = async () => {
@@ -133,9 +167,10 @@ export default function WritingEditorPage() {
   };
 
   const handleRestart = () => {
-    resetEditor();
+    if (editorRef.current) editorRef.current.innerText = "";
     setFeedback(null);
     setApiError(null);
+    setWordCount(0);
   };
 
   /* ---------- رندر ---------- */
@@ -165,12 +200,25 @@ export default function WritingEditorPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-3xl mx-auto" dir={dir}>
       {/* ================= هدر ================= */}
-      <WritingHeader
-        onBack={() => router.push("/training/writing")}
-        titleFa={topic.titleFa}
-        titleEn={topic.titleEn}
-        bestStars={bestStars}
-      />
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => router.push("/training/writing")}
+          className="p-2 rounded-xl hover:bg-slate-100 transition-colors"
+        >
+          <ArrowRight className="h-5 w-5 text-slate-600" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <h1 className="text-lg font-bold text-slate-800">
+              {topic.titleFa}
+            </h1>
+            {bestStars > 0 && <Stars count={bestStars} />}
+          </div>
+          <p className="text-sm text-slate-500 truncate">
+            <HoverableText text={topic.titleEn} />
+          </p>
+        </div>
+      </div>
 
       {/* ================= صورت موضوع ================= */}
       <PromptCard topic={topic} />
@@ -215,13 +263,35 @@ export default function WritingEditorPage() {
       </AnimatePresence>
 
       {/* ================= دکمه‌ها ================= */}
-      <WritingActionButtons
-        feedbackShown={feedback !== null}
-        submitting={submitting}
-        canSubmit={wordCount >= MIN_WORDS}
-        onSubmit={handleSubmit}
-        onRestart={handleRestart}
-      />
+      <div className="mt-5 flex justify-center gap-3">
+        {!feedback ? (
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || wordCount < MIN_WORDS}
+            className="px-8 py-3 bg-linear-to-l from-emerald-600 to-teal-500 hover:from-emerald-700 hover:to-teal-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold text-sm transition-all shadow-md flex items-center gap-2"
+          >
+            {submitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                {tr("در حال اصلاح متن... (تا یک دقیقه)", "Correcting your text... (up to a minute)")}
+              </>
+            ) : (
+              <>
+                <Send className="h-4 w-4" />
+                {tr("ارسال برای اصلاح", "Submit for Correction")}
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={handleRestart}
+            className="px-8 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
+          >
+            <RotateCcw className="h-4 w-4" />
+            {tr("نوشتن دوباره", "Write Again")}
+          </button>
+        )}
+      </div>
 
       {/* ================= نتیجه اصلاح ================= */}
       <AnimatePresence>

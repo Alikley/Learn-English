@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
 import type { VocabularyLesson } from "@/data/lessons/types";
 import { playLine, canSpeak } from "@/lib/lesson-audio";
+import { mediaUrl } from "@/lib/media";
 import ProgressStepper from "../../ProgressStepper";
 import FlashCard from "./FlashCard";
 import VocabularyQuizStep from "./VocabularyQuizStep";
@@ -59,7 +60,7 @@ export default function VocabularyView({
     if (step !== 0) return;
     let stopped = false;
     const { promise, stop } = playLine(
-      `/audio/vocabulary/${lesson.slug}/word-${cardIndex}.mp3`,
+      mediaUrl(`/audio/vocabulary/${lesson.slug}/word-${cardIndex}.mp3`),
       word.word,
       { voiceHint: "user", rate: 0.85 },
     );
@@ -82,7 +83,7 @@ export default function VocabularyView({
     if (canSpeak()) window.speechSynthesis.cancel();
     setPlayingWord(true);
     const { promise, stop } = playLine(
-      `/audio/vocabulary/${lesson.slug}/word-${cardIndex}.mp3`,
+      mediaUrl(`/audio/vocabulary/${lesson.slug}/word-${cardIndex}.mp3`),
       word.word,
       { voiceHint: "user", rate: 0.85 },
     );

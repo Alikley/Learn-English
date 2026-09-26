@@ -1,16 +1,20 @@
 // ========================================
-// کمک‌ابزارهای صوتی درس‌ها — v1.0.1.2
+// کمک‌ابزارهای صوتی درس‌ها — v1.0.2.8
 // مسیر فایل‌های صوتی + پخش جایگزین مرورگر
+// نسخه ۱.۰.۲.۸: مسیرها از پل امن /api/media
+// (باکت خصوصی B2 + لینک امضادار) سرو می‌شوند
 // ========================================
+
+import { mediaUrl } from "@/lib/media";
 
 /** مسیر صدای یک خط مکالمه (قرمز=سایت / آبی=کاربر) */
 export function convLineAudio(slug: string, lineIndex: number): string {
-  return `/audio/conversation/${slug}/line-${lineIndex}.mp3`;
+  return mediaUrl(`/audio/conversation/${slug}/line-${lineIndex}.mp3`);
 }
 
 /** مسیر صدای داستان لیسنینگ */
 export function storyAudio(slug: string): string {
-  return `/audio/listening/${slug}/story.mp3`;
+  return mediaUrl(`/audio/listening/${slug}/story.mp3`);
 }
 
 /** آیا مرورگر از سنتز گفتار پشتیبانی می‌کند؟ */
