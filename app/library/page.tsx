@@ -2,10 +2,10 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useBooks } from "../hook/library/useBooks";
 import { getLevelInfo } from "@/types/book";
+import { mediaUrl } from "@/lib/media";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 
 export default function LibraryPage() {
@@ -34,11 +34,19 @@ export default function LibraryPage() {
               className="group bg-white dark:bg-gray-800/60 backdrop-blur rounded-2xl overflow-hidden border border-slate-200 dark:border-gray-700/50 hover:border-blue-500/50 transition-all duration-300 hover:scale-[1.03] hover:shadow-xl hover:shadow-blue-500/10"
             >
               <div className="relative aspect-2/3 overflow-hidden bg-slate-100 dark:bg-gray-900">
-                <Image
-                  src={book.coverUrl}
+                {/* v1.0.2.۹ — گام ۱: کاور از پل امن /api/media (باکت B2).
+                    img ساده به‌جای next/image: اپتیمایزر تصویر درخواست را
+                    بدون هدر مرورگر می‌فرستاد و پل رسانه آن را 403 می‌کرد. */}
+                <img
+                  src={mediaUrl(book.coverUrl)}
                   alt={book.title}
-                  fill
-                  className="object-cover group-hover:scale-110 transition-transform duration-500"
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    const el = e.target as HTMLImageElement;
+                    el.src = "/assets/grammar.svg";
+                    el.className =
+                      "absolute inset-0 w-full h-full object-contain p-8 transition-transform duration-500";
+                  }}
                 />
                 <span
                   className={`absolute top-3 right-3 ${lvl.color} text-white text-xs px-3 py-1 rounded-full`}

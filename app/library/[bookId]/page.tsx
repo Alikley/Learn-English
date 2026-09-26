@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useBook } from "@/app/hook/library/useBook";
 import { getLevelInfo } from "@/types/book";
+import { mediaUrl } from "@/lib/media";
 
 export default function BookDetailPage() {
   const { tr, dir } = useLanguage();
@@ -157,8 +158,11 @@ export default function BookDetailPage() {
               <div className="relative group">
                 <div className="absolute -bottom-4 left-4 right-4 h-16 bg-black/20 dark:bg-black/40 rounded-2xl blur-xl group-hover:h-20 transition-all duration-500" />
                 <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl shadow-black/30 dark:shadow-black/50 ring-1 ring-slate-200 dark:ring-white/10 group-hover:ring-slate-300 dark:group-hover:ring-white/20 transition-all duration-500 group-hover:-translate-y-1">
+                  {/* v1.0.2.۹ — گام ۱: کاور از پل امن /api/media (باکت B2) —
+                      پیش از این مسیر محلی بود و بعد از مهاجرت رسانه‌ها 404 می‌شد
+                      و عکس جایگزین (گرامر) نمایش داده می‌شد */}
                   <img
-                    src={book.coverUrl}
+                    src={mediaUrl(book.coverUrl)}
                     alt={book.title}
                     className="w-full h-auto"
                     onError={(e) => {

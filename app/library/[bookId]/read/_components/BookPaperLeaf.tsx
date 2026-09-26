@@ -8,13 +8,15 @@ import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 // برگهٔ فیزیکی کتاب: لبه‌های برگه‌های بعدی + سایهٔ عطف
 // + نوار پیشرفت + محتوای صفحه (متن یا کارت پایان)
 // (از صفحهٔ ریدر تفکیک شد — v1.0.2.7 ریفکتوری گام ۲)
-// ✅ v1.0.2.۶ — گام ۴: ارتفاع ثابت برگه — همه صفحات هم‌اندازه‌اند؛
-// متن بلندتر داخل برگه اسکرول می‌شود
+// ✅ v1.0.2.۹ — گام ۲: صفحه‌بندی خطی — هر صفحه حداکثر ۶ سطر
+// (عنوان فصل خودش یک سطر می‌گیرد)؛ همه صفحه‌ها هم‌اندازه‌اند
 // ========================================
 
 export type StoryPage = {
+  /** عنوان فصل — بالای برگه (خودش یک سطر می‌گیرد) */
   heading?: string;
-  paragraphs: string[];
+  /** خط‌های کتابی این صفحه — حداکثر ۶ سطر */
+  lines: string[];
 };
 
 export default function BookPaperLeaf({
@@ -52,9 +54,9 @@ export default function BookPaperLeaf({
           />
         </div>
 
-        {/* ✅ v1.0.2.۶ — گام ۴: ارتفاع ثابت برگه — همه صفحات هم‌اندازه‌اند؛
-            متن بلندتر داخل برگه اسکرول می‌شود (رفع کم‌وزیاد شدن ارتفاع هر صفحه) */}
-        <div className="px-6 md:px-14 py-8 md:py-12 h-[30rem] md:h-[36rem] flex flex-col">
+        {/* ✅ v1.0.2.۹ — گام ۲: ارتفاع برگه متناسب با ۶ سطر —
+            همه صفحات هم‌اندازه‌اند؛ اسکرول داخلی فقط حافظِ صفحات عریض موبایل است */}
+        <div className="px-6 md:px-14 py-8 md:py-10 h-[27rem] md:h-[31rem] flex flex-col">
           <AnimatePresence mode="wait" custom={direction}>
             {finished ? (
               // ---------- کارت پایان کتاب ----------
@@ -81,19 +83,21 @@ export default function BookPaperLeaf({
                 className="flex-1 min-h-0 overflow-y-auto"
               >
                 {currentPage.heading && (
-                  <h2 className="font-serif text-xl md:text-2xl font-bold text-amber-900 dark:text-amber-300 mb-6 flex items-center gap-3">
-                    <BookMarked className="h-5 w-5 text-amber-500/70 dark:text-amber-400/70 shrink-0" />
+                  <h2 className="font-serif text-lg md:text-xl font-bold text-amber-900 dark:text-amber-300 mb-4 md:mb-5 flex items-center gap-3">
+                    <BookMarked className="h-4 w-4 text-amber-500/70 dark:text-amber-400/70 shrink-0" />
                     <span dir="ltr">{currentPage.heading}</span>
                   </h2>
                 )}
 
-                <div dir="ltr" className="space-y-5">
-                  {currentPage.paragraphs.map((p, i) => (
+                {/* v1.0.2.۹ — گام ۲: خط‌های کتابی — هر خط یک سطر،
+                    حداکثر ۶ سطر در هر صفحه */}
+                <div dir="ltr" className="space-y-2">
+                  {currentPage.lines.map((line, i) => (
                     <p
                       key={i}
-                      className="font-serif text-[17px] md:text-[19px] leading-[2.1] text-slate-800 dark:text-slate-200 text-justify"
+                      className="font-serif text-[17px] md:text-[19px] leading-[2] text-slate-800 dark:text-slate-200"
                     >
-                      <HoverableText text={p} />
+                      <HoverableText text={line} />
                     </p>
                   ))}
                 </div>

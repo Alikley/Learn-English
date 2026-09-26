@@ -22,12 +22,17 @@ import PdfFallbackView from "./_components/PdfFallbackView";
 //
 // v1.0.2.7 — ریفکتوری: نوار بالا، برگهٔ کاغذی، کارت پایان،
 // کنترل صفحه‌ها و حالت PDF به _components تفکیک شدند.
+//
+// v1.0.2.۹ — گام ۲: صفحه‌بندی خطی (۶ سطر در صفحه) —
+// کلید پیشرفت نسخه‌دار شد تا جایگاه صفحه‌های ذخیره‌شدهٔ قدیمی
+// (صفحه‌بندی پاراگرافی قبلی) با صفحه‌های جدید اشتباه نشود.
 // ========================================
 
 type Direction = 1 | -1;
 
 function progressKey(bookId: string) {
-  return `flex-book-progress-${bookId}`;
+  // v1.0.2.۹ — پسوند نسخه: صفحه‌بندی خطی جدید
+  return `flex-book-progress-v2-${bookId}`;
 }
 
 export default function BookReaderPage() {

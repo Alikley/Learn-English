@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { getListeningLevel } from "@/types/listening";
 import type { PodcastEpisode } from "@/types/training";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
+import { mediaUrl } from "@/lib/media";
 import SpeechPlayer from "./_components/SpeechPlayer";
 import FileAudioPlayer from "./_components/FileAudioPlayer";
 import LineTranscript from "./_components/LineTranscript";
@@ -22,6 +23,13 @@ import { StarsResult, SubmitAnswersButton, RetryButton } from "@/app/training/_c
 //
 // v1.0.2.7 — ریفکتوری: پلیر گفتار، پلیر فایل و ترنسکریپت
 // خط‌به‌خط به _components تفکیک شدند.
+//
+// v1.0.2.۹ — گام ۳: صوت قسمت دیتابیسی از پل امن /api/media (B2).
+// v1.0.2.۹ — گام ۴: کلیک روی هر خط = شروع از همان خط:
+//  - قسمت فایل صوتی: پرش فایل به زمان تخمینی خط + پخش
+//  - پادکست گفتاری: شروع دوباره تلفظ از همان خط
+//  رفع گیرکردن: «نسل پخش» (session) زنجیره‌های قدینی speechSynthesis
+//  را باطل می‌کند + وقفه کوتاه بعد از cancel (باگ معروف Chrome)
 // ========================================
 
 /** نرمال‌سازی جواب برای مقایسه منصفانه */
@@ -66,6 +74,11 @@ export default function ListeningPlayerPage() {
   const playingRef = useRef(false);
   const speedRef = useRef(1);
   const enVoiceRef = useRef<SpeechSynthesisVoice | null>(null);
+  // v1.0.2.۹ — گام ۴: «نسل پخش» — هر شروع/توقف جدید شماره را زیاد
+  // می‌کند؛ onend/onerror زنجیره‌های قبلی با دیدن شماره قدیمی می‌میرند
+  // و دیگر زنجیره‌های مرده صدا را قفل نمی‌کنند
+  const speechSessionRef = useRef(0);
+  const speechTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // وضعیت پلیر فایل صوتی (قسمت دیتابیس)
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -115,8 +128,12 @@ export default function ListeningPlayerPage() {
     window.speechSynthesis.addEventListener("voiceschanged", pickVoice);
     return () => {
       window.speechSynthesis.removeEventListener("voiceschanged", pickVoice);
-      window.speechSynthesis.cancel();
+      // v1.0.2.۹ — گام ۴: پاک‌سازی تایمر + قطع صدای در حال پخش
+      // (تایمرِ پاک‌شده زنجیره جدیدی روشن نمی‌کند؛ cancel هم پخش را
+      // می‌بُرد — نیازی به دست‌زدن به session در cleanup نیست)
+      if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
       playingRef.current = false;
+      window.speechSynthesis.cancel();
     };
   }, []);
 
@@ -144,7 +161,11 @@ export default function ListeningPlayerPage() {
   const speakFrom = useCallback(
     (startIndex: number) => {
       if (typeof window === "undefined" || !window.speechSynthesis) return;
+      // v1.0.2.۹ — گام ۴: نسل جدید — زنجیره‌های قبلی باطل می‌شوند
+      const session = ++speechSessionRef.current;
+      if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
       window.speechSynthesis.cancel();
+
       if (startIndex < 0 || startIndex >= lines.length) {
         playingRef.current = false;
         setPlaying(false);
@@ -155,6 +176,7 @@ export default function ListeningPlayerPage() {
       setPlaying(true);
 
       const speakNext = (i: number) => {
+        if (session !== speechSessionRef.current) return; // زنجیره قدیمی
         if (!playingRef.current) return;
         if (i >= lines.length) {
           playingRef.current = false;
@@ -170,22 +192,33 @@ export default function ListeningPlayerPage() {
         u.rate = speedRef.current;
         if (enVoiceRef.current) u.voice = enVoiceRef.current;
         u.onend = () => {
-          if (playingRef.current) speakNext(i + 1);
+          if (session === speechSessionRef.current && playingRef.current) {
+            speakNext(i + 1);
+          }
         };
         u.onerror = () => {
+          // خطای زنجیره‌های قدیمی (قطع‌شده با cancel) نادیده گرفته می‌شود
+          if (session !== speechSessionRef.current) return;
           playingRef.current = false;
           setPlaying(false);
         };
         window.speechSynthesis.speak(u);
       };
 
-      speakNext(startIndex);
+      // ⏱ وقفه کوتاه بعد از cancel — باگ معروف Chrome:
+      // speak بلافاصله بعد از cancel بی‌صدا نادیده گرفته می‌شود و
+      // پخش «گیر می‌کند»؛ این وقفه پخش قابل‌اعتماد را تضمین می‌کند
+      speechTimerRef.current = setTimeout(() => {
+        if (session === speechSessionRef.current) speakNext(startIndex);
+      }, 140);
     },
     [lines, speakTextOf],
   );
 
   const handleToggleSpeech = () => {
     if (playing) {
+      speechSessionRef.current++; // باطل کردن زنجیره‌های فعال
+      if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
       playingRef.current = false;
       setPlaying(false);
       window.speechSynthesis.cancel();
@@ -195,6 +228,8 @@ export default function ListeningPlayerPage() {
   };
 
   const handleStopSpeech = () => {
+    speechSessionRef.current++;
+    if (speechTimerRef.current) clearTimeout(speechTimerRef.current);
     playingRef.current = false;
     setPlaying(false);
     setCurrentLine(-1);
@@ -208,33 +243,107 @@ export default function ListeningPlayerPage() {
   };
 
   /* ---------- پلیر فایل صوتی (دیتابیس) ---------- */
+  // v1.0.2.۹ — گام ۴: تخمین زمان شروع هر خط — ترنسکریپت قسمت‌های
+  // دیتابیسی تایم‌استمپ ندارد؛ سهم هر خط از کل زمان به نسبت
+  // طول (کاراکتر) خطوط تخمین زده می‌شود (۰..۱)
+  const lineFractions = useMemo(() => {
+    if (!lines.length) return [] as number[];
+    const weights = lines.map((l) => Math.max(l.trim().length, 12));
+    const total = weights.reduce((a, b) => a + b, 0) || 1;
+    let acc = 0;
+    return weights.map((w) => {
+      const start = acc / total;
+      acc += w;
+      return start;
+    });
+  }, [lines]);
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    const onTime = () => setAudioTime(audio.currentTime);
-    const onLoaded = () => setAudioDuration(audio.duration);
+    const isFileEpisode = item?.source === "db" && !!item?.audioUrl;
+    const onTime = () => {
+      setAudioTime(audio.currentTime);
+      // هایلایت خطِ در حال پخش (تخمینی) — فقط برای قسمت فایل صوتی
+      const dur = Number.isFinite(audio.duration) ? audio.duration : 0;
+      if (isFileEpisode && dur > 0 && !audio.paused) {
+        const f = audio.currentTime / dur;
+        let idx = 0;
+        for (let i = lineFractions.length - 1; i >= 0; i--) {
+          if (f >= lineFractions[i]) {
+            idx = i;
+            break;
+          }
+        }
+        setCurrentLine(idx);
+      }
+    };
+    const onLoaded = () => setAudioDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
     const onEnd = () => setAudioPlaying(false);
+    // v1.0.2.۹ — گام ۴: خطای بارگذاری فایل دیگر پلیر را در حالِ پخشِ
+    // قفل‌شده نمی‌گذارد (قبلاً دکمه پخش روی حالت playing گیر می‌کرد)
+    const onError = () => setAudioPlaying(false);
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onLoaded);
     audio.addEventListener("ended", onEnd);
+    audio.addEventListener("error", onError);
     return () => {
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onLoaded);
       audio.removeEventListener("ended", onEnd);
+      audio.removeEventListener("error", onError);
     };
-  }, [item]);
+  }, [item, lineFractions]);
 
   const toggleAudio = () => {
     const audio = audioRef.current;
     if (!audio) return;
     if (audio.paused) {
-      void audio.play();
-      setAudioPlaying(true);
+      // v1.0.2.۹ — نتیجه promise بررسی می‌شود؛ اگر پخش شکست خورد
+      // (مثلاً فایل در دسترس نیست) حالت دکمه برمی‌گردد و «گیر» نمی‌کند
+      audio
+        .play()
+        .then(() => setAudioPlaying(true))
+        .catch(() => setAudioPlaying(false));
     } else {
       audio.pause();
       setAudioPlaying(false);
     }
   };
+
+  /* ---------- v1.0.2.۹ — گام ۴: کلیک روی خط = شروع از همان خط ---------- */
+  const handleLineClick = useCallback(
+    (i: number) => {
+      // قسمت فایل صوتی: پرش فایل به زمان تخمینی شروع همان خط + پخش
+      if (item?.source === "db" && item.audioUrl) {
+        const audio = audioRef.current;
+        const dur =
+          audio && Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration
+            : item.duration || 0;
+        if (audio && dur > 0 && lineFractions.length) {
+          try {
+            audio.currentTime = Math.min(
+              Math.max(0, dur * lineFractions[i]),
+              dur - 0.05,
+            );
+            setAudioTime(audio.currentTime);
+            setCurrentLine(i);
+            audio
+              .play()
+              .then(() => setAudioPlaying(true))
+              .catch(() => setAudioPlaying(false));
+            return;
+          } catch {
+            /* متادیتا هنوز آماده نیست → جایگزین گفتاری پایین */
+          }
+        }
+      }
+      // پادکست گفتاری: تلفظ مرورگر از همان خط (با نسل جدید)
+      speakFrom(i);
+    },
+    [item, lineFractions, speakFrom],
+  );
 
   /* ---------- ارسال جواب‌ها ---------- */
   const setAnswer = (gapId: number, value: string) => {
@@ -379,7 +488,10 @@ export default function ListeningPlayerPage() {
         />
       ) : (
         <FileAudioPlayer
-          src={item.audioUrl}
+          /* v1.0.2.۹ — گام ۳: صوت از پل امن /api/media (باکت B2) —
+             قبلاً مسیر خام محلی پاس می‌شد و فایل (حذف‌شده از
+             public/) هرگز بارگذاری نمی‌شد */
+          src={item.audioUrl ? mediaUrl(item.audioUrl) : null}
           audioRef={audioRef}
           playing={audioPlaying}
           time={audioTime}
@@ -387,15 +499,31 @@ export default function ListeningPlayerPage() {
           onToggle={toggleAudio}
           onSeek={(t) => {
             const audio = audioRef.current;
-            if (!audio) return;
-            audio.currentTime = t;
+            // v1.0.2.۹ — گام ۴: پرش فقط وقتی متادیتا آماده است؛
+            // قبلاً currentTime روی فایلِ بارگذاری‌نشده exception
+            // می‌داد و نوار زمان «دیگه بخش نمی‌شد»
+            if (
+              !audio ||
+              !Number.isFinite(audio.duration) ||
+              audio.duration <= 0
+            )
+              return;
+            audio.currentTime = Math.min(
+              Math.max(0, t),
+              audio.duration - 0.05,
+            );
             setAudioTime(audio.currentTime);
           }}
           onRestart={() => {
             const audio = audioRef.current;
             if (!audio) return;
-            audio.currentTime = 0;
-            setAudioTime(0);
+            try {
+              audio.currentTime = 0;
+              setAudioTime(0);
+              setCurrentLine(0);
+            } catch {
+              /* متادیتا آماده نیست */
+            }
           }}
         />
       )}
@@ -419,7 +547,9 @@ export default function ListeningPlayerPage() {
         answers={answers}
         hints={hints}
         hasResult={result !== null}
-        onLineClick={(i) => speakFrom(i)}
+        /* v1.0.2.۹ — گام ۴: برای قسمت فایل صوتی، فایل به همان خط
+           پرش می‌کند؛ برای پادکست، تلفظ از همان خط شروع می‌شود */
+        onLineClick={handleLineClick}
         onSetAnswer={setAnswer}
         onToggleHint={toggleHint}
       />
