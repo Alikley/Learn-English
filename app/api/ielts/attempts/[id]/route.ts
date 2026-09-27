@@ -1,12 +1,12 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
-import { getTestBySlug, flatQuestions } from "@/lib/ielts/content";
-import { isAnswerCorrect, countWords } from "@/lib/ielts/grade";
+import { parseTestSlug, getTestById } from "@/lib/ielts/real-tests";
+import { buildAttemptPayload, examRemainingSec, skillMinutes } from "@/lib/ielts/attempt-payload";
+import { countWords } from "@/lib/ielts/grade";
 import { prisma } from "@/prisma/Prisma client";
-import { buildPayload } from "../route";
 
 // ========================================
-// /api/ielts/attempts/[id] (v1.0.3.2)
-//  GET  — واکشی/ادامهٔ تلاش (پس از submit: نتیجهٔ کامل با ریویو)
+// /api/ielts/attempts/[id] (v1.0.3.3)
+//  GET  — واکشی/ادامهٔ تلاش (پس از submit: نتیجه + ریویو در صورت وجود کلید)
 //  PUT  — ذخیرهٔ خودکار پاسخ‌ها { answers: Record<questionId, value> }
 // ========================================
 
@@ -31,56 +31,54 @@ export async function GET(
   const { attempt, error } = await loadAttempt(id, auth.session.user.id);
   if (error || !attempt) return error!;
 
-  const test = getTestBySlug(attempt.testSlug);
+  const parsed = parseTestSlug(attempt.testSlug);
+  if (!parsed) return err("آزمون یافت نشد", 404);
+  const test = getTestById(parsed.bookNumber, parsed.testNumber);
   if (!test) return err("آزمون یافت نشد", 404);
 
   const savedAnswers: Record<string, string> = {};
   for (const a of attempt.answers) savedAnswers[a.questionId] = a.value;
 
-  let remainingSec: number | null = null;
-  if (attempt.status === "IN_PROGRESS" && attempt.mode === "EXAM") {
-    const skill = attempt.skill.toLowerCase();
-    const minutes =
-      skill === "reading" ? test.reading.minutes : skill === "listening" ? test.listening.minutes : test.writing.minutes;
-    const elapsed = Math.floor((Date.now() - attempt.startedAt.getTime()) / 1000);
-    remainingSec = Math.max(0, minutes * 60 - elapsed);
-  }
+  const skill = attempt.skill.toLowerCase() as "reading" | "listening" | "writing";
+  const remainingSec = examRemainingSec(attempt, skillMinutes(skill, test));
 
-  // اگر submitted است، نتیجهٔ کامل با ریویو برگردانده می‌شود
+  const payload = await buildAttemptPayload(attempt, savedAnswers, remainingSec);
+  if (!payload) return err("آزمون یافت نشد", 404);
+
+  // اگر submitted است، نتیجه هم همراه payload برگردانده می‌شود
   if (attempt.status === "SUBMITTED") {
-    const skill = attempt.skill.toLowerCase();
-    if (skill === "writing") {
-      return ok({
-        ...buildPayload(attempt, savedAnswers, 0),
-        writingSubmissions: attempt.answers
-          .filter((a) => a.questionId === "w1" || a.questionId === "w2")
-          .map((a) => ({ questionId: a.questionId, text: a.value, wordCount: countWords(a.value) })),
-      });
-    }
-    const review = flatQuestions(test, skill as "reading" | "listening").map((q) => {
-      const yours = savedAnswers[q.questionId] ?? "";
-      return {
-        questionId: q.questionId,
-        number: q.number,
-        part: q.part,
-        type: q.type,
-        yourAnswer: yours,
-        correctDisplay: q.answerDisplay,
-        isCorrect: isAnswerCorrect(yours, q.accepted),
-        explanation: q.explanation,
-      };
-    });
-    return ok({
-      ...buildPayload(attempt, savedAnswers, 0),
-      review,
+    const base = {
+      ...payload,
       rawScore: attempt.rawScore,
       totalQuestions: attempt.totalQuestions,
       bandScore: attempt.bandScore,
+      selfScored: attempt.selfScored,
       elapsedSec: attempt.elapsedSec,
-    });
+    };
+    if (skill === "writing") {
+      return ok({
+        ...base,
+        writingSubmissions: attempt.answers
+          .filter((a) => a.questionId === "w1" || a.questionId === "w2")
+          .map((a) => ({
+            questionId: a.questionId,
+            text: a.value,
+            wordCount: countWords(a.value),
+          })),
+      });
+    }
+    // ریویو فقط وقتی معنی دارد که پاسخ‌ها علامت خورده باشند (کلید موجود)
+    const review = attempt.answers
+      .filter((a) => a.isCorrect !== null)
+      .map((a) => ({
+        questionId: a.questionId,
+        yourAnswer: a.value,
+        isCorrect: a.isCorrect === true,
+      }));
+    return ok({ ...base, review });
   }
 
-  return ok(buildPayload(attempt, savedAnswers, remainingSec));
+  return ok(payload);
 }
 
 export async function PUT(

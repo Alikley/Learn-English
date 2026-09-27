@@ -27,6 +27,7 @@ model user {
   chatMessages      ChatMessage[]
   chatReactions     ChatReaction[]
   ieltsAttempts     IeltsAttempt[]
+  bookProgress      BookProgress[]
 }
 
 model course {
@@ -146,6 +147,27 @@ model Book {
   pages       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  progress BookProgress[]
+}
+
+/// پیشرفت مطالعهٔ کتاب کاربر (v1.0.3.3 — گام ۴)
+/// هر کاربر برای هر کتاب یک ردیف: آخرین صفحهٔ خوانده‌شده
+/// (همگام‌سازی سمت سرور در کنار localStorage)
+model BookProgress {
+  id         String   @id @default(cuid())
+  userId     String
+  bookId     Int
+  page       Int      @default(0)
+  totalPages Int      @default(0)
+  finished   Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId])
 }
 
 model ListeningEpisode {
@@ -336,6 +358,7 @@ model ChatReaction {
 
 /// تلاش کاربر برای یک مهارت از یک آزمون آیلتس
 /// skill: READING | LISTENING | WRITING — mode: PRACTICE | EXAM
+/// testSlug: «cambridge-01-t1» (کتاب ۱، تست ۱) — نسخه‌های قدیمی: «cambridge-01»
 model IeltsAttempt {
   id             String    @id @default(cuid())
   userId         String
@@ -346,6 +369,8 @@ model IeltsAttempt {
   rawScore       Int?
   totalQuestions Int?
   bandScore      Float?
+  /// v1.0.3.3 — true اگر نمرهٔ خام را کاربر خودش از روی پاسخ‌نامهٔ کتاب وارد کرده است
+  selfScored     Boolean?
   startedAt      DateTime  @default(now())
   submittedAt    DateTime?
   elapsedSec     Int?

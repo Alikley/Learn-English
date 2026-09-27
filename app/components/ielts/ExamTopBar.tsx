@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LogOut, Save, AlarmClock, CheckCircle2 } from "lucide-react";
+import { LogOut, Save, AlarmClock, CheckCircle2, Send } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import type { IeltsSkill } from "@/types/ielts";
 
 // ========================================
-// نوار بالای پلیر آزمون آیلتس (v1.0.3.2)
+// نوار بالای پلیر آزمون آیلتس (v1.0.3.2 / v1.0.3.3)
 // نام آزمون + مهارت + تایمر (شمارش معکوس در حالت آزمون / شمارش در تمرین)
-// + نشانگر ذخیرهٔ خودکار + دکمهٔ خروج
+// + نشانگر ذخیرهٔ خودکار + دکمهٔ خروج + دکمهٔ تحویل (v1.0.3.3)
 // ========================================
 
 function fmt(sec: number): string {
@@ -28,6 +28,8 @@ export default function ExamTopBar({
   elapsedSec,
   saving,
   onExit,
+  onSubmit,
+  submitDisabled,
 }: {
   title: string;
   skill: IeltsSkill;
@@ -37,6 +39,9 @@ export default function ExamTopBar({
   elapsedSec: number;
   saving: boolean;
   onExit: () => void;
+  /** دکمهٔ تحویل — اگر داده نشود دکمه‌ای نیست (v1.0.3.3) */
+  onSubmit?: () => void;
+  submitDisabled?: boolean;
 }) {
   const { tr } = useLanguage();
   const isExam = remainingSec !== null;
@@ -112,6 +117,18 @@ export default function ExamTopBar({
           <AlarmClock size={14} />
           {fmt(count)}
         </div>
+
+        {/* تحویل (v1.0.3.3) */}
+        {onSubmit && (
+          <button
+            onClick={onSubmit}
+            disabled={submitDisabled}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition shrink-0"
+          >
+            <Send size={13} />
+            <span className="hidden sm:inline">{tr("تحویل", "Submit")}</span>
+          </button>
+        )}
       </div>
     </div>
   );

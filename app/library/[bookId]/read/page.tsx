@@ -2,7 +2,7 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -36,6 +36,30 @@ function progressKey(bookId: string) {
   return `flex-book-progress-v2-${bookId}`;
 }
 
+// v1.0.3.3 — ذخیرهٔ پیشرفت روی سرور (گام ۴):
+// fire-and-forget با debounce؛ برای مهمان‌ها بی‌صدا رد می‌شود
+function saveProgressToServer(
+  bookId: string,
+  page: number,
+  totalPages: number,
+  finished: boolean,
+): void {
+  const numericId = Number(bookId);
+  if (!Number.isInteger(numericId) || numericId <= 0) return;
+  void fetch("/api/books/progress", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      bookId: numericId,
+      page,
+      totalPages,
+      finished,
+    }),
+  }).catch(() => {
+    /* آفلاین — localStorage پشتیبان است */
+  });
+}
+
 export default function BookReaderPage() {
   const { tr, dir } = useLanguage();
   const params = useParams();
@@ -61,6 +85,8 @@ export default function BookReaderPage() {
   const totalPages = story?.length ?? 0;
 
   // بازیابی پیشرفت ذخیره‌شده — الگوی تاخیری سازگار با React Compiler
+  // v1.0.3.3 — علاوه بر localStorage، پیشرفت سرور هم خوانده می‌شود
+  // (بیشترین صفحه ملاک است تا بین دستگاه‌ها همگام بماند)
   useEffect(() => {
     if (!story) return;
     const id = setTimeout(() => {
@@ -72,11 +98,27 @@ export default function BookReaderPage() {
       } catch {
         /* بی‌خیال */
       }
+      void (async () => {
+        try {
+          const res = await fetch(`/api/books/progress?bookId=${bookId}`);
+          if (!res.ok) return;
+          const data = (await res.json()) as {
+            progress?: { page?: number }[];
+          };
+          const sp = data.progress?.[0]?.page;
+          if (typeof sp === "number" && sp > 0 && sp < totalPages) {
+            setSavedPage((prev) => (sp > (prev ?? 0) ? sp : prev));
+          }
+        } catch {
+          /* بی‌خیال */
+        }
+      })();
     }, 0);
     return () => clearTimeout(id);
   }, [story, bookId, totalPages]);
 
-  // ذخیره پیشرفت با هر تغییر صفحه
+  // ذخیره پیشرفت با هر تغییر صفحه (محلی + سرور با debounce)
+  const serverSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!story || finished) return;
     try {
@@ -84,7 +126,17 @@ export default function BookReaderPage() {
     } catch {
       /* بی‌خیال */
     }
-  }, [page, story, finished, bookId]);
+    if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current);
+    serverSaveTimer.current = setTimeout(() => {
+      saveProgressToServer(bookId, page, totalPages, false);
+    }, 1200);
+  }, [page, story, finished, bookId, totalPages]);
+
+  useEffect(() => {
+    return () => {
+      if (serverSaveTimer.current) clearTimeout(serverSaveTimer.current);
+    };
+  }, []);
 
   const goTo = useCallback(
     (next: number) => {
@@ -106,6 +158,8 @@ export default function BookReaderPage() {
       } catch {
         /* بی‌خیال */
       }
+      // v1.0.3.3 — پایان کتاب روی سرور هم ثبت می‌شود
+      saveProgressToServer(bookId, 0, totalPages, true);
       return;
     }
     goTo(page + 1);

@@ -3,44 +3,50 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   IeltsAttemptPayload,
-  IeltsAttemptResult,
   IeltsAttemptSummary,
+  IeltsBookSummary,
   IeltsMode,
+  IeltsScanInfo,
+  IeltsSelfScoreResult,
   IeltsSkill,
-  IeltsTestSummary,
+  IeltsSubmitResult,
 } from "@/types/ielts";
 
 // ========================================
-// هوک بخش آیلتس (v1.0.3.2)
-// ارتباط با API اختصاصی /api/ielts/* — فهرست کتاب‌ها، جزئیات آزمون،
-// شروع/ادامهٔ تلاش، ذخیرهٔ خودکار، تحویل و واکشی نتیجه
+// هوک بخش آیلتس (v1.0.3.3)
+// ارتباط با REST API اختصاصی /api/ielts/* — فهرست کتاب‌ها،
+// جزئیات کتاب، شروع/ادامهٔ تلاش، ذخیرهٔ خودکار، تحویل،
+// خودتصحیحی و اسکن مجدد باکت B2
 // ========================================
 
 export interface CambridgeBooksState {
-  tests: IeltsTestSummary[];
+  books: IeltsBookSummary[];
+  scan: IeltsScanInfo | null;
   attempts: IeltsAttemptSummary[];
   loading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: (refresh?: boolean) => Promise<void>;
 }
 
-/** فهرست کتاب‌های کمبریج + تلاش‌های کاربر */
+/** فهرست ۸ کتاب کمبریج + وضعیت فایل‌های B2 + تلاش‌ها */
 export function useCambridgeBooks(): CambridgeBooksState {
-  const [tests, setTests] = useState<IeltsTestSummary[]>([]);
+  const [books, setBooks] = useState<IeltsBookSummary[]>([]);
+  const [scan, setScan] = useState<IeltsScanInfo | null>(null);
   const [attempts, setAttempts] = useState<IeltsAttemptSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (refresh = false) => {
     try {
       setError(null);
-      const res = await fetch("/api/ielts/cambridge");
+      const res = await fetch(`/api/ielts/books${refresh ? "?refresh=1" : ""}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
-      setTests(data.tests ?? []);
+      setBooks(data.books ?? []);
+      setScan(data.scan ?? null);
       setAttempts(data.attempts ?? []);
     } catch {
-      setError("خطا در دریافت فهرست آزمون‌ها");
+      setError("خطا در دریافت فهرست کتاب‌ها");
     } finally {
       setLoading(false);
     }
@@ -51,46 +57,43 @@ export function useCambridgeBooks(): CambridgeBooksState {
     return () => clearTimeout(t);
   }, [load]);
 
-  return { tests, attempts, loading, error, refetch: load };
+  return { books, scan, attempts, loading, error, refetch: load };
 }
 
-export interface CambridgeTestDetail {
-  test: IeltsTestSummary;
-  readingQuestions: number;
-  listeningQuestions: number;
-  readingTopics: string[];
-  listeningTopics: string[];
-  writingTaskTypes: string[];
+export interface CambridgeBookDetail {
+  book: IeltsBookSummary;
+  files: IeltsBookSummary["files"];
+  scan: IeltsScanInfo;
   attempts: IeltsAttemptSummary[];
 }
 
-export interface CambridgeTestState {
-  detail: CambridgeTestDetail | null;
+export interface CambridgeBookState {
+  detail: CambridgeBookDetail | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
 
-/** جزئیات یک آزمون + تلاش‌های کاربر روی آن */
-export function useCambridgeTest(slug: string | undefined): CambridgeTestState {
-  const [detail, setDetail] = useState<CambridgeTestDetail | null>(null);
+/** جزئیات یک کتاب + ۴ تست + تلاش‌های کاربر روی آن */
+export function useCambridgeBook(bookId: number | null): CambridgeBookState {
+  const [detail, setDetail] = useState<CambridgeBookDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!slug) return;
+    if (!bookId) return;
     try {
       setError(null);
       setLoading(true);
-      const res = await fetch(`/api/ielts/cambridge/${slug}`);
+      const res = await fetch(`/api/ielts/books/${bookId}`);
       if (!res.ok) throw new Error();
       setDetail(await res.json());
     } catch {
-      setError("خطا در دریافت جزئیات آزمون");
+      setError("خطا در دریافت جزئیات کتاب");
     } finally {
       setLoading(false);
     }
-  }, [slug]);
+  }, [bookId]);
 
   useEffect(() => {
     const t = setTimeout(() => void load(), 0);
@@ -105,9 +108,10 @@ export type StartResult =
   | { ok: true; payload: IeltsAttemptPayload }
   | { ok: false; error: string };
 
-/** شروع یا ادامهٔ یک مهارت */
+/** شروع یا ادامهٔ یک مهارت از یک تست */
 export async function startAttempt(
-  slug: string,
+  bookId: number,
+  testId: number,
   skill: IeltsSkill,
   mode: IeltsMode,
 ): Promise<StartResult> {
@@ -115,7 +119,7 @@ export async function startAttempt(
     const res = await fetch("/api/ielts/attempts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug, skill, mode }),
+      body: JSON.stringify({ bookId, testId, skill, mode }),
     });
     if (res.status === 401) return { ok: false, error: "ابتدا وارد شوید" };
     if (!res.ok) {
@@ -125,6 +129,24 @@ export async function startAttempt(
     return { ok: true, payload: await res.json() };
   } catch {
     return { ok: false, error: "خطای شبکه" };
+  }
+}
+
+/** ثبت نمرهٔ خام خودتصحیحی */
+export async function submitSelfScore(
+  attemptId: string,
+  rawScore: number,
+): Promise<IeltsSelfScoreResult | null> {
+  try {
+    const res = await fetch(`/api/ielts/attempts/${attemptId}/self-score`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rawScore }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as IeltsSelfScoreResult;
+  } catch {
+    return null;
   }
 }
 
@@ -143,7 +165,7 @@ export function useAttempt(attemptId: string | null) {
       setError(null);
       const res = await fetch(`/api/ielts/attempts/${attemptId}`);
       if (!res.ok) throw new Error();
-      const data: IeltsAttemptPayload & Partial<IeltsAttemptResult> = await res.json();
+      const data = (await res.json()) as IeltsAttemptPayload & Partial<IeltsSubmitResult>;
       setPayload(data);
       return data;
     } catch {
@@ -193,7 +215,7 @@ export function useAttempt(attemptId: string | null) {
 
   /** تحویل آزمون — نتیجهٔ کامل برگردانده می‌شود */
   const submit = useCallback(
-    async (elapsedSec: number, finalAnswers?: Record<string, string>) => {
+    async (elapsedSec: number, finalAnswers?: Record<string, string>): Promise<IeltsSubmitResult | null> => {
       if (!attemptId) return null;
       try {
         const res = await fetch(`/api/ielts/attempts/${attemptId}/submit`, {
@@ -206,12 +228,7 @@ export function useAttempt(attemptId: string | null) {
           setError(data.error ?? "خطا در تحویل آزمون");
           return null;
         }
-        return (await res.json()) as {
-          skill: IeltsSkill;
-          rawScore: number | null;
-          totalQuestions: number | null;
-          bandScore: number | null;
-        };
+        return (await res.json()) as IeltsSubmitResult;
       } catch {
         setError("خطای شبکه هنگام تحویل");
         return null;
