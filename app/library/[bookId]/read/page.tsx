@@ -2,12 +2,13 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useBook } from "@/app/hook/library/useBook";
 import { getStory } from "@/data/books/stories";
+import { notifyStreakActivity } from "@/lib/streak-events";
 import ReaderTopBar from "./_components/ReaderTopBar";
 import BookPaperLeaf from "./_components/BookPaperLeaf";
 import FinishedView from "./_components/FinishedView";
@@ -80,14 +81,41 @@ export default function BookReaderPage() {
     }
   }, [page, story, finished, bookId]);
 
+  // v1.0.3.0 — گام ۲+۳: هر صفحه‌گردانی به جلو = فعالیت یادگیری
+  // → ثبت استریک روی سرور + آلرت فوری (فقط بار اول در هر صفحه)
+  const lastReported = useRef<number>(-1);
+  const reportProgress = useCallback(
+    (p: number) => {
+      if (!book || lastReported.current === p) return;
+      lastReported.current = p;
+      try {
+        void fetch("/api/books/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bookId: book.id, page: p }),
+        })
+          .then((res) => {
+            if (res.ok) notifyStreakActivity();
+          })
+          .catch(() => {
+            /* آفلاین — بی‌خیال */
+          });
+      } catch {
+        /* بی‌خیال */
+      }
+    },
+    [book],
+  );
+
   const goTo = useCallback(
     (next: number) => {
       if (!story) return;
       if (next < 0 || next > totalPages - 1) return;
       setDirection(next > page ? 1 : -1);
       setPage(next);
+      if (next > page) reportProgress(next);
     },
-    [story, page, totalPages],
+    [story, page, totalPages, reportProgress],
   );
 
   const goNext = useCallback(() => {
@@ -95,6 +123,7 @@ export default function BookReaderPage() {
       // آخرین صفحه → پایان کتاب
       setDirection(1);
       setFinished(true);
+      reportProgress(page);
       try {
         localStorage.setItem(progressKey(bookId), "0");
       } catch {
@@ -103,7 +132,7 @@ export default function BookReaderPage() {
       return;
     }
     goTo(page + 1);
-  }, [page, totalPages, goTo, bookId]);
+  }, [page, totalPages, goTo, bookId, reportProgress]);
 
   const goPrev = useCallback(() => {
     if (finished) {

@@ -289,8 +289,9 @@ async function seedListening() {
         titleFa: "سفر هوایی",
         description:
           "در این قسمت از 6 Minute English درباره سفر هوایی، مشکلات فرودگاه‌ها، و تاثیرات زیست‌محیطی پرواز صحبت می‌کنیم.",
+        // v1.0.2.9 — نام بدون فاصله: هماهنگ با نام فایل در باکت B2
         audioUrl:
-          "/training/audio/2008-03-12 - 6 Minute English - Air travel.mp3",
+          "/training/audio/2008-03-12-6-minute-english-air-travel.mp3",
         level: "BEGINNER",
         duration: 360,
         xp: 30,

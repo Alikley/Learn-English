@@ -1,5 +1,6 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { WRITING_TOPICS } from "@/data/training/writing-topics";
+import { updateStreak } from "@/lib/streak";
 import { NextRequest } from "next/server";
 import type { WritingFeedback, WritingCorrection } from "@/types/training";
 
@@ -179,6 +180,13 @@ export async function POST(
     const feedback = parseFeedback(content, words.length);
     if (!feedback) {
       return err("پاسخ سرویس قابل خواندن نبود — دوباره تلاش کنید", 502);
+    }
+
+    // ✅ v1.0.3.0 — گام ۲: تمرین نوشتار هم جزو روزهای متوالی
+    try {
+      await updateStreak(auth.session.user.id);
+    } catch {
+      /* استریک شکست نخورد — بازخورد اصلی مهم‌تر است */
     }
 
     return ok(feedback);

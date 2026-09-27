@@ -8,6 +8,7 @@ import { ArrowRight, Zap, Star, Lightbulb } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { getListeningLevel } from "@/types/listening";
 import type { PodcastEpisode } from "@/types/training";
+import { notifyStreakActivity } from "@/lib/streak-events";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
 import { mediaUrl } from "@/lib/media";
 import SpeechPlayer from "./_components/SpeechPlayer";
@@ -371,6 +372,8 @@ export default function ListeningPlayerPage() {
           setResult(data);
           saveProgress("listening", item.id, data.stars, data.percent);
           setBestStars((prev) => Math.max(prev, data.stars));
+          // v1.0.3.0 — گام ۳: آلرت فوری استریک بعد از پایان تمرین شنیداری
+          notifyStreakActivity();
         }
       } else {
         // پادکست ایستا: ارزیابی همین‌جا + ذخیره در localStorage

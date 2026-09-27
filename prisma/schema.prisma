@@ -24,6 +24,8 @@ model user {
   listeningProgress ListeningProgress[]
   gameScores        GameScore[]
   wordBoxes         WordBox[]
+  chatMessages      ChatMessage[]  @relation("ChatMessages")
+  chatReactions     ChatReaction[] @relation("ChatReactions")
 }
 
 model course {
@@ -282,4 +284,41 @@ model WordBoxItem {
 
   @@unique([boxId, word])
   @@index([boxId])
+}
+
+// ========================================
+// چت انجمنی (نسخه ۱.۰.۳.۰ — گام ۴ و ۵)
+// پیام‌های باکس‌مانند دیسکورد + لایک/دیسلایک + پاسخ
+// ========================================
+
+/// پیام چت — parentId پر باشد یعنی پاسخ به پیام دیگر است
+/// (پاسخ‌ها در همان باکسِ پیام ریشه، پایین‌تر نمایش داده می‌شوند)
+model ChatMessage {
+  id        String        @id @default(cuid())
+  userId    String
+  parentId  String?
+  content   String        @db.VarChar(1000)
+  createdAt DateTime      @default(now())
+
+  user      user          @relation("ChatMessages", fields: [userId], references: [id], onDelete: Cascade)
+  parent    ChatMessage?  @relation("ChatReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ChatMessage[] @relation("ChatReplies")
+  reactions ChatReaction[]
+
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+/// واکنش کاربر به پیام — value=1 لایک / value=-1 دیسلایک
+/// هر کاربر برای هر پیام فقط یک واکنش (یکتایی messageId+userId)
+model ChatReaction {
+  id        String       @id @default(cuid())
+  messageId String
+  userId    String
+  value     Int
+
+  message   ChatMessage  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      user         @relation("ChatReactions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
 }

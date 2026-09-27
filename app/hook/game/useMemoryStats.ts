@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { GameStats, StreakInfo } from "@/types/game";
+import { notifyStreakActivity } from "@/lib/streak-events";
 
 // ========================================
 // هوک آمار و استریک بازی حافظه کلمات
@@ -97,6 +98,8 @@ export function useMemoryStats() {
         const data = await res.json();
         setStats(data.stats);
         setIsNewRecord(Boolean(data.isNewRecord));
+        // v1.0.3.0 — گام ۳: آلرت فوری استریک بعد از پایان دور
+        notifyStreakActivity();
       }
     } catch {
       /* خطا در ثبت — نمایش داده نمی‌شود */

@@ -1,5 +1,6 @@
 "use client";
 import { useLanguage } from "@/app/context/LanguageContext";
+import { notifyStreakActivity } from "@/lib/streak-events";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -156,6 +157,8 @@ export default function WritingEditorPage() {
       }
       const fb = data as WritingFeedback;
       setFeedback(fb);
+      // v1.0.3.0 — گام ۳: آلرت فوری استریک بعد از اصلاح نوشتار
+      notifyStreakActivity();
       const stars = starsOfScore(fb.overallScore);
       saveProgress("writing", topic.id, stars, fb.overallScore);
       setBestStars((prev) => Math.max(prev, stars));

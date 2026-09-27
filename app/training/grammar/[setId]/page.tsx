@@ -12,6 +12,7 @@ import {
   GRAMMAR_LEVEL_COLOR,
 } from "@/types/training";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
+import { notifyStreakActivity } from "@/lib/streak-events";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 import GrammarQuizCard from "./_components/GrammarQuizCard";
 import GrammarResultPanel from "./_components/GrammarResultPanel";
@@ -107,7 +108,7 @@ export default function GrammarQuizPage() {
     );
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (qIndex + 1 >= questions.length) {
       // پایان — محاسبه نتیجه و ذخیره
       const correct = log.filter((l) => l.correct).length;
@@ -116,6 +117,17 @@ export default function GrammarQuizPage() {
       if (set) {
         saveProgress("grammar", set.id, stars, percent);
         setBestStars((prev) => Math.max(prev, stars));
+        // v1.0.3.0 — گام ۲+۳: پایان مجموعه گرامری → استریک + آلرت فوری
+        try {
+          const res = await fetch(`/api/practice/grammar/${set.id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ score: percent }),
+          });
+          if (res.ok) notifyStreakActivity();
+        } catch {
+          /* بی‌خیال — نتیجه تمرین مهم‌تر است */
+        }
       }
       setFinished(true);
     } else {

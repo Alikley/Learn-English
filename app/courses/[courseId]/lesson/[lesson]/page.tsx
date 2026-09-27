@@ -8,6 +8,7 @@ import LessonRenderer from "@/app/components/lesson/LessonRenderer";
 import { useState, useEffect } from "react";
 import { getCourseTheme } from "@/lib/course-theme";
 import { CEFR_LABEL, type Cefr } from "@/data/lessons/types";
+import { notifyStreakActivity } from "@/lib/streak-events";
 import DecorativeClouds from "./_components/DecorativeClouds";
 import LegacyLessonView, { type LegacyContent } from "./_components/LegacyLessonView";
 
@@ -110,6 +111,8 @@ export default function LessonPage() {
         body: JSON.stringify({ lessonId: lesson.id, score }),
       });
       if (res.ok) {
+        // v1.0.3.0 — گام ۳: آلرت فوری استریک بعد از تکمیل درس
+        notifyStreakActivity();
         // v1.0.1.3 — replace به‌جای push: درسِ تکمیل‌شده از تاریخچه حذف می‌شود
         // تا دکمه «بازگشت» دیگر کاربر را به همان درسِ تمام‌شده برنگرداند
         router.replace(`/courses/${courseId}`);

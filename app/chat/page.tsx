@@ -1,11 +1,13 @@
-import React from "react";
+import ChatRoom from "@/app/components/chat/ChatRoom";
 
-const Chat = () => {
-  return (
-    <div>
-      <h1>Chat</h1>
-    </div>
-  );
-};
+// ========================================
+// صفحه پیام‌ها — چت انجمنی (v1.0.3.0 — گام ۴ و ۵)
+// باکس‌های پیام + لایک/دیسلایک + پاسخ + صفحه‌بندی + انیمیشن
+// دارک مود و تغییر زبان از ساختار خود سایت (dark: + tr)
+// منطق در useChat — رندر در components/chat
+// پیام‌ها حسابِ روزهای متوالی نمی‌شوند (خواستهٔ کاربر)
+// ========================================
 
-export default Chat;
+export default function ChatPage() {
+  return <ChatRoom />;
+}

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { VocabBox, VocabWordItem } from "@/types/vocabulary";
 import { VOCAB_BOX_NAME_MAX, VOCAB_BOX_WORD_LIMIT } from "@/types/vocabulary";
 import { fetchWithTimeout, netErrorMessage } from "./vocabApi";
+import { notifyStreakActivity } from "@/lib/streak-events";
 
 // ========================================
 // هوک جعبه‌های لغت‌نامه (نسخه 1.0.1.8 — رفع اسپینر ابدی)
@@ -154,6 +155,8 @@ export function useVocabularyBoxes({ auto = true }: { auto?: boolean } = {}) {
         if (!res.ok || !data.word) return data.error ?? "افزودن کلمه ناموفق بود";
 
         const added = data.word;
+        // v1.0.3.0 — گام ۳: آلرت فوری استریک بعد از افزودن کلمه
+        notifyStreakActivity();
         setBoxes((prev) =>
           prev.map((b) =>
             b.id === boxId
