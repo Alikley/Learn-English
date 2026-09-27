@@ -2,7 +2,6 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/Prisma client";
 import { vocabModelsGuard, vocabDbError } from "@/lib/vocab-db";
 import { lookupLocalTranslation } from "@/lib/local-dictionary";
-import { updateStreak } from "@/lib/streak";
 import { NextRequest } from "next/server";
 import { VOCAB_BOX_WORD_LIMIT, VOCAB_WORD_PATTERN } from "@/types/vocabulary";
 
@@ -11,7 +10,6 @@ import { VOCAB_BOX_WORD_LIMIT, VOCAB_WORD_PATTERN } from "@/types/vocabulary";
 // POST /api/vocabulary/boxes/[boxId]/words
 // body: { word: string, translation?: string }
 // اگر translation نداد → از لغت‌نامه محلی پر می‌شود
-// v1.0.3.0 — گام ۲: افزودن کلمه هم جزو روزهای متوالی حساب می‌شود
 // ========================================
 
 export async function POST(
@@ -68,9 +66,6 @@ export async function POST(
     const item = await prisma.wordBoxItem.create({
       data: { boxId: id, word, translation },
     });
-
-    // ✅ v1.0.3.0 — گام ۲: فعالیت لغت‌نامه جزو روزهای متوالی
-    await updateStreak(userId);
 
     return ok(
       {

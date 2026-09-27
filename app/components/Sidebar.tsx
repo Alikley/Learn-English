@@ -12,6 +12,7 @@ import {
   Library,
   MessageCircle,
   LibraryBig,
+  GraduationCap,
   Flame,
   Moon,
   Globe,
@@ -36,6 +37,7 @@ const menuItems = [
   { labelFa: "کتابخانه", labelEn: "Library", icon: LibraryBig, href: "/library" },
   { labelFa: "لغت‌نامه", labelEn: "Vocabulary", icon: Library, href: "/vocab" },
   { labelFa: "دوره‌های من", labelEn: "My Courses", icon: BookOpen, href: "/courses" },
+  { labelFa: "آیلتس", labelEn: "IELTS", icon: GraduationCap, href: "/ielts" },
   { labelFa: "پیام‌ها", labelEn: "Messages", icon: MessageCircle, href: "/chat" },
 ];
 
@@ -57,6 +59,7 @@ const iconAnimations: Record<
   "/game": { scale: [1, 1.3, 0.9, 1.15, 1], transition: { duration: 0.5 } },
   "/vocab": { y: [0, -5, 0, -3, 0], transition: { duration: 0.5 } },
   "/chat": { scale: [1, 1.2, 1], transition: { duration: 0.3, repeat: 1 } },
+  "/ielts": { y: [0, -6, 0, -3, 0], scale: [1, 1.15, 1], transition: { duration: 0.55 } },
 };
 
 function SidebarItem({
@@ -220,7 +223,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
           <SidebarItem
             key={item.href}
             item={item}
-            isActive={pathname === item.href}
+            isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
             onClose={onClose}
             label={en ? item.labelEn : item.labelFa}
           />

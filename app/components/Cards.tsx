@@ -1,7 +1,7 @@
 "use client";
 import PageLoading from "@/app/components/PageLoading";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, GraduationCap } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -134,6 +134,75 @@ export default function Cards() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* ================= IELTS (v1.0.3.2) ================= */}
+      <section className="mx-4 md:mx-5 pt-2 pb-6 md:pb-8">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
+          <Link
+            href="/ielts"
+            className="group relative block overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-l from-indigo-600 via-blue-600 to-indigo-500 dark:from-indigo-600 dark:via-blue-700 dark:to-indigo-800 p-5 md:p-7 shadow-[0_8px_24px_rgba(79,70,229,0.25)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_14px_36px_rgba(79,70,229,0.35)]"
+          >
+            {/* اشکال تزئینی */}
+            <div className="absolute -top-10 -start-10 w-36 h-36 rounded-full bg-white/10" />
+            <div className="absolute -bottom-12 -end-8 w-40 h-40 rounded-full bg-white/10" />
+            <div className="absolute top-4 end-8 w-14 h-14 rounded-full bg-white/5" />
+
+            <div className="relative z-10 flex items-center gap-4 md:gap-6">
+              {/* آیکون */}
+              <div className="w-14 h-14 md:w-20 md:h-20 shrink-0 rounded-2xl md:rounded-3xl bg-white/15 border border-white/20 backdrop-blur flex items-center justify-center">
+                <GraduationCap size={30} className="md:hidden text-white" />
+                <GraduationCap size={42} className="hidden md:block text-white" />
+              </div>
+
+              {/* متن */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg md:text-2xl font-black text-white">
+                    {tr("آزمون آیلتس", "IELTS Exam")}
+                  </h2>
+                  <span className="text-[9px] md:text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400/25 border border-emerald-300/30 text-emerald-100">
+                    {tr("جدید", "NEW")}
+                  </span>
+                </div>
+                <p className="text-[11px] md:text-sm text-white/85 mt-1 leading-relaxed">
+                  {tr(
+                    "آزمون‌های شبیه‌ساز کمبریج ۱ تا ۸ — ریدینگ، لیسنینگ و رایتینگ با تایمر، تصحیح خودکار و نمرهٔ بند",
+                    "Cambridge 1-8 mock exams — Reading, Listening and Writing with timers, auto-scoring and band results",
+                  )}
+                </p>
+                {/* چیپ‌های مهارت */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
+                  {[
+                    tr("آکادمیک", "Academic"),
+                    tr("کمبریج ۱-۸", "Cambridge 1-8"),
+                    tr("نمرهٔ بند", "Band score"),
+                  ].map((chip) => (
+                    <span
+                      key={chip}
+                      className="text-[9px] md:text-[10px] font-medium px-2 py-1 rounded-lg bg-white/10 border border-white/15 text-white/90"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* دکمه */}
+              <div className="shrink-0">
+                <span className="flex items-center gap-1.5 rounded-xl md:rounded-2xl bg-white text-indigo-700 px-4 md:px-6 py-2 md:py-3 text-[11px] md:text-sm font-bold shadow-md transition group-hover:gap-2.5">
+                  <ArrowLeft size={15} className="rtl:rotate-180" />
+                  {tr("شروع آمادگی", "Start now")}
+                </span>
+              </div>
+            </div>
+          </Link>
+        </motion.div>
       </section>
 
       {/* ================= EXERCISES & GAMES ================= */}

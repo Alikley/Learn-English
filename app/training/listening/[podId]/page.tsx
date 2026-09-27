@@ -8,9 +8,9 @@ import { ArrowRight, Zap, Star, Lightbulb } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { getListeningLevel } from "@/types/listening";
 import type { PodcastEpisode } from "@/types/training";
-import { notifyStreakActivity } from "@/lib/streak-events";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
 import { mediaUrl } from "@/lib/media";
+import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import SpeechPlayer from "./_components/SpeechPlayer";
 import FileAudioPlayer from "./_components/FileAudioPlayer";
 import LineTranscript from "./_components/LineTranscript";
@@ -372,8 +372,8 @@ export default function ListeningPlayerPage() {
           setResult(data);
           saveProgress("listening", item.id, data.stars, data.percent);
           setBestStars((prev) => Math.max(prev, data.stars));
-          // v1.0.3.0 — گام ۳: آلرت فوری استریک بعد از پایان تمرین شنیداری
-          notifyStreakActivity();
+          // v1.0.3.0 — گام ۳: ثبت فوری استریک پس از ارسال جواب‌ها
+          void recordStreakActivity();
         }
       } else {
         // پادکست ایستا: ارزیابی همین‌جا + ذخیره در localStorage
@@ -399,6 +399,8 @@ export default function ListeningPlayerPage() {
         setResult(data);
         saveProgress("listening", item.id, stars, percent);
         setBestStars((prev) => Math.max(prev, stars));
+        // v1.0.3.0 — گام ۲: تمرین شنیداری (پادکست ایستا) هم روز فعالیت حساب می‌شود
+        void recordStreakActivity();
       }
     } catch (e) {
       console.error(e);

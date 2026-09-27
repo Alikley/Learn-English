@@ -17,6 +17,7 @@ import GameHeader from "@/app/components/game/shared/GameHeader";
 import { GameLoading, GameError, GameScoringGuide } from "@/app/components/game/shared/GameStates";
 import { useHangmanGame } from "@/app/hook/game/useHangmanGame";
 import { useGameStats } from "@/app/hook/game/useGameStats";
+import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import {
   GAME_CONFIG,
   HANGMAN_TIMER_SECONDS,
@@ -40,7 +41,11 @@ export default function HangmanPage() {
   const game = useHangmanGame({
     onSessionStart: () => void submitSessionStart(),
     onWordFinish: (won) => void submitWordResult(won),
-    onSessionFinish: (score) => void submitSession(score),
+    onSessionFinish: (score) => {
+      void submitSession(score);
+      // v1.0.3.0 — گام ۳: پایان دور → آلارت استریک درجا نمایش داده می‌شود
+      void recordStreakActivity();
+    },
   });
 
   const {

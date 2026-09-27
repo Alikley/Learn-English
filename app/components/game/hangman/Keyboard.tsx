@@ -5,19 +5,18 @@ import { motion } from "motion/react";
 
 // ========================================
 // کیبورد حروف انگلیسی (v1.0.3.0 — گام ۱)
-// - چیدمان QWERTY سه‌ردیفه مثل کیبورد گوشی و کامپیوتر
-// - ردیف ۱: QWERTYUIOP (۱۰ کلید)
-// - ردیف ۲: ASDFGHJKL (۹ کلید)
-// - ردیف ۳: ZXCVBNM (۷ کلید)
-// - حرف درست: سبز / حرف غلط: قرمز + خط‌خورده + لرزش
+// - چیدمان حروف طبق کیبورد واقعی گوشی/کامپیوتر (QWERTY):
+//     ردیف ۱: Q W E R T Y U I O P
+//     ردیف ۲: A S D F G H J K L
+//     ردیف ۳: Z X C V B N M
+//   دکمه‌های هر ردیف flex-1 هستند → مثل کیبورد گوشی،
+//   ردیف‌های کم‌حرف پهن‌تر دیده می‌شوند
+// - حرف درست: سبز
+// - حرف غلط: قرمز + خط‌خورده + لرزش
 // - پشتیبانی لمس موبایل (دکمه‌های بزرگ)
 // ========================================
 
-const KEYBOARD_ROWS: string[][] = [
-  "QWERTYUIOP".split(""),
-  "ASDFGHJKL".split(""),
-  "ZXCVBNM".split(""),
-];
+const KEY_ROWS = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
 
 export default function Keyboard({
   guessedLetters,
@@ -34,17 +33,13 @@ export default function Keyboard({
   return (
     <div
       dir="ltr"
-      className="flex flex-col items-center gap-1 sm:gap-1.5 max-w-lg mx-auto"
+      className="max-w-lg mx-auto space-y-1.5 sm:space-y-2"
       role="group"
       aria-label={tr("کیبورد حروف", "Letter Keyboard")}
     >
-      {KEYBOARD_ROWS.map((row, rowIdx) => (
-        <div
-          key={rowIdx}
-          className="flex justify-center gap-1 sm:gap-1.5"
-          role="row"
-        >
-          {row.map((letter) => {
+      {KEY_ROWS.map((row, rowIdx) => (
+        <div key={rowIdx} className="flex justify-center gap-1 sm:gap-1.5 px-1">
+          {row.split("").map((letter) => {
             const isGuessed = guessedLetters.includes(letter);
             const isCorrect = isGuessed && word.includes(letter);
             const isWrong = isGuessed && !isCorrect;
@@ -59,12 +54,12 @@ export default function Keyboard({
                 animate={isWrong ? { x: [0, -4, 4, -2, 2, 0] } : { x: 0 }}
                 transition={{ duration: 0.3 }}
                 className={[
-                  "w-8 h-9 sm:w-10 sm:h-10 rounded-lg text-sm font-bold transition-colors duration-200 select-none touch-manipulation",
+                  "flex-1 h-9 sm:h-10 rounded-lg text-sm font-bold transition-colors duration-200 select-none touch-manipulation",
                   isCorrect
                     ? "bg-emerald-500 text-white shadow-sm"
                     : isWrong
-                      ? "bg-red-100 dark:bg-red-500/20 text-red-400 dark:text-red-300 line-through"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-500/20 hover:text-emerald-700 dark:hover:text-emerald-300 active:bg-emerald-100",
+                      ? "bg-red-100 text-red-400 line-through"
+                      : "bg-slate-100 text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 active:bg-emerald-100",
                   isGuessed || disabled
                     ? "cursor-not-allowed"
                     : "cursor-pointer",

@@ -1,6 +1,5 @@
 "use client";
 import { useLanguage } from "@/app/context/LanguageContext";
-import { notifyStreakActivity } from "@/lib/streak-events";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -11,6 +10,7 @@ import {
   ListeningEpisode,
   ListeningGap,
 } from "@/types/listening";
+import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import AudioPlayer from "./_components/AudioPlayer";
 import GapTranscript, { type TranscriptSegment } from "./_components/GapTranscript";
 import ResultCard, { type EpisodeResult } from "./_components/ResultCard";
@@ -125,8 +125,8 @@ export default function ListeningExercisePage() {
           xpEarned: data.xpEarned,
           percent: data.percent,
         });
-        // v1.0.3.0 — گام ۳: آلرت فوری استریک بعد از پایان تمرین شنیداری
-        notifyStreakActivity();
+        // v1.0.3.0 — گام ۳: ثبت فوری استریک پس از ارسال جواب‌ها
+        void recordStreakActivity();
       }
     } catch (e) {
       console.error(e);

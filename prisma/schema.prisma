@@ -24,8 +24,9 @@ model user {
   listeningProgress ListeningProgress[]
   gameScores        GameScore[]
   wordBoxes         WordBox[]
-  chatMessages      ChatMessage[]  @relation("ChatMessages")
-  chatReactions     ChatReaction[] @relation("ChatReactions")
+  chatMessages      ChatMessage[]
+  chatReactions     ChatReaction[]
+  ieltsAttempts     IeltsAttempt[]
 }
 
 model course {
@@ -287,38 +288,88 @@ model WordBoxItem {
 }
 
 // ========================================
-// چت انجمنی (نسخه ۱.۰.۳.۰ — گام ۴ و ۵)
-// پیام‌های باکس‌مانند دیسکورد + لایک/دیسلایک + پاسخ
+// چت کاربران (v1.0.3.0 — گام ۴ و ۵ / v1.0.3.1 — رفع باگ FK)
+// پیام‌های عمومی + پاسخ‌ها (یک سطح، زیر همان باکس) + واکنش‌ها
 // ========================================
 
-/// پیام چت — parentId پر باشد یعنی پاسخ به پیام دیگر است
-/// (پاسخ‌ها در همان باکسِ پیام ریشه، پایین‌تر نمایش داده می‌شوند)
+/// پیام چت — parentId فقط به پیام ریشه اشاره می‌کند؛
+/// پاسخ‌ها (جواب دادن) تورفته زیر همان باکس نمایش داده می‌شوند
 model ChatMessage {
   id        String        @id @default(cuid())
   userId    String
   parentId  String?
-  content   String        @db.VarChar(1000)
+  content   String        @db.Text
   createdAt DateTime      @default(now())
 
-  user      user          @relation("ChatMessages", fields: [userId], references: [id], onDelete: Cascade)
+  user      user          @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent    ChatMessage?  @relation("ChatReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   ChatMessage[] @relation("ChatReplies")
   reactions ChatReaction[]
 
+  @@index([userId])
   @@index([parentId])
   @@index([createdAt])
 }
 
-/// واکنش کاربر به پیام — value=1 لایک / value=-1 دیسلایک
-/// هر کاربر برای هر پیام فقط یک واکنش (یکتایی messageId+userId)
+/// واکنش کاربر به پیام — type: 1 = لایک 👍 | -1 = دیسللایک 👎
+/// هر کاربر برای هر پیام فقط یک واکنش (لایک یا دیسلایک) می‌تواند داشته باشد
 model ChatReaction {
-  id        String       @id @default(cuid())
+  id        String      @id @default(cuid())
   messageId String
   userId    String
-  value     Int
+  type      Int
+  createdAt DateTime    @default(now())
 
-  message   ChatMessage  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user      user         @relation("ChatReactions", fields: [userId], references: [id], onDelete: Cascade)
+  message ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    user        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([messageId, userId])
+  @@index([userId])
+}
+
+// ========================================
+// بخش آیلتس (v1.0.3.2)
+// دیتابیس اختصاصی آیلتس: تلاش‌های آزمون (attempt) + پاسخ‌ها
+// محتوای آزمون‌ها (متن/سوال/اسکریپت) در lib/ielts/content است و
+// اینجا فقط عملکرد کاربر ذخیره می‌شود
+// ========================================
+
+/// تلاش کاربر برای یک مهارت از یک آزمون آیلتس
+/// skill: READING | LISTENING | WRITING — mode: PRACTICE | EXAM
+model IeltsAttempt {
+  id             String    @id @default(cuid())
+  userId         String
+  testSlug       String    @db.VarChar(40)
+  skill          String    @db.VarChar(16)
+  mode           String    @db.VarChar(16)
+  status         String    @default("IN_PROGRESS") @db.VarChar(16)
+  rawScore       Int?
+  totalQuestions Int?
+  bandScore      Float?
+  startedAt      DateTime  @default(now())
+  submittedAt    DateTime?
+  elapsedSec     Int?
+
+  user    user           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers IeltsAnswer[]
+
+  @@index([userId])
+  @@index([userId, testSlug, skill])
+  @@index([testSlug])
+}
+
+/// پاسخ کاربر به یک سوال (یا متن نوشتهٔ یک تسک رایتینگ)
+/// questionId مثل r1..r40 | l1..l40 | w1 | w2 — value TEXT است
+model IeltsAnswer {
+  id         String   @id @default(cuid())
+  attemptId  String
+  questionId String   @db.VarChar(20)
+  value      String   @db.Text
+  isCorrect  Boolean?
+  updatedAt  DateTime @updatedAt
+
+  attempt IeltsAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
 }

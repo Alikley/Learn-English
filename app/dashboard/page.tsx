@@ -4,6 +4,8 @@ import PageLoading from "@/app/components/PageLoading";
 
 import { useDashboard } from "@/app/hook/useDashboard";
 import { useAuth } from "@/app/context/AuthContext";
+import { useEffect } from "react";
+import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import ProfileBox from "../components/dashboarde/ProfileBox";
 import PerformanceBox from "../components/dashboarde/PerformanceBox";
 
@@ -13,6 +15,11 @@ export default function DashboardPage() {
   const { tr, dir } = useLanguage();
   const { data, loading, saving, updateProfile } = useDashboard();
   const { user: authUser } = useAuth();
+
+  // v1.0.3.0 — گام ۲: بازدید داشبورد هم یک فعالیت روزانه حساب می‌شود
+  useEffect(() => {
+    void recordStreakActivity();
+  }, []);
 
   if (loading || !data) return <PageLoading />;
 

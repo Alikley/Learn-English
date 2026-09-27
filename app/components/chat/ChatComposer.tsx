@@ -1,133 +1,124 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
-import { Send, X, CornerDownRight } from "lucide-react";
+import { useState, type KeyboardEvent } from "react";
+import { motion } from "motion/react";
+import { Send, Loader2, X } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
-import type { ChatMessageItem } from "@/app/hook/chat/useChat";
+import { CHAT_MAX_CONTENT } from "@/types/chat";
 
 // ========================================
-// جعبه نوشتن پیام چت (v1.0.3.0 — گام ۴)
-// - حالت پاسخ: نوار «در پاسخ به …» + دکمه لغو
-// - Enter = ارسال / Shift+Enter = خط جدید
-// - شمارنده کاراکتر (سقف ۱۰۰۰)
+// فرم ارسال پیام چت (v1.0.3.0 — گام ۴)
+// دو حالت دارد:
+//  - حالت اصلی: باکس بزرگ ارسال پیام جدید (بالای لیست)
+//  - حالت پاسخ (compact): فرم کوچک زیر همان باکس + دکمه لغو
+// Enter = ارسال | Shift+Enter = خط جدید | شمارندهٔ کاراکتر
 // ========================================
-
-const MAX = 1000;
 
 export default function ChatComposer({
   sending,
-  replyingTo,
-  onCancelReply,
-  onSend,
+  onSubmit,
+  placeholder,
+  compact = false,
+  autoFocus = false,
+  onCancel,
 }: {
   sending: boolean;
-  replyingTo: ChatMessageItem | null;
-  onCancelReply: () => void;
-  onSend: (content: string) => Promise<boolean>;
+  /** محتوا را می‌فرستد و موفقیت را برمی‌گرداند (false → متن فرم پاک نمی‌شود) */
+  onSubmit: (content: string) => Promise<boolean>;
+  placeholder?: string;
+  compact?: boolean;
+  autoFocus?: boolean;
+  onCancel?: () => void;
 }) {
   const { tr } = useLanguage();
-  const [text, setText] = useState("");
-  const taRef = useRef<HTMLTextAreaElement>(null);
+  const [value, setValue] = useState("");
 
-  // وقتی حالت پاسخ باز شد، فوکوس بده
-  useEffect(() => {
-    if (replyingTo) taRef.current?.focus();
-  }, [replyingTo]);
+  const canSend = value.trim().length > 0 && !sending;
 
   const submit = async () => {
-    const value = text.trim();
-    if (!value || sending) return;
-    const success = await onSend(value);
-    if (success) setText("");
+    const text = value.trim();
+    if (!text || sending) return;
+    const success = await onSubmit(text);
+    // فقط بعد از ارسال موفق پاک شود — خطا (مثل محدودیت سرعت) متن را نگه می‌دارد
+    if (success) setValue("");
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void submit();
+    }
+  };
+
+  const nearLimit = value.length > CHAT_MAX_CONTENT - 100;
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-3 shadow-sm">
-      {/* ---- نوار «در پاسخ به» ---- */}
-      <AnimatePresence>
-        {replyingTo && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="mb-2 flex items-center gap-2 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/30 px-3 py-2 text-xs text-blue-600 dark:text-blue-300">
-              <CornerDownRight className="w-3.5 h-3.5 shrink-0" />
-              <span className="flex-1 truncate">
-                {tr("در پاسخ به", "Replying to")}{" "}
-                <b>{replyingTo.author.name}</b>
-                {replyingTo.content.length > 40
-                  ? `: ${replyingTo.content.slice(0, 40)}…`
-                  : `: ${replyingTo.content}`}
-              </span>
-              <button
-                onClick={onCancelReply}
-                className="shrink-0 rounded-full p-1 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors"
-                title={tr("لغو پاسخ", "Cancel reply")}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ---- ناحیه نوشتن ---- */}
-      <div className="flex items-end gap-2">
+    <div
+      className={`bg-white dark:bg-slate-900 border rounded-2xl transition-colors ${
+        compact
+          ? "border-slate-200 dark:border-slate-700"
+          : "border-slate-100 dark:border-slate-800 shadow-sm"
+      }`}
+    >
+      <div className="flex items-end gap-2 p-2.5">
         <textarea
-          ref={taRef}
-          value={text}
-          onChange={(e) => setText(e.target.value.slice(0, MAX))}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              void submit();
-            }
-          }}
-          rows={2}
-          placeholder={tr(
-            "پیامت را بنویس… (Shift+Enter = خط جدید)",
-            "Type your message… (Shift+Enter for new line)",
-          )}
-          className="flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800 px-3.5 py-2.5 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-300 dark:focus:ring-blue-500/50 focus:border-blue-300 dark:focus:border-blue-500/50 transition-all"
+          dir="auto"
+          value={value}
+          onChange={(e) => setValue(e.target.value.slice(0, CHAT_MAX_CONTENT + 50))}
+          onKeyDown={handleKeyDown}
+          autoFocus={autoFocus}
+          rows={compact ? 2 : 3}
+          placeholder={placeholder ?? tr("پیامت را بنویس...", "Write your message...")}
+          className="flex-1 resize-none bg-transparent px-2 py-1.5 text-[15px] leading-7 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none"
         />
-
-        {/* دکمه ارسال */}
-        <motion.button
-          type="button"
-          onClick={() => void submit()}
-          disabled={!text.trim() || sending}
-          whileTap={text.trim() && !sending ? { scale: 0.9 } : undefined}
-          className={`shrink-0 flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
-            !text.trim() || sending
-              ? "bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600 shadow-md shadow-blue-200/60 dark:shadow-blue-900/40"
-          }`}
-        >
-          {sending ? (
-            <span className="flex items-center gap-2">
-              <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-              {tr("ارسال…", "Sending…")}
-            </span>
-          ) : (
-            <>
-              <Send className="w-4 h-4 rtl:-scale-x-100" />
-              <span className="hidden sm:inline">{tr("ارسال", "Send")}</span>
-            </>
+        <div className="flex items-center gap-1.5 shrink-0 pb-0.5">
+          {compact && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              aria-label={tr("لغو پاسخ", "Cancel reply")}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <X className="h-4.5 w-4.5" />
+            </button>
           )}
-        </motion.button>
+          <motion.button
+            type="button"
+            onClick={() => void submit()}
+            disabled={!canSend}
+            whileTap={canSend ? { scale: 0.88 } : undefined}
+            aria-label={tr("ارسال", "Send")}
+            className={[
+              "h-9 rounded-xl flex items-center gap-1.5 px-3.5 text-sm font-bold transition-colors",
+              canSend
+                ? "bg-blue-600 hover:bg-blue-500 text-white shadow-sm"
+                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed",
+            ].join(" ")}
+          >
+            {sending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4 rtl:-scale-x-100" />
+            )}
+            <span className="hidden sm:inline">{tr("ارسال", "Send")}</span>
+          </motion.button>
+        </div>
       </div>
 
-      {/* ---- شمارنده ---- */}
-      <div className="mt-1.5 flex justify-between text-[10px] text-slate-400 dark:text-slate-500 px-1">
-        <span>{tr("Enter = ارسال", "Enter = send")}</span>
-        <span className={text.length >= MAX ? "text-red-400" : undefined}>
-          {text.length}/{MAX}
-        </span>
-      </div>
+      {/* شمارنده — فقط نزدیک سقف نشان داده می‌شود */}
+      {(nearLimit || compact) && value.length > 0 && (
+        <div className="px-4 pb-2 text-end">
+          <span
+            className={`text-[11px] ${
+              value.length > CHAT_MAX_CONTENT
+                ? "text-red-500 font-bold"
+                : "text-slate-400 dark:text-slate-500"
+            }`}
+          >
+            {value.length}/{CHAT_MAX_CONTENT}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

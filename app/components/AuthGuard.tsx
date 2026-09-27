@@ -4,7 +4,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
-// مرکز دانلود عمومی است (ابزار سندباکس — تحویل فایل‌های پروژه)
+// صفحات عمومی — ورود و ثبت‌نام
 const publicPaths = ["/login", "/register"];
 
 export function useIsPublicPath() {

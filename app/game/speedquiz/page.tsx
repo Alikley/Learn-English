@@ -15,6 +15,7 @@ import GameHeader from "@/app/components/game/shared/GameHeader";
 import { GameLoading, GameError, GameScoringGuide } from "@/app/components/game/shared/GameStates";
 import { useSpeedQuizGame } from "@/app/hook/game/useSpeedQuizGame";
 import { useSpeedQuizStats } from "@/app/hook/game/useSpeedQuizStats";
+import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import {
   SPEEDQUIZ_CONFIG,
   SPEEDQUIZ_LEVELS,
@@ -40,7 +41,11 @@ export default function SpeedQuizPage() {
   const game = useSpeedQuizGame({
     onSessionStart: () => void submitSessionStart(),
     onCorrectAnswer: () => void submitAnswerResult(),
-    onSessionFinish: (score, correct, wrong) => void submitSession(score, wrong),
+    onSessionFinish: (score, correct, wrong) => {
+      void submitSession(score, wrong);
+      // v1.0.3.0 — گام ۳: پایان دور → آلارت استریک درجا نمایش داده می‌شود
+      void recordStreakActivity();
+    },
   });
 
   const {

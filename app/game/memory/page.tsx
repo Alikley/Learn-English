@@ -13,6 +13,7 @@ import GameHeader from "@/app/components/game/shared/GameHeader";
 import { GameLoading, GameError, GameScoringGuide } from "@/app/components/game/shared/GameStates";
 import { useMemoryGame } from "@/app/hook/game/useMemoryGame";
 import { useMemoryStats } from "@/app/hook/game/useMemoryStats";
+import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import {
   MEMORY_CONFIG,
   MEMORY_LEVELS,
@@ -38,7 +39,11 @@ export default function MemoryPage() {
   const game = useMemoryGame({
     onSessionStart: () => void submitSessionStart(),
     onPairMatch: () => void submitMatchResult(),
-    onSessionFinish: (score, mistakes) => void submitSession(score, mistakes),
+    onSessionFinish: (score, mistakes) => {
+      void submitSession(score, mistakes);
+      // v1.0.3.0 — گام ۳: پایان دور → آلارت استریک درجا نمایش داده می‌شود
+      void recordStreakActivity();
+    },
   });
 
   const {

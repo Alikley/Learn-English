@@ -4,112 +4,105 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
-// صفحه‌بندی چت (v1.0.3.0 — گام ۴)
-// صفحه ۱ = تازه‌ترین پیام‌ها؛ شماره بزرگ‌تر = پیام‌های قدیمی‌تر
-// حداکثر ۵ شماره + اول/آخر — برای وقتی که پیام‌ها زیاد شوند
+// صفحه‌بندی چت کاربران (v1.0.3.0 — گام ۴)
+// پیام‌ها زیاد می‌شوند → هر صفحه ۱۰ پیام ریشه
+// شماره‌ها با پنجرهٔ هوشمند: ۱ … (صفحهٔ جاری ±۱) … آخرین
 // ========================================
+
+function pageWindow(
+  page: number,
+  totalPages: number,
+): (number | "…")[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  const wanted = new Set<number>([1, totalPages, page - 1, page, page + 1]);
+  const nums = [...wanted]
+    .filter((n) => n >= 1 && n <= totalPages)
+    .sort((a, b) => a - b);
+
+  const out: (number | "…")[] = [];
+  let prev = 0;
+  for (const n of nums) {
+    if (n - prev > 1) out.push("…");
+    out.push(n);
+    prev = n;
+  }
+  return out;
+}
 
 export default function ChatPagination({
   page,
   totalPages,
   onChange,
-  disabled,
+  disabled = false,
 }: {
   page: number;
   totalPages: number;
   onChange: (page: number) => void;
   disabled?: boolean;
 }) {
-  const { tr, dir } = useLanguage();
+  const { tr } = useLanguage();
   if (totalPages <= 1) return null;
 
-  // شماره صفحه‌های قابل نمایش — پنجره حول صفحه فعلی
-  const window = 2;
-  const pages: number[] = [];
-  for (
-    let p = Math.max(1, page - window);
-    p <= Math.min(totalPages, page + window);
-    p++
-  ) {
-    pages.push(p);
-  }
-
-  const PrevIcon = dir === "rtl" ? ChevronRight : ChevronLeft;
-  const NextIcon = dir === "rtl" ? ChevronLeft : ChevronRight;
-
-  const btn =
-    "min-w-9 h-9 px-2 rounded-xl text-sm font-medium transition-all disabled:opacity-40 disabled:cursor-not-allowed";
+  const btnBase =
+    "min-w-9 h-9 px-2 rounded-xl text-sm font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed select-none";
+  const btnIdle =
+    "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800";
 
   return (
-    <div className="flex items-center justify-center gap-1.5 py-2" dir={dir}>
-      {/* قبلی (قدیمی‌تر در rtl) */}
+    <nav
+      className="mt-6 flex flex-wrap items-center justify-center gap-1.5"
+      aria-label={tr("صفحه‌بندی پیام‌ها", "Messages pagination")}
+    >
+      {/* قبلی */}
       <button
-        onClick={() => onChange(page + 1)}
-        disabled={disabled || page >= totalPages}
-        title={tr("پیام‌های قدیمی‌تر", "Older messages")}
-        className={`${btn} flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800`}
-      >
-        <PrevIcon className="w-4 h-4" />
-        <span className="hidden sm:inline">{tr("قدیمی‌تر", "Older")}</span>
-      </button>
-
-      {/* اول */}
-      {pages[0] > 1 && (
-        <>
-          <button
-            onClick={() => onChange(1)}
-            disabled={disabled}
-            className={`${btn} text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800`}
-          >
-            ۱
-          </button>
-          {pages[0] > 2 && <span className="text-slate-400 px-0.5">…</span>}
-        </>
-      )}
-
-      {/* شماره‌ها */}
-      {pages.map((p) => (
-        <button
-          key={p}
-          onClick={() => onChange(p)}
-          disabled={disabled}
-          className={`${btn} ${
-            p === page
-              ? "bg-blue-500 text-white shadow-md shadow-blue-200/60 dark:shadow-blue-900/40"
-              : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-          }`}
-          aria-current={p === page ? "page" : undefined}
-        >
-          {p.toLocaleString("fa-IR")}
-        </button>
-      ))}
-
-      {/* آخر */}
-      {pages[pages.length - 1] < totalPages && (
-        <>
-          {pages[pages.length - 1] < totalPages - 1 && (
-            <span className="text-slate-400 px-0.5">…</span>
-          )}
-          <button
-            onClick={() => onChange(totalPages)}
-            disabled={disabled}
-            className={`${btn} text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800`}
-          >
-            {totalPages.toLocaleString("fa-IR")}
-          </button>
-        </>
-      )}
-
-      {/* بعدی (جدیدتر) */}
-      <button
+        type="button"
         onClick={() => onChange(page - 1)}
         disabled={disabled || page <= 1}
-        title={tr("پیام‌های جدیدتر", "Newer messages")}
-        className={`${btn} flex items-center gap-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800`}
+        className={`${btnBase} ${btnIdle} flex items-center gap-1`}
       >
-        <span className="hidden sm:inline">{tr("جدیدتر", "Newer")}</span>
-        <NextIcon className="w-4 h-4" />
+        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+        <span className="hidden sm:inline">{tr("قبلی", "Prev")}</span>
       </button>
-    </div>
+
+      {pageWindow(page, totalPages).map((item, i) =>
+        item === "…" ? (
+          <span
+            key={`gap-${i}`}
+            className="w-6 text-center text-sm text-slate-400 dark:text-slate-500 select-none"
+          >
+            …
+          </span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            onClick={() => onChange(item)}
+            disabled={disabled}
+            className={[
+              btnBase,
+              item === page
+                ? "bg-blue-600 text-white shadow-sm"
+                : btnIdle,
+            ].join(" ")}
+            aria-current={item === page ? "page" : undefined}
+          >
+            {item}
+          </button>
+        ),
+      )}
+
+      {/* بعدی */}
+      <button
+        type="button"
+        onClick={() => onChange(page + 1)}
+        disabled={disabled || page >= totalPages}
+        className={`${btnBase} ${btnIdle} flex items-center gap-1`}
+      >
+        <span className="hidden sm:inline">{tr("بعدی", "Next")}</span>
+        <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+      </button>
+    </nav>
   );
 }

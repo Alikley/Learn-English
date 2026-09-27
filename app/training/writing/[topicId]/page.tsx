@@ -1,6 +1,5 @@
 "use client";
 import { useLanguage } from "@/app/context/LanguageContext";
-import { notifyStreakActivity } from "@/lib/streak-events";
 import PageLoading from "@/app/components/PageLoading";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -11,6 +10,7 @@ import type { WritingFeedback, WritingTopic } from "@/types/training";
 import { Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
+import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import PromptCard from "./_components/PromptCard";
 import EditorToolbar from "./_components/EditorToolbar";
 import WritingFeedbackView, { starsOfScore } from "./_components/WritingFeedbackView";
@@ -157,11 +157,11 @@ export default function WritingEditorPage() {
       }
       const fb = data as WritingFeedback;
       setFeedback(fb);
-      // v1.0.3.0 — گام ۳: آلرت فوری استریک بعد از اصلاح نوشتار
-      notifyStreakActivity();
       const stars = starsOfScore(fb.overallScore);
       saveProgress("writing", topic.id, stars, fb.overallScore);
       setBestStars((prev) => Math.max(prev, stars));
+      // v1.0.3.0 — گام ۲: ارسال نوشتار برای اصلاح هم روز فعالیت حساب می‌شود
+      void recordStreakActivity();
     } catch {
       setApiError(tr("ارتباط با سرور برقرار نشد — دوباره تلاش کن", "Could not connect to the server — try again"));
     } finally {
