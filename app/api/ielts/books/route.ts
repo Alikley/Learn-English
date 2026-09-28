@@ -2,6 +2,7 @@ import { requireAuth, ok } from "@/lib/api-helpers";
 import { scanCambridge } from "@/lib/b2-cambridge";
 import { IELTS_BOOKS } from "@/lib/ielts/real-tests";
 import { toAttemptSummary, ATTEMPT_SELECT } from "@/lib/ielts/attempt-view";
+import { hasLocalPdf } from "@/lib/ielts/pdf-text";
 import { prisma } from "@/prisma/Prisma client";
 import type { IeltsBookSummary, IeltsScanInfo } from "@/types/ielts";
 
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
         writing: t.writing,
       })),
       files: {
-        pdf: !!files?.pdfPath,
+        pdf: !!files?.pdfPath || hasLocalPdf(book.id),
         pdfPath: files?.pdfPath ?? null,
         audioCount: files?.audioFiles.length ?? 0,
       },

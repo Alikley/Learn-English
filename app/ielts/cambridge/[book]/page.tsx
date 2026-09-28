@@ -27,24 +27,22 @@ import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { useCambridgeBook, startAttempt } from "@/app/hook/ielts/useIelts";
 import PageLoading from "@/app/components/PageLoading";
-import StatsBarChart from "@/app/components/ielts/StatsBarChart";
 import type { IeltsAttemptSummary, IeltsMode, IeltsSkill } from "@/types/ielts";
 
 // ========================================
-// صفحهٔ جزئیات کتاب کمبریج (v1.0.3.4)
+// صفحهٔ جزئیات کتاب کمبریج (v1.0.3.3)
 // «باکس به باکس» مثل تستینو — ۴ کارت تست (Test 1..4) هرکدام با:
-//  - سه ردیف مهارت (لیسنینگ/ریدینگ/رایتینگ) + وضعیت + بهترین بند
+//  - سه ردیف مهارت (ریدینگ/لیسنینگ/رایتینگ) + وضعیت + بهترین بند
 //  - انتخاب حالت (تمرین/آزمون) و شروع
-//  - دکمهٔ «آزمون کامل» (لیسنینگ → ریدینگ → رایتینگ پشت سر هم)
-//    — مثل آزمون واقعی آیلتس که با لیسنینگ شروع می‌شود
-// سه تب: آزمون / آمار (بار چارت بند) / نتیجه (تاریخچهٔ تلاش‌ها)
+//  - دکمهٔ «آزمون کامل» (ریدینگ → لیسنینگ → رایتینگ پشت سر هم)
+// سه تب: آزمون / آمار / نتیجه (تاریخچهٔ تلاش‌ها)
 // ========================================
 
 type Tab = "test" | "stats" | "result";
 
 const SKILLS: { key: IeltsSkill; fa: string; en: string; icon: typeof ClipboardList; color: string }[] = [
-  { key: "listening", fa: "لیسنینگ", en: "Listening", icon: Headphones, color: "sky" },
   { key: "reading", fa: "ریدینگ", en: "Reading", icon: ClipboardList, color: "indigo" },
+  { key: "listening", fa: "لیسنینگ", en: "Listening", icon: Headphones, color: "sky" },
   { key: "writing", fa: "رایتینگ", en: "Writing", icon: PenLine, color: "emerald" },
 ];
 
@@ -77,7 +75,7 @@ export default function BookDetailPage() {
       return;
     }
     const next =
-      skill === "listening" ? "reading" : skill === "reading" ? "writing" : null;
+      skill === "reading" ? "listening" : skill === "listening" ? "writing" : null;
     router.push(
       `/ielts/cambridge/${bookId}/${testId}/${skill}?mode=${mode}${full && next ? `&full=1` : ""}`,
     );
@@ -229,7 +227,7 @@ export default function BookDetailPage() {
             </motion.div>
           )}
 
-          {/* ================= تب آمار — بار چارت بند ================= */}
+          {/* ================= تب آمار ================= */}
           {tab === "stats" && (
             <motion.div
               key="stats"
@@ -253,11 +251,44 @@ export default function BookDetailPage() {
                 </div>
               </div>
 
-              {/* بار چارت بهترین/میانگین هر مهارت (۰ تا ۹) */}
-              <StatsBarChart stats={stats} />
+              {stats.map((s) => (
+                <div
+                  key={s.skill}
+                  className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{s.label}</p>
+                    <p className="text-[10px] text-slate-400">
+                      {tr(`${s.attempts} تلاش`, `${s.attempts} attempts`)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full ${
+                          s.skill === "reading"
+                            ? "bg-indigo-500"
+                            : s.skill === "listening"
+                              ? "bg-sky-500"
+                              : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${((s.best ?? 0) / 9) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-black text-slate-700 dark:text-slate-200 tabular-nums" dir="ltr">
+                      {s.best != null ? `best ${s.best}` : "—"}
+                    </span>
+                    {s.avg != null && (
+                      <span className="text-[10px] text-slate-400 tabular-nums" dir="ltr">
+                        avg {s.avg}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
 
               {totalAttempts === 0 && (
-                <p className="text-center text-xs text-slate-400 py-6">
+                <p className="text-center text-xs text-slate-400 py-8">
                   {tr(
                     "هنوز آزمونی از این کتاب نداده‌ای — از تب آزمون شروع کن!",
                     "You haven't taken any test from this book yet — start from the Test tab!",
@@ -437,7 +468,7 @@ function TestBox({
         <button
           onClick={() => {
             setBusy(`${testId}-full`);
-            void onBegin(testId, "listening", mode, true).finally(() => setBusy(null));
+            void onBegin(testId, "reading", mode, true).finally(() => setBusy(null));
           }}
           disabled={busy === `${testId}-full`}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[10px] font-bold text-white bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-60"
@@ -447,7 +478,7 @@ function TestBox({
           ) : (
             <Zap size={12} />
           )}
-          {tr("آزمون کامل (لیسنینگ → ریدینگ → رایتینگ)", "Full test (Listening → Reading → Writing)")}
+          {tr("آزمون کامل (۳ مهارت پشت‌سرهم)", "Full test (3 skills in a row)")}
         </button>
       </div>
     </motion.div>

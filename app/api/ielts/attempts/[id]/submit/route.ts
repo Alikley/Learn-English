@@ -1,15 +1,16 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { parseTestSlug, getTestById } from "@/lib/ielts/real-tests";
 import { getAnswerKey } from "@/lib/ielts/keys";
+import { getPdfAnswerKey } from "@/lib/ielts/answer-keys";
 import { isAnswerCorrect, rawToBand, countWords } from "@/lib/ielts/grade";
 import { prisma } from "@/prisma/Prisma client";
 
 // ========================================
-// POST /api/ielts/attempts/[id]/submit — تحویل (v1.0.3.3)
-//  - ریدینگ/لیسنینگ: اگر کلید پاسخ در lib/ielts/keys تعریف
-//    شده باشد → تصحیح خودکار + بند + ریویو؛ وگرنه وضعیت
-//    SUBMITTED با selfScoreRequired=true (خودتصحیحی از روی
-//    پاسخ‌نامهٔ انتهای کتاب PDF)
+// POST /api/ielts/attempts/[id]/submit — تحویل (v1.0.3.6)
+//  - ریدینگ/لیسنینگ — اولویت تصحیح خودکار:
+//      ۱) کلید دستی lib/ielts/keys.ts
+//      ۲) پاسخ‌نامهٔ خود PDF کتاب (بخش Answer key)
+//      ۳) هیچ‌کدام → selfScoreRequired (خودتصحیحی)
 //  - رایتینگ: ذخیرهٔ متن‌ها + شمارش کلمه
 //  - elapsedSec از سمت کلاینت (زمان صرف‌شدهٔ واقعی)
 // ========================================
@@ -95,10 +96,20 @@ export async function POST(
   const meta = skill === "reading" ? test.reading : test.listening;
   const prefix = skill === "reading" ? "r" : "l";
   const questionIds = Array.from({ length: meta.questions }, (_, i) => `${prefix}${i + 1}`);
-  const key = getAnswerKey(attempt.testSlug);
+
+  // منبع کلید: ۱) دستی keys.ts → ۲) پاسخ‌نامهٔ خود PDF کتاب
+  let key = getAnswerKey(attempt.testSlug);
+  let keySource: "manual" | "pdf" | null = key && Object.keys(key).length > 0 ? "manual" : null;
+  if (!keySource) {
+    const pdfKey = await getPdfAnswerKey(parsed.bookNumber, parsed.testNumber, skill);
+    if (pdfKey) {
+      key = pdfKey;
+      keySource = "pdf";
+    }
+  }
 
   // ----- حالت ۱: کلید پاسخ موجود → تصحیح خودکار -----
-  if (key && Object.keys(key).length > 0) {
+  if (key && Object.keys(key).length > 0 && keySource) {
     let rawScore = 0;
     const review: {
       questionId: string;
@@ -157,6 +168,7 @@ export async function POST(
       totalQuestions: meta.questions,
       bandScore: rawToBand(rawScore),
       selfScoreRequired: false,
+      keySource,
       elapsedSec,
       review,
     });
@@ -193,6 +205,7 @@ export async function POST(
     totalQuestions: meta.questions,
     bandScore: null,
     selfScoreRequired: true,
+    keySource: null,
     elapsedSec,
   });
 }

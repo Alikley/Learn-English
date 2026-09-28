@@ -9,46 +9,46 @@ import {
   ClipboardCheck,
   Award,
   BookOpen,
-  ListChecks,
   PenLine,
   CheckCircle2,
   XCircle,
   ArrowLeft,
   Zap,
   Keyboard,
-  ScrollText,
-  ExternalLink,
+  FileText,
+  X,
+  ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { startAttempt, useAttempt, submitSelfScore } from "@/app/hook/ielts/useIelts";
+import { useExamPaper } from "@/app/hook/ielts/useExamPaper";
 import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import ExamTopBar from "@/app/components/ielts/ExamTopBar";
 import PdfExamPanel from "@/app/components/ielts/PdfExamPanel";
-import ExamPaperPanel from "@/app/components/ielts/ExamPaperPanel";
-import AnswerSheet from "@/app/components/ielts/AnswerSheet";
+import ExamPaper from "@/app/components/ielts/ExamPaper";
 import RealAudioPlayer from "@/app/components/ielts/RealAudioPlayer";
-import InteractivePaper from "@/app/components/ielts/InteractivePaper";
 import PageLoading from "@/app/components/PageLoading";
 import type {
   IeltsMode,
   IeltsSkill,
   IeltsSubmitResult,
+  IeltsWritingPrompt,
 } from "@/types/ielts";
 
 // ========================================
-// پلیر آزمون آیلتس — نسخهٔ واقعی (v1.0.3.5)
+// پلیر آزمون آیلتس — برگه از متن PDF (v1.0.3.6)
 // /ielts/cambridge/[book]/[test]/[skill]?mode=practice|exam&full=1
 //
-// محتوای واقعی: PDF کتاب کمبریج (باکت B2 کاربر) + صدای واقعی
-//  - v1.0.3.5: «برگهٔ امتحانی تعاملی» — متن صفحات همان تست از PDF
-//    ساخته می‌شود و پاسخ‌ها «داخل خود برگه» داده می‌شوند (تک‌ستونی و
-//    ریسپانسیو — مناسب موبایل؛ دیگر PDF کنار پاسخ‌برگ نیست)
-//  - اگر متن PDF قابل تجزیه نبود → چیدمان دوستونهٔ قبلی v1.0.3.4
-//  - لیسنینگ: پخش‌کنندهٔ چسبان بالای برگه + سوال‌های خطی
-//  - رایتینگ: صورت تسک + ناحیهٔ نوشتن زیر همان تسک
-//  - تایمر + ذخیرهٔ خودکار + تحویل + خودتصحیحی از روی پاسخ‌نامهٔ کتاب
-//  - full=1: زنجیرهٔ آزمون کامل (لیسنینگ → ریدینگ → رایتینگ)
+// متن خود PDF کتاب خوانده می‌شود و «برگهٔ امتحان واقعی»
+// بر اساس موضوع امتحان ساخته می‌شود:
+//  - ریدینگ: پاساژها + سوال‌های ۱..۴۰ با ورودی درون‌برگ
+//  - لیسنینگ: پخش صوت + برگهٔ ۴ بخش
+//  - رایتینگ: صورت تسک ۱/۲ از PDF + متن‌نویسی
+// پاسخ‌برگ جدا حذف شد — پاسخ‌ها داخل خود سوال‌ها ثبت می‌شوند.
+// اگر برگه از PDF ساخته نشد → نمایش خود PDF + ورودی سریع.
+// تصحیح: کلید دستی → پاسخ‌نامهٔ خود PDF → خودتصحیحی.
 // ========================================
 
 const SKILL_LABEL: Record<string, { fa: string; en: string }> = {
@@ -57,10 +57,9 @@ const SKILL_LABEL: Record<string, { fa: string; en: string }> = {
   writing: { fa: "رایتینگ", en: "Writing" },
 };
 
-// زنجیرهٔ آزمون کامل — مثل آزمون واقعی: لیسنینگ → ریدینگ → رایتینگ
 const NEXT_SKILL: Partial<Record<IeltsSkill, IeltsSkill>> = {
-  listening: "reading",
-  reading: "writing",
+  reading: "listening",
+  listening: "writing",
 };
 
 function countWords(text: string): number {
@@ -68,8 +67,6 @@ function countWords(text: string): number {
   if (!t) return 0;
   return t.split(/\s+/).filter(Boolean).length;
 }
-
-type MobileTab = "pdf" | "sheet";
 
 export default function SkillPlayerPage() {
   const { book, test, skill } = useParams<{
@@ -94,8 +91,9 @@ export default function SkillPlayerPage() {
     bandScore: number | null;
     selfScored: boolean | null;
   } | null>(null);
-  const [mobileTab, setMobileTab] = useState<MobileTab>("sheet");
   const [writingTask, setWritingTask] = useState<1 | 2>(1);
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [fallbackOpen, setFallbackOpen] = useState(false);
 
   const elapsed0 = useRef(0);
   const submittedRef = useRef(false);
@@ -143,8 +141,18 @@ export default function SkillPlayerPage() {
 
   const { payload, loading, error, saving, setAnswer, flush, submit } = useAttempt(attemptId);
 
+  // برگهٔ امتحان از متن PDF — بر اساس موضوع (مهارت) آزمون
+  const {
+    paper,
+    loading: paperLoading,
+    error: paperError,
+  } = useExamPaper(
+    Number.isInteger(bookId) && bookId >= 1 && bookId <= 8 ? bookId : null,
+    Number.isInteger(testId) && testId >= 1 && testId <= 4 ? testId : null,
+    skillKey,
+  );
+
   // اگر تلاش از قبل submitted باشد (بازگشت به صفحه) → نمای نتیجه
-  // (الگوی تاخیری سایت — سازگار با React Compiler)
   useEffect(() => {
     if (payload?.status !== "SUBMITTED" || result) return;
     const t = setTimeout(() => {
@@ -219,7 +227,7 @@ export default function SkillPlayerPage() {
   const exitHref = `/ielts/cambridge/${bookId}`;
   const title = `Cambridge ${String(bookId).padStart(2, "0")} — Test ${testId}`;
 
-  // خودتصحیحی
+  // خودتصحیحی (وقتی هیچ کلیدی نبود)
   const [selfScoreInput, setSelfScoreInput] = useState("");
   const [selfScoreSaving, setSelfScoreSaving] = useState(false);
   const [selfScoreError, setSelfScoreError] = useState<string | null>(null);
@@ -274,6 +282,14 @@ export default function SkillPlayerPage() {
   const isExam = payload.mode === "exam";
   const skillInfo = SKILL_LABEL[skillKey] ?? SKILL_LABEL.reading;
 
+  // وضعیت برگهٔ امتحان
+  const paperReady = !paperLoading && !paperError && paper?.ok === true;
+  const paperFailed =
+    !paperLoading && (paperError != null || (paper != null && paper.ok === false));
+  const paperFailReason = paperError ?? (paper?.ok === false ? paper.reason : null);
+  const writingPrompts: IeltsWritingPrompt[] =
+    paper?.ok === true && skillKey === "writing" ? (paper.writing ?? []) : [];
+
   // ---------- نمای نتیجه ----------
   const showResult = result ?? submittedView;
 
@@ -294,7 +310,7 @@ export default function SkillPlayerPage() {
         submitDisabled={!!showResult}
       />
 
-      <div className="max-w-7xl mx-auto px-3 md:px-5 py-4 md:py-6">
+      <div className="max-w-3xl mx-auto px-3 md:px-5 py-4 md:py-6">
         {/* ================= نمای نتیجه ================= */}
         {showResult && (
           <ResultView
@@ -305,7 +321,6 @@ export default function SkillPlayerPage() {
             bookId={bookId}
             testId={testId}
             isExam={isExam}
-            answerKeyUrl={payload.media.pdfUrl}
             selfScoreInput={selfScoreInput}
             setSelfScoreInput={setSelfScoreInput}
             doSelfScore={doSelfScore}
@@ -322,111 +337,218 @@ export default function SkillPlayerPage() {
 
         {/* ================= نمای آزمون ================= */}
         {!showResult && (
-          <InteractivePaper
-            bookId={bookId}
-            testId={testId}
-            skill={skillKey}
-            mode={payload.mode}
-            answers={payload.savedAnswers}
-            onChange={setAnswer}
-            expectedQuestions={meta.questions}
-            audioTracks={payload.media.audioTracks}
-            audioShared={payload.media.audioShared}
-            onSubmit={() => setConfirmSubmit(true)}
-            answeredCount={answeredCount}
-            totalQuestions={answerIds.length}
-          >
-            {/* ---- پشتیبان: چیدمان دوستونهٔ v1.0.3.4 (کتاب‌های اسکن‌شده و…) ---- */}
-            {/* تب موبایل: برگهٔ امتحانی / پاسخ‌برگ */}
-            <div className="flex lg:hidden gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/70 mb-3">
-              {([
-                ["sheet", skillKey === "writing" ? tr("نوشتن", "Writing") : tr("پاسخ‌برگ", "Answer sheet"), skillKey === "writing" ? PenLine : ClipboardCheck],
-                [
-                  "pdf",
-                  isExam
-                    ? tr("برگهٔ امتحانی", "Exam paper")
-                    : tr("کتاب (PDF)", "Book (PDF)"),
-                  isExam ? ScrollText : BookOpen,
-                ],
-              ] as const).map(([key, label, Icon]) => (
-                <button
-                  key={key}
-                  onClick={() => setMobileTab(key)}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-bold transition ${
-                    mobileTab === key
-                      ? "bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-300 shadow-sm"
-                      : "text-slate-500 dark:text-slate-400"
-                  }`}
-                >
-                  <Icon size={13} />
-                  {label}
-                </button>
-              ))}
-            </div>
+          <div className="space-y-4">
+            {/* ---------- لیسنینگ: پخش‌کنندهٔ بالای برگه ---------- */}
+            {skillKey === "listening" && (
+              <RealAudioPlayer
+                tracks={payload.media.audioTracks}
+                shared={payload.media.audioShared}
+                examMode={isExam}
+              />
+            )}
 
-            <div className="grid lg:grid-cols-[1.25fr_1fr] gap-4 items-start">
-              {/* ---------- برگهٔ امتحانی (آزمون) / PDF کتاب (تمرین) ---------- */}
-              <div className={`${mobileTab === "pdf" ? "block" : "hidden"} lg:block lg:sticky lg:top-20 h-[calc(100vh-7rem)] min-h-[480px]`}>
-                {isExam ? (
-                  <ExamPaperPanel
-                    bookId={bookId}
-                    testId={testId}
-                    skill={skillKey}
-                    fallbackPdfUrl={payload.media.pdfUrl}
-                  />
-                ) : (
-                  <PdfExamPanel
-                    pdfUrl={payload.media.pdfUrl}
-                    bookTitle={`Cambridge IELTS ${String(bookId).padStart(2, "0")} — ${payload.media.error ? "" : "Official Book PDF"}`}
-                  />
-                )}
-              </div>
+            {/* ---------- رایتینگ ---------- */}
+            {skillKey === "writing" && (
+              <WritingPanel
+                answers={payload.savedAnswers}
+                onChange={setAnswer}
+                disabled={false}
+                activeTask={writingTask}
+                setActiveTask={setWritingTask}
+                isExam={isExam}
+                prompts={writingPrompts}
+                paperFailed={paperFailed}
+              />
+            )}
 
-              {/* ---------- پنل مهارت ---------- */}
-              <div className={`${mobileTab === "sheet" ? "block" : "hidden"} lg:block space-y-4`}>
-                {skillKey === "listening" && (
-                  <RealAudioPlayer
-                    tracks={payload.media.audioTracks}
-                    shared={payload.media.audioShared}
-                    examMode={isExam}
-                  />
-                )}
+            {/* ---------- ریدینگ/لیسنینگ: برگهٔ امتحان از PDF ---------- */}
+            {skillKey !== "writing" && paperReady && paper?.ok === true && (
+              <ExamPaper
+                skill={skillKey as "reading" | "listening"}
+                sections={paper.sections}
+                totalQuestions={Math.max(paper.totalQuestions, meta.questions)}
+                answers={payload.savedAnswers}
+                onChange={setAnswer}
+              />
+            )}
 
-                {skillKey === "writing" ? (
-                  <WritingPanel
-                    answers={payload.savedAnswers}
-                    onChange={setAnswer}
-                    disabled={false}
-                    activeTask={writingTask}
-                    setActiveTask={setWritingTask}
-                    isExam={isExam}
-                  />
-                ) : (
-                  <AnswerSheet
-                    prefix={skillKey === "reading" ? "r" : "l"}
-                    questions={meta.questions}
-                    parts={skillKey === "reading" ? (payload.reading.parts ?? 3) : 4}
-                    answers={payload.savedAnswers}
-                    onChange={setAnswer}
-                  />
-                )}
-
-                {/* دکمهٔ تحویل پایین پنل */}
-                <button
-                  onClick={() => setConfirmSubmit(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition active:scale-[0.99]"
-                >
-                  <Send size={15} />
-                  {tr("تحویل آزمون", "Submit exam")}
-                  <span className="text-[10px] font-medium opacity-80">
-                    ({tr(`${answeredCount} پاسخ`, `${answeredCount} answered`)})
+            {/* ---------- ریدینگ/لیسنینگ: در حال ساخت برگه ---------- */}
+            {skillKey !== "writing" && paperLoading && (
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
+                    <Sparkles size={16} className="animate-pulse" />
                   </span>
-                </button>
+                  <div className="space-y-1.5 flex-1">
+                    <p className="text-xs font-black text-slate-700 dark:text-slate-200">
+                      {tr("در حال خواندن PDF و ساخت برگهٔ امتحان…", "Reading the PDF and building your exam paper…")}
+                    </p>
+                    <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <motion.div
+                        className="h-full w-1/3 rounded-full bg-indigo-400"
+                        animate={{ x: ["-100%", "300%"] }}
+                        transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 pt-1">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="space-y-1.5">
+                      <div className="h-2.5 w-1/3 rounded bg-slate-100 dark:bg-slate-800" />
+                      <div className="h-2.5 w-full rounded bg-slate-100 dark:bg-slate-800" />
+                      <div className="h-2.5 w-2/3 rounded bg-slate-100 dark:bg-slate-800" />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </InteractivePaper>
+            )}
+
+            {/* ---------- حالت جایگزین: برگه ساخته نشد → خود PDF + ورودی سریع ---------- */}
+            {skillKey !== "writing" && paperFailed && (
+              <>
+                <div className="rounded-2xl border border-amber-200 dark:border-amber-500/25 bg-amber-50/70 dark:bg-amber-500/10 p-3.5 flex items-start gap-2.5">
+                  <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] font-black text-amber-700 dark:text-amber-300">
+                      {tr("برگهٔ امتحان از این PDF ساخته نشد", "The exam paper could not be built from this PDF")}
+                    </p>
+                    <p className="text-[10px] leading-5 text-amber-600/90 dark:text-amber-400/80" dir="auto">
+                      {paperFailReason ?? tr("ساختار فایل شناخته نشد", "File structure not recognized")}
+                    </p>
+                  </div>
+                </div>
+
+                {payload.media.pdfUrl ? (
+                  <div className="h-[70vh] min-h-[420px]">
+                    <PdfExamPanel
+                      pdfUrl={payload.media.pdfUrl}
+                      bookTitle={`Cambridge IELTS ${String(bookId).padStart(2, "0")} — Official Book PDF`}
+                    />
+                  </div>
+                ) : (
+                  <div className="h-[60vh] min-h-[360px]">
+                    <PdfExamPanel pdfUrl={null} bookTitle="" />
+                  </div>
+                )}
+
+                {/* ورودی سریع پاسخ‌ها — جمع‌شده به‌صورت پیش‌فرض */}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden">
+                  <button
+                    onClick={() => setFallbackOpen((v) => !v)}
+                    className="w-full flex items-center justify-between gap-2 px-4 py-3 text-start"
+                  >
+                    <span className="flex items-center gap-2 text-[11px] font-black text-slate-700 dark:text-slate-200">
+                      <Keyboard size={14} className="text-indigo-500" />
+                      {tr(
+                        `ورود سریع پاسخ‌ها (${answeredCount}/${answerIds.length})`,
+                        `Quick answer entry (${answeredCount}/${answerIds.length})`,
+                      )}
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={`text-slate-400 transition-transform ${fallbackOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {fallbackOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-4 pb-4 grid sm:grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+                          {answerIds.map((id, i) => (
+                            <div key={id} className="flex items-center gap-2">
+                              <span className="w-7 h-7 shrink-0 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 text-[11px] font-black flex items-center justify-center" dir="ltr">
+                                {i + 1}
+                              </span>
+                              <input
+                                dir="ltr"
+                                value={payload.savedAnswers[id] ?? ""}
+                                onChange={(e) => setAnswer(id, e.target.value)}
+                                maxLength={120}
+                                placeholder="—"
+                                className="flex-1 min-w-0 px-3 py-1.5 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400/60 focus:border-indigo-400 placeholder:text-slate-300 dark:placeholder:text-slate-600 transition"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </>
+            )}
+
+            {/* ---------- دکمهٔ تحویل ---------- */}
+            <button
+              onClick={() => setConfirmSubmit(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition active:scale-[0.99]"
+            >
+              <Send size={15} />
+              {tr("تحویل آزمون", "Submit exam")}
+              <span className="text-[10px] font-medium opacity-80">
+                ({tr(`${answeredCount} پاسخ`, `${answeredCount} answered`)})
+              </span>
+            </button>
+          </div>
         )}
       </div>
+
+      {/* ================= دکمهٔ شناور کتاب PDF ================= */}
+      {!showResult && paperReady && payload.media.pdfUrl && (
+        <button
+          onClick={() => setPdfOpen(true)}
+          className="fixed bottom-5 end-5 z-40 flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900/90 dark:bg-white/90 text-white dark:text-slate-900 text-xs font-bold shadow-xl backdrop-blur hover:scale-[1.03] transition"
+        >
+          <BookOpen size={15} />
+          {tr("کتاب PDF", "Book PDF")}
+        </button>
+      )}
+
+      {/* ================= پنل شناور PDF ================= */}
+      <AnimatePresence>
+        {pdfOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex justify-end"
+            onClick={() => setPdfOpen(false)}
+          >
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:w-[560px] h-full bg-[#fbfbfb] dark:bg-[#0b1220] shadow-2xl flex flex-col"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                <p className="flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200">
+                  <FileText size={14} className="text-indigo-500" />
+                  {tr(`کتاب Cambridge ${String(bookId).padStart(2, "0")}`, `Cambridge ${String(bookId).padStart(2, "0")} book`)}
+                </p>
+                <button
+                  onClick={() => setPdfOpen(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-red-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex-1 min-h-0 p-3">
+                <PdfExamPanel
+                  pdfUrl={payload.media.pdfUrl}
+                  bookTitle="Official Book PDF"
+                  compact
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ================= مودال تأیید تحویل ================= */}
       <AnimatePresence>
@@ -482,10 +604,8 @@ export default function SkillPlayerPage() {
 }
 
 // ========================================
-// پنل رایتینگ — دو تسک با شمارش کلمه (مثل تسک‌شیت واقعی)
+// پنل رایتینگ — صورت تسک از PDF + متن‌نویسی
 // ========================================
-
-const TASK_MIN_WORDS: Record<number, number> = { 1: 150, 2: 250 };
 
 function WritingPanel({
   answers,
@@ -494,6 +614,8 @@ function WritingPanel({
   activeTask,
   setActiveTask,
   isExam,
+  prompts,
+  paperFailed,
 }: {
   answers: Record<string, string>;
   onChange: (questionId: string, value: string) => void;
@@ -501,12 +623,15 @@ function WritingPanel({
   activeTask: 1 | 2;
   setActiveTask: (t: 1 | 2) => void;
   isExam: boolean;
+  prompts: IeltsWritingPrompt[];
+  paperFailed: boolean;
 }) {
   const { tr } = useLanguage();
   const currentId = `w${activeTask}`;
   const text = answers[currentId] ?? "";
   const words = countWords(text);
-  const minWords = TASK_MIN_WORDS[activeTask];
+  const prompt = prompts.find((p) => p.task === activeTask) ?? null;
+  const minWords = prompt?.minWords ?? (activeTask === 1 ? 150 : 250);
 
   return (
     <div className="space-y-3">
@@ -522,20 +647,39 @@ function WritingPanel({
                 : "text-slate-500 dark:text-slate-400"
             }`}
           >
-            {t === 1 ? <ListChecks size={13} /> : <PenLine size={13} />}
+            {t === 1 ? <BookOpen size={13} /> : <PenLine size={13} />}
             {tr(`تسک ${t} (${t === 1 ? "۲۰" : "۴۰"} دقیقه)`, `Task ${t} (${t === 1 ? "20" : "40"} min)`)}
           </button>
         ))}
       </div>
 
+      {/* صورت تسک — از متن PDF */}
+      {prompt ? (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-4">
+          <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
+            <Sparkles size={12} />
+            {tr("صورت تسک — خوانده‌شده از PDF کتاب", "Task prompt — read from the book PDF")}
+          </p>
+          <p className="text-[13px] leading-7 text-slate-700 dark:text-slate-200 whitespace-pre-wrap" dir="ltr">
+            {prompt.prompt}
+          </p>
+        </div>
+      ) : (
+        <p className="text-[11px] text-slate-400 leading-6 px-1">
+          {paperFailed
+            ? tr(
+                "صورت تسک از PDF خوانده نشد — از دکمهٔ «کتاب PDF» صورت تسک را ببین.",
+                "Task prompt could not be parsed — use the “Book PDF” button to read the prompt.",
+              )
+            : tr(
+                `در حال خواندن صورت تسک ${activeTask} از PDF…`,
+                `Reading Task ${activeTask} prompt from the PDF…`,
+              )}
+        </p>
+      )}
+
       {/* ناحیهٔ نوشتن */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-3 space-y-2">
-        <p className="text-[11px] text-slate-400 leading-6">
-          {tr(
-            `صورت تسک ${activeTask} را از PDF کتاب بخوان (نمودار/جدول برای تسک ۱ و موضوع مقاله برای تسک ۲).`,
-            `Read Task ${activeTask} prompt from the book PDF (chart/table for Task 1, essay topic for Task 2).`,
-          )}
-        </p>
         <textarea
           dir="ltr"
           value={text}
@@ -578,7 +722,6 @@ function ResultView({
   bookId,
   testId,
   isExam,
-  answerKeyUrl,
   selfScoreInput,
   setSelfScoreInput,
   doSelfScore,
@@ -594,7 +737,6 @@ function ResultView({
   bookId: number;
   testId: number;
   isExam: boolean;
-  answerKeyUrl: string | null;
   selfScoreInput: string;
   setSelfScoreInput: (v: string) => void;
   doSelfScore: () => Promise<void>;
@@ -621,6 +763,7 @@ function ResultView({
     rawScore == null &&
     !selfScoreDone;
   const isStoredOnly = result == null && stored != null;
+  const autoKeySource = result?.keySource ?? null;
 
   return (
     <motion.div
@@ -657,17 +800,25 @@ function ResultView({
                   {rawScore}/{totalQuestions}
                 </span>
               </p>
-              {selfScored && (
+              {selfScored ? (
                 <span className="inline-block text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2.5 py-1">
                   {tr("خودتصحیحی از روی پاسخ‌نامهٔ کتاب", "Self-scored from the book's answer key")}
                 </span>
-              )}
+              ) : autoKeySource === "pdf" ? (
+                <span className="inline-block text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-2.5 py-1">
+                  {tr("تصحیح خودکار با پاسخ‌نامهٔ خود کتاب (PDF)", "Auto-marked with the book's own answer key (PDF)")}
+                </span>
+              ) : autoKeySource === "manual" ? (
+                <span className="inline-block text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-2.5 py-1">
+                  {tr("تصحیح خودکار", "Auto-marked")}
+                </span>
+              ) : null}
             </>
           )}
         </div>
       )}
 
-      {/* ---------- خودتصحیحی ---------- */}
+      {/* ---------- خودتصحیحی (وقتی هیچ کلیدی نبود) ---------- */}
       {needSelfScore && (
         <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 space-y-4">
           <div className="flex items-center gap-2.5">
@@ -679,7 +830,7 @@ function ResultView({
                 {tr("نوبت تصحیح است!", "Time to score!")}
               </p>
               <p className="text-[10px] text-slate-400">
-                {tr("پاسخ‌برگ تحویل شد — حالا خودت تصحیح کن", "Answer sheet submitted — now self-score")}
+                {tr("پاسخ‌نامهٔ این کتاب از PDF خوانده نشد — خودت تصحیح کن", "This book's answer key could not be parsed from the PDF — self-score")}
               </p>
             </div>
           </div>
@@ -687,21 +838,10 @@ function ResultView({
           <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 p-3.5 space-y-2">
             <p className="text-[11px] leading-6 text-slate-600 dark:text-slate-300">
               {tr(
-                "۱) در PDF کتاب به بخش «Answer key» انتهای کتاب برو · ۲) پاسخ‌های درستت را بشمار · ۳) عدد را اینجا وارد کن تا بندت محاسبه و ثبت شود.",
+                "۱) در PDF کتاب به «Answer key» انتهای کتاب برو · ۲) پاسخ‌های درستت را بشمار · ۳) عدد را اینجا وارد کن تا بندت محاسبه و ثبت شود.",
                 "1) Open the “Answer key” section at the end of the book · 2) Count your correct answers · 3) Enter the number here to calculate and save your band.",
               )}
             </p>
-            {answerKeyUrl && (
-              <a
-                href={answerKeyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition"
-              >
-                <ExternalLink size={12} />
-                {tr("باز کردن PDF کتاب (پاسخ‌نامه در انتهای کتاب)", "Open the book PDF (answer key at the end)")}
-              </a>
-            )}
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -811,8 +951,8 @@ function ResultView({
       {isExam && !isStoredOnly && (
         <p className="text-center text-[10px] text-slate-400">
           {tr(
-            "مثل آزمون واقعی: نمرهٔ رایتینگ آیلتس توسط ممتحن داده می‌شود؛ برای ریدینگ/لیسنینگ از پاسخ‌نامهٔ کتاب تصحیح کن.",
-            "Like the real test: writing is scored by an examiner; self-score reading/listening with the book's answer key.",
+            "مثل آزمون واقعی: نمرهٔ رایتینگ آیلتس توسط ممتحن داده می‌شود؛ برای ریدینگ/لیسنینگ اگر پاسخ‌نامهٔ کتاب از PDF خوانده نشد، از انتهای کتاب تصحیح کن.",
+            "Like the real test: writing is scored by an examiner; for reading/listening, if the book's answer key was not parsed, mark it from the end of the book.",
           )}
         </p>
       )}

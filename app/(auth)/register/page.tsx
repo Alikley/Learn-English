@@ -25,7 +25,7 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    getValues,
     formState: { errors },
   } = useForm<RegisterForm>();
 
@@ -152,7 +152,7 @@ export default function RegisterPage() {
                   {...register("confirmPassword", {
                     required: tr("تکرار رمز عبور را وارد کنید", "Enter the password confirmation"),
                     validate: (val) =>
-                      val === watch("password") ||
+                      val === getValues("password") ||
                       tr("رمز عبور و تکرار آن یکسان نیستند", "Password and confirmation do not match"),
                   })}
                   className={`w-full px-4 py-3 pl-11 rounded-xl border text-sm outline-none transition-all duration-200 ${errors.confirmPassword ? "border-red-400 bg-red-50 focus:border-red-500 focus:ring-2 focus:ring-red-100 dark:focus:ring-red-500/25" : "border-slate-200 bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-500/25 focus:bg-white dark:focus:bg-slate-800"}`}
