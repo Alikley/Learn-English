@@ -16,6 +16,8 @@ import {
   ArrowLeft,
   Zap,
   Keyboard,
+  ScrollText,
+  ExternalLink,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
@@ -23,6 +25,7 @@ import { startAttempt, useAttempt, submitSelfScore } from "@/app/hook/ielts/useI
 import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import ExamTopBar from "@/app/components/ielts/ExamTopBar";
 import PdfExamPanel from "@/app/components/ielts/PdfExamPanel";
+import ExamPaperPanel from "@/app/components/ielts/ExamPaperPanel";
 import AnswerSheet from "@/app/components/ielts/AnswerSheet";
 import RealAudioPlayer from "@/app/components/ielts/RealAudioPlayer";
 import PageLoading from "@/app/components/PageLoading";
@@ -33,15 +36,18 @@ import type {
 } from "@/types/ielts";
 
 // ========================================
-// پلیر آزمون آیلتس — نسخهٔ واقعی (v1.0.3.3)
+// پلیر آزمون آیلتس — نسخهٔ واقعی (v1.0.3.4)
 // /ielts/cambridge/[book]/[test]/[skill]?mode=practice|exam&full=1
 //
 // محتوای واقعی: PDF کتاب کمبریج (باکت B2 کاربر) + صدای واقعی
-//  - ریدینگ: PDF کنار پاسخ‌برگ ۴۰ سوال (مثل آزمون کاغذی)
+//  - حالت آزمون: «برگهٔ امتحانی اختصاصی» فقط صفحات همین تست/مهارت
+//    (صفحهٔ جلد امتحانی + صفحات L/R/W) — مثل آزمون واقعی
+//  - حالت تمرین: PDF کامل کتاب (بدون تغییر)
 //  - لیسنینگ: پخش‌کنندهٔ فایل واقعی + پاسخ‌برگ (حالت آزمون: بدون seek)
-//  - رایتینگ: PDF صورت سوال + دو textarea با شمارش کلمه
+//  - رایتینگ: برگهٔ صورت سوال + دو textarea با شمارش کلمه
 //  - تایمر + ذخیرهٔ خودکار + تحویل + خودتصحیحی از روی پاسخ‌نامهٔ کتاب
-//  - full=1: زنجیرهٔ آزمون کامل (ریدینگ → لیسنینگ → رایتینگ)
+//  - full=1: زنجیرهٔ آزمون کامل (لیسنینگ → ریدینگ → رایتینگ)
+//    — مثل آزمون واقعی آیلتس که با لیسنینگ شروع می‌شود
 // ========================================
 
 const SKILL_LABEL: Record<string, { fa: string; en: string }> = {
@@ -50,9 +56,10 @@ const SKILL_LABEL: Record<string, { fa: string; en: string }> = {
   writing: { fa: "رایتینگ", en: "Writing" },
 };
 
+// زنجیرهٔ آزمون کامل — مثل آزمون واقعی: لیسنینگ → ریدینگ → رایتینگ
 const NEXT_SKILL: Partial<Record<IeltsSkill, IeltsSkill>> = {
-  reading: "listening",
-  listening: "writing",
+  listening: "reading",
+  reading: "writing",
 };
 
 function countWords(text: string): number {
@@ -70,8 +77,7 @@ export default function SkillPlayerPage() {
     skill: string;
   }>();
   const router = useRouter();
-  const { tr, dir, lang } = useLanguage();
-  const en = lang === "en";
+  const { tr, dir } = useLanguage();
 
   const bookId = Number(book);
   const testId = Number(test);
@@ -298,7 +304,7 @@ export default function SkillPlayerPage() {
             bookId={bookId}
             testId={testId}
             isExam={isExam}
-            payloadAnswers={payload.savedAnswers}
+            answerKeyUrl={payload.media.pdfUrl}
             selfScoreInput={selfScoreInput}
             setSelfScoreInput={setSelfScoreInput}
             doSelfScore={doSelfScore}
@@ -316,11 +322,17 @@ export default function SkillPlayerPage() {
         {/* ================= نمای آزمون ================= */}
         {!showResult && (
           <>
-            {/* تب موبایل: PDF / پاسخ‌برگ */}
+            {/* تب موبایل: برگهٔ امتحانی / پاسخ‌برگ */}
             <div className="flex lg:hidden gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/70 mb-3">
               {([
                 ["sheet", skillKey === "writing" ? tr("نوشتن", "Writing") : tr("پاسخ‌برگ", "Answer sheet"), skillKey === "writing" ? PenLine : ClipboardCheck],
-                ["pdf", tr("کتاب (PDF)", "Book (PDF)"), BookOpen],
+                [
+                  "pdf",
+                  isExam
+                    ? tr("برگهٔ امتحانی", "Exam paper")
+                    : tr("کتاب (PDF)", "Book (PDF)"),
+                  isExam ? ScrollText : BookOpen,
+                ],
               ] as const).map(([key, label, Icon]) => (
                 <button
                   key={key}
@@ -338,12 +350,21 @@ export default function SkillPlayerPage() {
             </div>
 
             <div className="grid lg:grid-cols-[1.25fr_1fr] gap-4 items-start">
-              {/* ---------- PDF کتاب (دسکتاپ: همیشه · موبایل: تب) ---------- */}
+              {/* ---------- برگهٔ امتحانی (آزمون) / PDF کتاب (تمرین) ---------- */}
               <div className={`${mobileTab === "pdf" ? "block" : "hidden"} lg:block lg:sticky lg:top-20 h-[calc(100vh-7rem)] min-h-[480px]`}>
-                <PdfExamPanel
-                  pdfUrl={payload.media.pdfUrl}
-                  bookTitle={`Cambridge IELTS ${String(bookId).padStart(2, "0")} — ${payload.media.error ? "" : "Official Book PDF"}`}
-                />
+                {isExam ? (
+                  <ExamPaperPanel
+                    bookId={bookId}
+                    testId={testId}
+                    skill={skillKey}
+                    fallbackPdfUrl={payload.media.pdfUrl}
+                  />
+                ) : (
+                  <PdfExamPanel
+                    pdfUrl={payload.media.pdfUrl}
+                    bookTitle={`Cambridge IELTS ${String(bookId).padStart(2, "0")} — ${payload.media.error ? "" : "Official Book PDF"}`}
+                  />
+                )}
               </div>
 
               {/* ---------- پنل مهارت ---------- */}
@@ -542,7 +563,7 @@ function ResultView({
   bookId,
   testId,
   isExam,
-  payloadAnswers,
+  answerKeyUrl,
   selfScoreInput,
   setSelfScoreInput,
   doSelfScore,
@@ -558,7 +579,7 @@ function ResultView({
   bookId: number;
   testId: number;
   isExam: boolean;
-  payloadAnswers: Record<string, string>;
+  answerKeyUrl: string | null;
   selfScoreInput: string;
   setSelfScoreInput: (v: string) => void;
   doSelfScore: () => Promise<void>;
@@ -651,10 +672,21 @@ function ResultView({
           <div className="rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-700 p-3.5 space-y-2">
             <p className="text-[11px] leading-6 text-slate-600 dark:text-slate-300">
               {tr(
-                "۱) در تب PDF به «Answer key» انتهای کتاب برو · ۲) پاسخ‌های درستت را بشمار · ۳) عدد را اینجا وارد کن تا بندت محاسبه و ثبت شود.",
-                "1) Open the “Answer key” section at the end of the book in the PDF tab · 2) Count your correct answers · 3) Enter the number here to calculate and save your band.",
+                "۱) در PDF کتاب به بخش «Answer key» انتهای کتاب برو · ۲) پاسخ‌های درستت را بشمار · ۳) عدد را اینجا وارد کن تا بندت محاسبه و ثبت شود.",
+                "1) Open the “Answer key” section at the end of the book · 2) Count your correct answers · 3) Enter the number here to calculate and save your band.",
               )}
             </p>
+            {answerKeyUrl && (
+              <a
+                href={answerKeyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition"
+              >
+                <ExternalLink size={12} />
+                {tr("باز کردن PDF کتاب (پاسخ‌نامه در انتهای کتاب)", "Open the book PDF (answer key at the end)")}
+              </a>
+            )}
             <div className="flex items-center gap-2">
               <input
                 type="number"
