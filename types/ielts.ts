@@ -135,3 +135,81 @@ export interface IeltsSelfScoreResult {
   bandScore: number;
   selfScored: true;
 }
+
+// ========================================
+// برگهٔ امتحانی تعاملی (v1.0.3.5)
+// متن PDF کتاب به ساختار سوال/پاساژ تبدیل می‌شود تا
+// کاربر «داخل خود برگهٔ امتحان» جواب بدهد — چیدمان
+// تک‌ستونی و ریسپانسیو (مناسب موبایل).
+// ========================================
+
+/** نوع ورودی پاسخ */
+export type PaperInputKind =
+  | "text" // جای خالی متنی (تکمیل جمله/فرم/جدول/خلاصه)
+  | "letters" // دکمه‌های حرف A/B/C/D… (چهارگزینه‌ای/مچینگ/پاراگراف)
+  | "roman" // دکمه‌های عدد رومی i..viii (مچینگ تیتر)
+  | "tfng" // TRUE / FALSE / NOT GIVEN
+  | "ynng"; // YES / NO / NOT GIVEN
+
+/** گزینهٔ یک سوال چهارگزینه‌ای یا بانک مچینگ */
+export interface PaperOption {
+  letter: string;
+  text: string;
+}
+
+/**
+ * یک واحد سوال. در آیلتس هر «جای خالی» دقیقاً یک شمارهٔ سوال است؛
+ * بنابراین جمله‌ای با دو جای خالی که برچسب «1» دارد معمولاً
+ * سوال‌های ۱ و ۲ را می‌پوشاند → numbers=[1,2].
+ */
+export interface PaperQuestionUnit {
+  /** شماره(های) سوال به‌ترتیب جای خالی‌ها */
+  numbers: number[];
+  /** قطعه‌های متن بین ورودی‌ها — طول = تعداد ورودی + ۱ */
+  segments: string[];
+  inputKind: PaperInputKind;
+  /** گزینه‌های همین سوال (چهارگزینه‌ای) */
+  options?: PaperOption[];
+}
+
+/** یک دستهٔ سوال: «Questions 1–5» + دستور + سوال‌ها */
+export interface PaperGroup {
+  /** برچسب اصلی مثل «Questions 1–5» */
+  label: string;
+  /** خطوط دستور سوال */
+  instruction: string[];
+  /** بانک گزینه‌های مشترک دسته (مچینگ/تیتر) */
+  bank?: PaperOption[];
+  inputKind: PaperInputKind;
+  /** حروف مجاز برای ورودی حرفی (letters/roman) */
+  letters?: string[];
+  questions: PaperQuestionUnit[];
+}
+
+/** بلوک‌های محتوای یک بخش — ترتیب واقعی حفظ می‌شود */
+export type PaperBlock =
+  | { type: "text"; lines: string[] } // پاساژ ریدینگ / زمینهٔ لیسنینگ / صورت تسک
+  | { type: "group"; group: PaperGroup };
+
+/** یک بخش: SECTION n / READING PASSAGE n / WRITING TASK n */
+export interface PaperSection {
+  title: string;
+  blocks: PaperBlock[];
+}
+
+/** برگهٔ امتحانی تعاملی کامل */
+export interface InteractivePaper {
+  ok: boolean;
+  reason: string | null;
+  skill: IeltsSkill;
+  bookId: number;
+  testId: number;
+  sections: PaperSection[];
+  /** همهٔ شماره‌های سوالات پیداشده (مرتب صعودی) */
+  questionNumbers: number[];
+  /** بالاترین شمارهٔ سوال از برچسب دسته‌ها (معمولاً ۴۰) */
+  maxQuestion: number;
+  fromPage: number | null;
+  toPage: number | null;
+  totalPages: number | null;
+}

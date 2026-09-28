@@ -73,8 +73,9 @@ export default function Navbar({
               <ChevronDown className="h-4 w-4 text-slate-500 dark:text-slate-400 transition-transform group-hover:rotate-180" />
             </div>
 
-            {/* منوی کشویی */}
-            <div className="absolute top-14 left-0 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            {/* منوی کشویی — v1.0.3.5: start-0 (منطقی) به‌جای left-0
+                تا در حالت فارسی/RTL دقیقاً زیر نام کاربر باز شود */}
+            <div className="absolute top-14 start-0 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-lg mb-3">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-xs font-medium mb-1">
                   <Calendar size={14} />

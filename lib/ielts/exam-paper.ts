@@ -59,7 +59,8 @@ export type PaperInfo = {
 
 // ---------- انواع داخلی ----------
 
-type PdfSource = {
+// v1.0.3.5: صادرشده برای موتور برگهٔ تعاملی (interactive-paper.ts)
+export type PdfSource = {
   key: string; // امضای فایل برای بی‌اعتبارکردن کش‌ها
   bytes: Uint8Array;
 };
@@ -124,7 +125,8 @@ let layoutCache: { bookId: number; key: string; layout: BookLayout; at: number }
 // ۱) دریافت PDF کتاب — B2 یا فایل محلی (IELTS_LOCAL_PDF_n)
 // ============================================================
 
-async function loadBookPdf(bookId: number): Promise<PdfSource | { error: string }> {
+// v1.0.3.5: صادرشده برای موتور برگهٔ تعاملی (interactive-paper.ts)
+export async function loadBookPdf(bookId: number): Promise<PdfSource | { error: string }> {
   const cached = pdfCache.get(bookId);
   if (cached && Date.now() - cached.at < PDF_TTL_MS) return cached.src;
 

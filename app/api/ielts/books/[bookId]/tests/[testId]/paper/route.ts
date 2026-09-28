@@ -2,14 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, err } from "@/lib/api-helpers";
 import { buildExamPaper, getPaperInfo, paperFilename } from "@/lib/ielts/exam-paper";
 import type { PaperSkill } from "@/lib/ielts/exam-paper";
+import { getInteractivePaper } from "@/lib/ielts/interactive-paper";
 
 // ========================================
-// GET /api/ielts/books/[bookId]/tests/[testId]/paper (v1.0.3.4)
+// GET /api/ielts/books/[bookId]/tests/[testId]/paper (v1.0.3.4 / v1.0.3.5)
 // برگهٔ امتحانی اختصاصی یک تست/مهارت — فقط صفحات همان تست
 // از PDF کتاب + صفحهٔ جلد امتحانی.
 //
 //   ?skill=listening|reading|writing   (الزامی)
 //   ?check=1                           → فقط بررسی در دسترس بودن (JSON)
+//   ?content=1                         → برگهٔ تعاملی (JSON ساختاریافته — v1.0.3.5)
 //   ?dl=1                              → دانلود به‌جای نمایش درجایگاه
 //
 // بار اول ممکن است چند ثانیه طول بکشد (خواندن PDF کتاب)؛
@@ -46,6 +48,14 @@ export async function GET(
   if (url.searchParams.get("check") === "1") {
     const info = await getPaperInfo(bookId, testId, skill);
     return NextResponse.json(info);
+  }
+
+  // ---------- برگهٔ تعاملی (JSON ساختاریافته — v1.0.3.5) ----------
+  if (url.searchParams.get("content") === "1") {
+    const paper = await getInteractivePaper(bookId, testId, skill);
+    return NextResponse.json(paper, {
+      headers: { "Cache-Control": "private, max-age=300" },
+    });
   }
 
   // ---------- ساخت برگه ----------

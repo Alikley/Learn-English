@@ -28,6 +28,7 @@ import PdfExamPanel from "@/app/components/ielts/PdfExamPanel";
 import ExamPaperPanel from "@/app/components/ielts/ExamPaperPanel";
 import AnswerSheet from "@/app/components/ielts/AnswerSheet";
 import RealAudioPlayer from "@/app/components/ielts/RealAudioPlayer";
+import InteractivePaper from "@/app/components/ielts/InteractivePaper";
 import PageLoading from "@/app/components/PageLoading";
 import type {
   IeltsMode,
@@ -36,18 +37,18 @@ import type {
 } from "@/types/ielts";
 
 // ========================================
-// پلیر آزمون آیلتس — نسخهٔ واقعی (v1.0.3.4)
+// پلیر آزمون آیلتس — نسخهٔ واقعی (v1.0.3.5)
 // /ielts/cambridge/[book]/[test]/[skill]?mode=practice|exam&full=1
 //
 // محتوای واقعی: PDF کتاب کمبریج (باکت B2 کاربر) + صدای واقعی
-//  - حالت آزمون: «برگهٔ امتحانی اختصاصی» فقط صفحات همین تست/مهارت
-//    (صفحهٔ جلد امتحانی + صفحات L/R/W) — مثل آزمون واقعی
-//  - حالت تمرین: PDF کامل کتاب (بدون تغییر)
-//  - لیسنینگ: پخش‌کنندهٔ فایل واقعی + پاسخ‌برگ (حالت آزمون: بدون seek)
-//  - رایتینگ: برگهٔ صورت سوال + دو textarea با شمارش کلمه
+//  - v1.0.3.5: «برگهٔ امتحانی تعاملی» — متن صفحات همان تست از PDF
+//    ساخته می‌شود و پاسخ‌ها «داخل خود برگه» داده می‌شوند (تک‌ستونی و
+//    ریسپانسیو — مناسب موبایل؛ دیگر PDF کنار پاسخ‌برگ نیست)
+//  - اگر متن PDF قابل تجزیه نبود → چیدمان دوستونهٔ قبلی v1.0.3.4
+//  - لیسنینگ: پخش‌کنندهٔ چسبان بالای برگه + سوال‌های خطی
+//  - رایتینگ: صورت تسک + ناحیهٔ نوشتن زیر همان تسک
 //  - تایمر + ذخیرهٔ خودکار + تحویل + خودتصحیحی از روی پاسخ‌نامهٔ کتاب
 //  - full=1: زنجیرهٔ آزمون کامل (لیسنینگ → ریدینگ → رایتینگ)
-//    — مثل آزمون واقعی آیلتس که با لیسنینگ شروع می‌شود
 // ========================================
 
 const SKILL_LABEL: Record<string, { fa: string; en: string }> = {
@@ -321,7 +322,21 @@ export default function SkillPlayerPage() {
 
         {/* ================= نمای آزمون ================= */}
         {!showResult && (
-          <>
+          <InteractivePaper
+            bookId={bookId}
+            testId={testId}
+            skill={skillKey}
+            mode={payload.mode}
+            answers={payload.savedAnswers}
+            onChange={setAnswer}
+            expectedQuestions={meta.questions}
+            audioTracks={payload.media.audioTracks}
+            audioShared={payload.media.audioShared}
+            onSubmit={() => setConfirmSubmit(true)}
+            answeredCount={answeredCount}
+            totalQuestions={answerIds.length}
+          >
+            {/* ---- پشتیبان: چیدمان دوستونهٔ v1.0.3.4 (کتاب‌های اسکن‌شده و…) ---- */}
             {/* تب موبایل: برگهٔ امتحانی / پاسخ‌برگ */}
             <div className="flex lg:hidden gap-1.5 p-1 rounded-2xl bg-slate-100 dark:bg-slate-800/70 mb-3">
               {([
@@ -409,7 +424,7 @@ export default function SkillPlayerPage() {
                 </button>
               </div>
             </div>
-          </>
+          </InteractivePaper>
         )}
       </div>
 
