@@ -26,6 +26,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { useCambridgeBook, startAttempt } from "@/app/hook/ielts/useIelts";
+import { getStructuredExam } from "@/lib/ielts/structured-tests";
 import PageLoading from "@/app/components/PageLoading";
 import type { IeltsAttemptSummary, IeltsMode, IeltsSkill } from "@/types/ielts";
 
@@ -74,10 +75,21 @@ export default function BookDetailPage() {
       setStartError(r.error);
       return;
     }
+    // شروع تمرین جدید → نمای نتیجهٔ قبلی کنار برود
+    try {
+      sessionStorage.removeItem(`ielts-result-${bookId}-${testId}-${skill}`);
+    } catch {
+      /* حافظهٔ نشست پر است */
+    }
     const next =
       skill === "reading" ? "listening" : skill === "listening" ? "writing" : null;
+    // آزمون‌های ساخت‌یافته (مثل کمبریج ۴ تست ۱ لیسنینگ) → پلیر Part‌محور مثل تستینو
+    const query = `mode=${mode}${full && next ? `&full=1` : ""}`;
+    const structured = getStructuredExam(bookId, testId, skill) !== null;
     router.push(
-      `/ielts/cambridge/${bookId}/${testId}/${skill}?mode=${mode}${full && next ? `&full=1` : ""}`,
+      structured
+        ? `/ielts/cambridge/${bookId}/${testId}/${skill}/part/1?${query}`
+        : `/ielts/cambridge/${bookId}/${testId}/${skill}?${query}`,
     );
   }
 

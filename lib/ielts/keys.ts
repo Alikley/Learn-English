@@ -25,7 +25,58 @@
 export type IeltsAnswerKey = Record<string, string[]>;
 
 export const IELTS_ANSWER_KEYS: Record<string, IeltsAnswerKey> = {
-  // کلیدها اینجا اضافه شوند (نمونهٔ بالا را ببین)
+  // ========================================
+  // Cambridge IELTS 4 — Test 1 — Listening
+  // (پاسخ‌نامهٔ رسمی کتاب — همهٔ حالت‌های قابل قبول)
+  // ========================================
+  "cambridge-04-t1": {
+    l1: ["shopping", "variety of shopping"],
+    l2: ["guided tours"],
+    l3: ["more than 12", "over 12", "more than twelve", "over twelve"],
+    l4: ["notice board"],
+    l5: ["13th february", "february 13th", "13 february", "february 13"],
+    l6: ["tower of london"],
+    l7: ["bristol"],
+    l8: ["american museum"],
+    l9: ["student newspaper"],
+    l10: ["yentob"],
+    // سوال ۱۱ دو جای خالی دارد — هر دو با هم (به هر ترتیب) پذیرفته می‌شود
+    l11: ["coal firewood", "firewood coal", "coal, firewood", "firewood, coal"],
+    l12: ["local craftsmen"],
+    l13: ["160"],
+    l14: ["woodside"],
+    l15: ["ticket office"],
+    l16: ["gift shop"],
+    l17: ["main workshop", "workshop"],
+    l18: ["showroom"],
+    l19: ["café", "cafe"],
+    l20: ["cottages"],
+    l21: ["a"],
+    l22: ["c"],
+    l23: ["e"],
+    l24: ["b"],
+    l25: ["g"],
+    l26: ["f"],
+    l27: ["c"],
+    l28: ["d"],
+    l29: ["a"],
+    l30: ["b"],
+    l31: ["cities", "environment"],
+    l32: ["windy"],
+    l33: ["humid"],
+    l34: ["shady", "shaded"],
+    l35: ["dangerous"],
+    l36: ["leaves"],
+    l37: ["ground"],
+    l38: [
+      "considerably reduce",
+      "considerably decrease",
+      "considerably filter",
+      "reduce considerably",
+    ],
+    l39: ["low"],
+    l40: ["space", "room"],
+  },
 };
 
 /** آیا برای این تست کلید پاسخ تعریف شده است؟ */

@@ -2,6 +2,7 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { parseTestSlug, getTestById } from "@/lib/ielts/real-tests";
 import { buildAttemptPayload, examRemainingSec, skillMinutes } from "@/lib/ielts/attempt-payload";
 import { countWords } from "@/lib/ielts/grade";
+import { getAnswerKey } from "@/lib/ielts/keys";
 import { prisma } from "@/prisma/Prisma client";
 
 // ========================================
@@ -68,11 +69,14 @@ export async function GET(
       });
     }
     // ریویو فقط وقتی معنی دارد که پاسخ‌ها علامت خورده باشند (کلید موجود)
+    // correctAnswer از کلید رسمی پر می‌شود تا مرور بعد از تحویل کامل باشد
+    const key = getAnswerKey(attempt.testSlug);
     const review = attempt.answers
       .filter((a) => a.isCorrect !== null)
       .map((a) => ({
         questionId: a.questionId,
         yourAnswer: a.value,
+        correctAnswer: key?.[a.questionId]?.[0] ?? null,
         isCorrect: a.isCorrect === true,
       }));
     return ok({ ...base, review });

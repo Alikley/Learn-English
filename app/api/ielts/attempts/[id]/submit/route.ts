@@ -98,8 +98,12 @@ export async function POST(
   const questionIds = Array.from({ length: meta.questions }, (_, i) => `${prefix}${i + 1}`);
 
   // منبع کلید: ۱) دستی keys.ts → ۲) پاسخ‌نامهٔ خود PDF کتاب
+  // (کلید باید برای «همین مهارت» مدخل داشته باشد — کلیدِ فقط-لیسنینگ
+  // نباید ریدینگ را به مسیر تصحیح خودکارِ تهی ببرد)
+  const keyPrefix = skill === "reading" ? "r" : "l";
   let key = getAnswerKey(attempt.testSlug);
-  let keySource: "manual" | "pdf" | null = key && Object.keys(key).length > 0 ? "manual" : null;
+  let keySource: "manual" | "pdf" | null =
+    key && Object.keys(key).some((k) => k.startsWith(keyPrefix)) ? "manual" : null;
   if (!keySource) {
     const pdfKey = await getPdfAnswerKey(parsed.bookNumber, parsed.testNumber, skill);
     if (pdfKey) {
