@@ -24,12 +24,11 @@
 
 export type IeltsAnswerKey = Record<string, string[]>;
 
-export const IELTS_ANSWER_KEYS: Record<string, IeltsAnswerKey> = {
-  // ========================================
-  // Cambridge IELTS 4 — Test 1 — Listening
-  // (پاسخ‌نامهٔ رسمی کتاب — همهٔ حالت‌های قابل قبول)
-  // ========================================
-  "cambridge-04-t1": {
+// ========================================
+// Cambridge IELTS 4 — Test 1 — Listening
+// (پاسخ‌نامهٔ رسمی کتاب — همهٔ حالت‌های قابل قبول)
+// ========================================
+const C04T1_LISTENING_KEY: IeltsAnswerKey = {
     l1: ["shopping", "variety of shopping"],
     l2: ["guided tours"],
     l3: ["more than 12", "over 12", "more than twelve", "over twelve"],
@@ -76,7 +75,14 @@ export const IELTS_ANSWER_KEYS: Record<string, IeltsAnswerKey> = {
     ],
     l39: ["low"],
     l40: ["space", "room"],
-  },
+};
+
+// v1.0.3.8: same key registered for book 1 AND book 4 — the structured
+// C04T1 listening exam is startable from both book cards, and each
+// attempt stores its own slug ("cambridge-01-t1" / "cambridge-04-t1").
+export const IELTS_ANSWER_KEYS: Record<string, IeltsAnswerKey> = {
+  "cambridge-01-t1": C04T1_LISTENING_KEY,
+  "cambridge-04-t1": C04T1_LISTENING_KEY,
 };
 
 /** آیا برای این تست کلید پاسخ تعریف شده است؟ */
