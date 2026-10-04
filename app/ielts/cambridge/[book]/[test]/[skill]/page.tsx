@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
+import { useAuth } from "@/app/context/AuthContext";
 import { startAttempt, useAttempt, submitSelfScore } from "@/app/hook/ielts/useIelts";
 import { useExamPaper } from "@/app/hook/ielts/useExamPaper";
 import { recordStreakActivity } from "@/app/hook/ui/useStreak";
@@ -80,6 +81,8 @@ export default function SkillPlayerPage() {
   }>();
   const router = useRouter();
   const { tr, dir } = useLanguage();
+  // v1.0.4.1 — مشخصات داوطلب برای هدر برگهٔ امتحانی کاغذی
+  const { user } = useAuth();
 
   const bookId = Number(book);
   const testId = Number(test);
@@ -394,6 +397,11 @@ export default function SkillPlayerPage() {
             {skillKey !== "writing" && paperReady && paper?.ok === true && (
               <ExamPaper
                 skill={skillKey as "reading" | "listening"}
+                bookId={bookId}
+                testId={testId}
+                mode={payload.mode}
+                userName={user?.name ?? user?.nickname ?? ""}
+                userEmail={user?.email ?? ""}
                 sections={paper.sections}
                 totalQuestions={Math.max(paper.totalQuestions, meta.questions)}
                 answers={payload.savedAnswers}
