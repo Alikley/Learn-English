@@ -398,3 +398,36 @@ model IeltsAnswer {
   @@unique([attemptId, questionId])
   @@index([attemptId])
 }
+
+// ========================================
+// برگه‌های امتحانی ساخته‌شده با هوش مصنوعی (v1.0.4.0)
+//
+// هر آزمون (کتاب ۱..۸ × تست ۱..۴ × مهارت) «فقط یک بار»
+// با AI (CodeCraft) از متن PDF کتاب ساخته می‌شود و نتیجه
+// برای همیشه همین‌جا کش می‌شود — بازدیدهای بعدی فوراً از
+// دیتابیس خوانده می‌شوند و هیچ توکنی مصرف نمی‌شود.
+//
+// status: GENERATING (در حال ساخت) | READY | FAILED
+// paperJson = برگهٔ ساختاریافته | keyJson = پاسخ‌نامهٔ رسمی
+// ========================================
+
+model IeltsAiPaper {
+  id           String    @id @default(cuid())
+  /// «cambridge-01-t1-listening» — یکتا برای هر آزمون
+  slug         String    @unique @db.VarChar(48)
+  bookNumber   Int
+  testNumber   Int
+  skill        String    @db.VarChar(16)
+  status       String    @default("GENERATING") @db.VarChar(16)
+  paperJson    String?   @db.LongText
+  keyJson      String?   @db.LongText
+  /// علت شکست (وقتی status=FAILED) — برای نمایش به کاربر
+  errorMessage String?   @db.Text
+  /// نام مدلی که برگه را ساخت (مثلاً claude-opus-4.8)
+  model        String?   @db.VarChar(64)
+  generatedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([bookNumber, testNumber, skill])
+}

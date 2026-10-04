@@ -19,6 +19,10 @@ import {
   X,
   ChevronDown,
   Sparkles,
+  RefreshCw,
+  Brain,
+  Database,
+  KeyRound,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
@@ -99,7 +103,24 @@ export default function SkillPlayerPage() {
   const submittedRef = useRef(false);
   const sessionKey = `ielts-attempt-${bookId}-${testId}-${skillKey}`;
 
+  // برگهٔ امتحان — هوش مصنوعی (کش دائمی) با جایگزین پارسر قدیمی
+  // v1.0.4.0: قبل از effect شروع تلاش صدا زده می‌شود چون شروع تلاش
+  // به «آماده‌شدن برگه» وابسته است
+  const {
+    paper,
+    loading: paperLoading,
+    generating: paperGenerating,
+    error: paperError,
+    refetch: refetchPaper,
+  } = useExamPaper(
+    Number.isInteger(bookId) && bookId >= 1 && bookId <= 8 ? bookId : null,
+    Number.isInteger(testId) && testId >= 1 && testId <= 4 ? testId : null,
+    skillKey,
+  );
+
   // شروع تلاش هنگام ورود — حالت از query string خوانده می‌شود (فقط کلاینت)
+  // v1.0.4.0: تلاش فقط بعد از «آماده‌شدن برگه» شروع می‌شود — تا در حالت
+  // آزمون، زمان ساخت برگه (فقط دفعهٔ اول) از تایمر کاربر کم نشود
   useEffect(() => {
     const t = setTimeout(() => {
       if (typeof window === "undefined") return;
@@ -115,6 +136,8 @@ export default function SkillPlayerPage() {
         setStartError(tr("آزمون یافت نشد (کتاب ۱..۸، تست ۱..۴)", "Test not found (book 1..8, test 1..4)"));
         return;
       }
+      // برگه هنوز در حال ساخت/بارگذاری است → صبر کنیم
+      if (paperLoading || paperGenerating) return;
       const modeParam: IeltsMode =
         new URLSearchParams(window.location.search).get("mode") === "exam" ? "exam" : "practice";
       elapsed0.current = Date.now();
@@ -137,20 +160,9 @@ export default function SkillPlayerPage() {
     }, 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId, testId, skillKey]);
+  }, [bookId, testId, skillKey, paperLoading, paperGenerating]);
 
   const { payload, loading, error, saving, setAnswer, flush, submit } = useAttempt(attemptId);
-
-  // برگهٔ امتحان از متن PDF — بر اساس موضوع (مهارت) آزمون
-  const {
-    paper,
-    loading: paperLoading,
-    error: paperError,
-  } = useExamPaper(
-    Number.isInteger(bookId) && bookId >= 1 && bookId <= 8 ? bookId : null,
-    Number.isInteger(testId) && testId >= 1 && testId <= 4 ? testId : null,
-    skillKey,
-  );
 
   // اگر تلاش از قبل submitted باشد (بازگشت به صفحه) → نمای نتیجه
   useEffect(() => {
@@ -271,6 +283,18 @@ export default function SkillPlayerPage() {
     );
   }
 
+  // ---------- v1.0.4.0: اولین بازدید — برگه با AI در حال ساخت است ----------
+  // این صفحه مستقل از تلاش رندر می‌شود چون تلاش هنوز شروع نشده است
+  if (paperGenerating) {
+    return (
+      <AiBuildingScreen
+        title={title}
+        skillLabel={tr(SKILL_LABEL[skillKey]?.fa ?? "", SKILL_LABEL[skillKey]?.en ?? "")}
+        exitHref={exitHref}
+      />
+    );
+  }
+
   if (loading || !payload) {
     return (
       <div className="min-h-full bg-[#fbfbfb] dark:bg-[#0b1220]">
@@ -283,10 +307,15 @@ export default function SkillPlayerPage() {
   const skillInfo = SKILL_LABEL[skillKey] ?? SKILL_LABEL.reading;
 
   // وضعیت برگهٔ امتحان
-  const paperReady = !paperLoading && !paperError && paper?.ok === true;
+  const paperReady = !paperLoading && !paperGenerating && !paperError && paper?.ok === true;
   const paperFailed =
-    !paperLoading && (paperError != null || (paper != null && paper.ok === false));
+    !paperLoading &&
+    !paperGenerating &&
+    (paperError != null || (paper != null && paper.ok === false));
   const paperFailReason = paperError ?? (paper?.ok === false ? paper.reason : null);
+  const paperAiError = paper?.ok === false ? paper.aiError : undefined;
+  const paperAiGenerated = paper?.ok === true ? paper.aiGenerated === true : false;
+  const isAiRetryable = !!paperAiError;
   const writingPrompts: IeltsWritingPrompt[] =
     paper?.ok === true && skillKey === "writing" ? (paper.writing ?? []) : [];
 
@@ -361,7 +390,7 @@ export default function SkillPlayerPage() {
               />
             )}
 
-            {/* ---------- ریدینگ/لیسنینگ: برگهٔ امتحان از PDF ---------- */}
+            {/* ---------- ریدینگ/لیسنینگ: برگهٔ امتحان (AI / پارسر) ---------- */}
             {skillKey !== "writing" && paperReady && paper?.ok === true && (
               <ExamPaper
                 skill={skillKey as "reading" | "listening"}
@@ -369,11 +398,12 @@ export default function SkillPlayerPage() {
                 totalQuestions={Math.max(paper.totalQuestions, meta.questions)}
                 answers={payload.savedAnswers}
                 onChange={setAnswer}
+                aiGenerated={paperAiGenerated}
               />
             )}
 
             {/* ---------- ریدینگ/لیسنینگ: در حال ساخت برگه ---------- */}
-            {skillKey !== "writing" && paperLoading && (
+            {skillKey !== "writing" && paperLoading && !paperGenerating && (
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 space-y-3">
                 <div className="flex items-center gap-2.5">
                   <span className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 flex items-center justify-center shrink-0">
@@ -407,16 +437,32 @@ export default function SkillPlayerPage() {
             {/* ---------- حالت جایگزین: برگه ساخته نشد → خود PDF + ورودی سریع ---------- */}
             {skillKey !== "writing" && paperFailed && (
               <>
-                <div className="rounded-2xl border border-amber-200 dark:border-amber-500/25 bg-amber-50/70 dark:bg-amber-500/10 p-3.5 flex items-start gap-2.5">
-                  <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                  <div className="space-y-0.5">
-                    <p className="text-[11px] font-black text-amber-700 dark:text-amber-300">
-                      {tr("برگهٔ امتحان از این PDF ساخته نشد", "The exam paper could not be built from this PDF")}
-                    </p>
-                    <p className="text-[10px] leading-5 text-amber-600/90 dark:text-amber-400/80" dir="auto">
-                      {paperFailReason ?? tr("ساختار فایل شناخته نشد", "File structure not recognized")}
-                    </p>
+                <div className="rounded-2xl border border-amber-200 dark:border-amber-500/25 bg-amber-50/70 dark:bg-amber-500/10 p-3.5 space-y-2.5">
+                  <div className="flex items-start gap-2.5">
+                    <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="text-[11px] font-black text-amber-700 dark:text-amber-300">
+                        {tr("برگهٔ امتحان از این PDF ساخته نشد", "The exam paper could not be built from this PDF")}
+                      </p>
+                      <p className="text-[10px] leading-5 text-amber-600/90 dark:text-amber-400/80" dir="auto">
+                        {paperFailReason ?? tr("ساختار فایل شناخته نشد", "File structure not recognized")}
+                      </p>
+                      {paperAiError && (
+                        <p className="text-[10px] leading-5 text-amber-600/80 dark:text-amber-400/70" dir="auto">
+                          {tr("ساخت هوشمند:", "Smart build:")} {paperAiError}
+                        </p>
+                      )}
+                    </div>
                   </div>
+                  {isAiRetryable && (
+                    <button
+                      onClick={() => refetchPaper(true)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition active:scale-[0.99]"
+                    >
+                      <RefreshCw size={14} />
+                      {tr("ساخت دوبارهٔ برگه با هوش مصنوعی", "Rebuild the paper with AI")}
+                    </button>
+                  )}
                 </div>
 
                 {payload.media.pdfUrl ? (
@@ -599,6 +645,153 @@ export default function SkillPlayerPage() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ========================================
+// v1.0.4.0 — صفحهٔ «ساخت برگه با هوش مصنوعی»
+// اولین بازدید هر آزمون: PDF خوانده می‌شود، سوال‌ها و
+// پاسخ‌نامهٔ رسمی با AI به برگهٔ امتحانی تبدیل می‌شوند و
+// برای همیشه ذخیره می‌گردند — بازدیدهای بعدی فوری‌اند.
+// ========================================
+
+function AiBuildingScreen({
+  title,
+  skillLabel,
+  exitHref,
+}: {
+  title: string;
+  skillLabel: string;
+  exitHref: string;
+}) {
+  const { tr, dir } = useLanguage();
+
+  const steps = [
+    {
+      icon: BookOpen,
+      fa: "خواندن PDF کتاب از Backblaze",
+      en: "Reading the book PDF from Backblaze",
+    },
+    {
+      icon: FileText,
+      fa: "استخراج متن این تست از کتاب",
+      en: "Extracting this test's text",
+    },
+    {
+      icon: Brain,
+      fa: "ساخت سوال‌ها و گزینه‌ها با هوش مصنوعی",
+      en: "Building questions with AI",
+    },
+    {
+      icon: KeyRound,
+      fa: "استخراج پاسخ‌نامهٔ رسمی برای تصحیح خودکار",
+      en: "Extracting the official answer key",
+    },
+    {
+      icon: Database,
+      fa: "ذخیرهٔ دائمی برگه برای بازدیدهای بعدی",
+      en: "Saving the paper for future visits",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#fbfbfb] dark:bg-[#0b1220] transition-colors" dir={dir}>
+      {/* هدر باریک */}
+      <div className="border-b border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 backdrop-blur px-4 py-3">
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+          <p className="text-[12px] font-black text-slate-700 dark:text-slate-200 truncate" dir="ltr">
+            {title} · {skillLabel}
+          </p>
+          <Link
+            href={exitHref}
+            className="shrink-0 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+          >
+            {tr("بازگشت", "Back")}
+          </Link>
+        </div>
+      </div>
+
+      <div className="max-w-2xl mx-auto px-4 py-10 md:py-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 md:p-8 space-y-6"
+        >
+          {/* آیکون + عنوان */}
+          <div className="flex items-center gap-4">
+            <motion.div
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-orange-500/20"
+            >
+              <Brain size={28} />
+            </motion.div>
+            <div className="space-y-1">
+              <p className="text-base md:text-lg font-black text-slate-800 dark:text-slate-100">
+                {tr(
+                  "در حال ساخت برگهٔ امتحان با هوش مصنوعی",
+                  "Building your exam paper with AI",
+                )}
+              </p>
+              <p className="text-[11px] md:text-xs leading-6 text-slate-500 dark:text-slate-400">
+                {tr(
+                  "سوال‌های واقعی همین تست از PDF کتاب خوانده و به برگهٔ امتحانی تعاملی تبدیل می‌شوند.",
+                  "The real questions of this test are read from the book PDF and turned into an interactive exam paper.",
+                )}
+              </p>
+            </div>
+          </div>
+
+          {/* نوار پیشرفت متحرک */}
+          <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <motion.div
+              className="h-full w-1/3 rounded-full bg-gradient-to-l from-amber-400 to-orange-500"
+              animate={{ x: ["-100%", "300%"] }}
+              transition={{ repeat: Infinity, duration: 1.6, ease: "linear" }}
+            />
+          </div>
+
+          {/* مراحل */}
+          <div className="space-y-2.5">
+            {steps.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 * i }}
+                  className="flex items-center gap-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-700/60 px-3.5 py-2.5"
+                >
+                  <span className="w-8 h-8 rounded-xl bg-white dark:bg-slate-900 text-amber-500 flex items-center justify-center shrink-0 shadow-sm">
+                    <Icon size={15} />
+                  </span>
+                  <p className="flex-1 text-[12px] font-bold text-slate-600 dark:text-slate-300">
+                    {tr(s.fa, s.en)}
+                  </p>
+                  <motion.span
+                    className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"
+                    animate={{ opacity: [0.3, 1, 0.3] }}
+                    transition={{ repeat: Infinity, duration: 1.4, delay: 0.2 * i }}
+                  />
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* نکتهٔ صرفه‌جویی توکن */}
+          <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 px-4 py-3 flex items-start gap-2.5">
+            <Database size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] leading-6 text-emerald-700 dark:text-emerald-300">
+              {tr(
+                "این کار فقط «یک بار» برای این آزمون انجام می‌شود و نتیجه برای همیشه ذخیره می‌گردد — دفعه‌های بعدی این برگه فوری آماده خواهد بود (حدود ۱ تا ۳ دقیقه طول می‌کشد؛ این صفحه را باز نگه دار).",
+                "This happens only ONCE for this exam and the result is saved forever — next visits load instantly (it takes about 1–3 minutes; keep this page open).",
+              )}
+            </p>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }
@@ -803,6 +996,10 @@ function ResultView({
               {selfScored ? (
                 <span className="inline-block text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2.5 py-1">
                   {tr("خودتصحیحی از روی پاسخ‌نامهٔ کتاب", "Self-scored from the book's answer key")}
+                </span>
+              ) : autoKeySource === "ai" ? (
+                <span className="inline-block text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-2.5 py-1">
+                  {tr("تصحیح خودکار با پاسخ‌نامهٔ استخراج‌شده توسط هوش مصنوعی", "Auto-marked with the AI-extracted answer key")}
                 </span>
               ) : autoKeySource === "pdf" ? (
                 <span className="inline-block text-[9px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 rounded-full px-2.5 py-1">

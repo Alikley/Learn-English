@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { BookOpenText, CircleAlert } from "lucide-react";
+import { BookOpenText, CircleAlert, Sparkles } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import type { IeltsPaperQuestion, IeltsPaperSection } from "@/types/ielts";
 
@@ -175,6 +175,7 @@ export default function ExamPaper({
   answers,
   onChange,
   disabled,
+  aiGenerated,
 }: {
   skill: "reading" | "listening";
   sections: IeltsPaperSection[];
@@ -182,6 +183,8 @@ export default function ExamPaper({
   answers: Record<string, string>;
   onChange: (questionId: string, value: string) => void;
   disabled?: boolean;
+  /** v1.0.4.0 — برگه با هوش مصنوعی ساخته شده است */
+  aiGenerated?: boolean;
 }) {
   const { tr } = useLanguage();
   const prefix = skill === "reading" ? "r" : "l";
@@ -202,11 +205,21 @@ export default function ExamPaper({
         <div className="flex items-center justify-between mb-2 px-0.5">
           <p className="flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-slate-300">
             <BookOpenText size={13} className="text-indigo-500" />
-            {tr("برگهٔ امتحان — از متن PDF کتاب", "Exam paper — from the book PDF")}
+            {aiGenerated
+              ? tr("برگهٔ امتحان — ساخته‌شده با هوش مصنوعی از کتاب", "Exam paper — AI-built from the book")
+              : tr("برگهٔ امتحان — از متن PDF کتاب", "Exam paper — from the book PDF")}
           </p>
-          <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400" dir="ltr">
-            {answered}/{totalQuestions}
-          </p>
+          <div className="flex items-center gap-1.5">
+            {aiGenerated && (
+              <span className="text-[9px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2 py-0.5 flex items-center gap-1">
+                <Sparkles size={10} />
+                AI
+              </span>
+            )}
+            <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400" dir="ltr">
+              {answered}/{totalQuestions}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {ids.map((id, i) => {
@@ -253,6 +266,28 @@ export default function ExamPaper({
               <p className="text-[11px] italic leading-6 text-slate-500 dark:text-slate-400 border-s-2 border-slate-200 dark:border-slate-700 ps-3" dir="ltr">
                 {section.instruction}
               </p>
+            )}
+
+            {/* v1.0.4.0 — جعبهٔ گزینه‌های مشترک بخش (باکس تطبیق A–G) */}
+            {section.optionsBox && section.optionsBox.length >= 2 && (
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 p-3.5 space-y-1.5">
+                <p className="text-[9px] font-black tracking-wide text-slate-400 dark:text-slate-500 uppercase mb-1" dir="ltr">
+                  Choose from — انتخاب از فهرست
+                </p>
+                {section.optionsBox.map((opt) => (
+                  <div key={opt.letter} className="flex items-start gap-2.5" dir="ltr">
+                    <span
+                      className="w-5 h-5 shrink-0 rounded-md bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 text-[10px] font-black flex items-center justify-center mt-0.5"
+                      dir="ltr"
+                    >
+                      {opt.letter}
+                    </span>
+                    <span className="text-[12px] leading-6 text-slate-600 dark:text-slate-300">
+                      {opt.text}
+                    </span>
+                  </div>
+                ))}
+              </div>
             )}
 
             {/* پاساژ ریدینگ */}

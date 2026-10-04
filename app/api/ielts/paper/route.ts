@@ -1,23 +1,36 @@
+import { after } from "next/server";
 import { requireAuth, ok, err } from "@/lib/api-helpers";
-import { getBookPages, getBookPdf } from "@/lib/ielts/pdf-text";
+import { getBookPdf, getBookPages } from "@/lib/ielts/pdf-text";
 import { buildExamPaper, type PaperSkill } from "@/lib/ielts/paper-parser";
+import { acquireAiPaper, isAiExamConfigured } from "@/lib/ielts/ai-paper";
 
 // ========================================
-// GET /api/ielts/paper — برگهٔ امتحان از متن PDF (v1.0.3.6)
+// GET /api/ielts/paper — برگهٔ امتحان (v1.0.4.0)
 //
 //   ?book=1&test=1&skill=reading|listening|writing
-//     → برگهٔ امتحان ساخت‌یافته (سوال‌های واقعی از PDF)
+//     → برگهٔ امتحان ساختاریافته
 //
 //   ?book=1&pdf=1
 //     → خود فایل PDF (برای نمایشگر کتاب)
 //
-// برگه‌ها ۱۵ دقیقه کش می‌شوند؛ ?refresh=1 کش را می‌شکند.
+//   ?refresh=1 → ساخت دوبارهٔ برگهٔ AI (پاک کردن کش دائمی)
+//
+// جریان اصلی (جدید):
+//   ۱) برگهٔ AI از کش دائمی (MySQL — جدول IeltsAiPaper) → فوری
+//   ۲) اگر اولین بازدید است → تولید با CodeCraft در پس‌زمینه
+//      (after) و پاسخ { ok:false, generating:true } — کلاینت
+//      هر ۵ ثانیه poll می‌کند تا READY شود
+//   ۳) اگر AI شکست خورد/غیرفعال بود → پارسر heuristic قدیمی
+//   ۴) هیچ‌کدام → { ok:false } → رابط کاربری PDF جایگزین
 // ========================================
 
 const PAPER_TTL_MS = 15 * 60 * 1000;
 
 type PaperCacheEntry = { json: unknown; expiresAt: number };
 const paperCache = new Map<string, PaperCacheEntry>();
+
+const GENERATING_REASON =
+  "برگهٔ امتحان با هوش مصنوعی در حال ساخت است — این فقط یک بار انجام می‌شود و برای بازدیدهای بعدی ذخیره می‌گردد";
 
 export async function GET(req: Request) {
   const auth = await requireAuth();
@@ -55,6 +68,36 @@ export async function GET(req: Request) {
   }
   const skill = skillParam as PaperSkill;
 
+  // ========================================
+  // مسیر ۱ — برگهٔ هوش مصنوعی (کش دائمی در DB)
+  // ========================================
+  let aiError: string | null = null;
+  if (isAiExamConfigured()) {
+    const state = await acquireAiPaper(bookId, testId, skill, force);
+
+    if (state.status === "READY") {
+      // آماده → تحویل فوری (کش حافظه/DB — بدون مصرف توکن)
+      return ok({ ...state.paper, ok: true, aiGenerated: true });
+    }
+
+    if (state.status === "STARTED") {
+      // تولید در پس‌زمینه — پاسخ سریع، کلاینت poll می‌کند
+      after(() => state.run());
+      return ok({ ok: false, generating: true, reason: GENERATING_REASON });
+    }
+
+    if (state.status === "GENERATING") {
+      // فرایند دیگری (یا همین) در حال ساخت است
+      return ok({ ok: false, generating: true, reason: GENERATING_REASON });
+    }
+
+    // FAILED → ادامه به مسیر جایگزین (بدون retry خودکار — صرفه‌جویی توکن)
+    aiError = state.error;
+  }
+
+  // ========================================
+  // مسیر ۲ — پارسر heuristic قدیمی (جایگزین)
+  // ========================================
   const cacheKey = `${bookId}-${testId}-${skill}`;
   if (!force) {
     const cached = paperCache.get(cacheKey);
@@ -65,11 +108,19 @@ export async function GET(req: Request) {
 
   const pagesResult = await getBookPages(bookId, force);
   if (!pagesResult.ok) {
-    return ok({ ok: false, reason: pagesResult.error });
+    return ok({
+      ok: false,
+      reason: pagesResult.error,
+      ...(aiError ? { aiError } : {}),
+    });
   }
 
   const paper = buildExamPaper(pagesResult.pages, testId, skill);
-  const json = { ...paper, source: pagesResult.source };
+  const json = {
+    ...paper,
+    source: pagesResult.source,
+    ...(aiError ? { aiError } : {}),
+  };
   if (paper.ok) {
     paperCache.set(cacheKey, { json, expiresAt: Date.now() + PAPER_TTL_MS });
   }

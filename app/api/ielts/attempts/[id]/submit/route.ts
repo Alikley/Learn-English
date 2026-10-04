@@ -2,6 +2,7 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { parseTestSlug, getTestById } from "@/lib/ielts/real-tests";
 import { getAnswerKey } from "@/lib/ielts/keys";
 import { getPdfAnswerKey } from "@/lib/ielts/answer-keys";
+import { getAiAnswerKey } from "@/lib/ielts/ai-paper";
 import { isAnswerCorrect, rawToBand, countWords } from "@/lib/ielts/grade";
 import { prisma } from "@/prisma/Prisma client";
 
@@ -97,13 +98,22 @@ export async function POST(
   const prefix = skill === "reading" ? "r" : "l";
   const questionIds = Array.from({ length: meta.questions }, (_, i) => `${prefix}${i + 1}`);
 
-  // منبع کلید: ۱) دستی keys.ts → ۲) پاسخ‌نامهٔ خود PDF کتاب
+  // منبع کلید: ۱) دستی keys.ts → ۲) کلید استخراج‌شده با هوش مصنوعی
+  // (IeltsAiPaper) → ۳) پاسخ‌نامهٔ خود PDF کتاب
   // (کلید باید برای «همین مهارت» مدخل داشته باشد — کلیدِ فقط-لیسنینگ
   // نباید ریدینگ را به مسیر تصحیح خودکارِ تهی ببرد)
   const keyPrefix = skill === "reading" ? "r" : "l";
   let key = getAnswerKey(attempt.testSlug);
-  let keySource: "manual" | "pdf" | null =
+  let keySource: "manual" | "ai" | "pdf" | null =
     key && Object.keys(key).some((k) => k.startsWith(keyPrefix)) ? "manual" : null;
+  if (!keySource) {
+    // v1.0.4.0 — کلید AI (همان آزمونی که برگه‌اش با AI ساخته شده)
+    const aiKey = await getAiAnswerKey(parsed.bookNumber, parsed.testNumber, skill);
+    if (aiKey && Object.keys(aiKey).some((k) => k.startsWith(keyPrefix))) {
+      key = aiKey;
+      keySource = "ai";
+    }
+  }
   if (!keySource) {
     const pdfKey = await getPdfAnswerKey(parsed.bookNumber, parsed.testNumber, skill);
     if (pdfKey) {

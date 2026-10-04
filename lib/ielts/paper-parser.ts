@@ -106,7 +106,7 @@ const RE_OPTION = /^\(?([A-E])[.)]?\)?\s+(.+)$/;
 const RE_EMBEDDED_GAP = /(?<=^|\s)(\d{1,2})\s*(?:\.{3,}|…+)/g;
 
 /** یافتن صفحهٔ شروع هر تست + صفحهٔ شروع پاسخ‌نامه */
-function locateTests(pages: string[]): {
+export function locateTests(pages: string[]): {
   testPages: Record<number, number>;
   keyStart: number | null;
 } {

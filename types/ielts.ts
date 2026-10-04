@@ -115,7 +115,7 @@ export interface IeltsSubmitResult {
   /** true = کلید پاسخ نداریم؛ کاربر باید نمرهٔ خام را وارد کند */
   selfScoreRequired: boolean;
   /** منبع تصحیح خودکار — کلید دستی یا پاسخ‌نامهٔ خود PDF کتاب */
-  keySource?: "manual" | "pdf" | null;
+  keySource?: "manual" | "ai" | "pdf" | null;
   elapsedSec: number | null;
   /** ریویو سوال به سوال — فقط وقتی کلید پاسخ موجود است */
   review?: {
@@ -153,6 +153,8 @@ export interface IeltsPaperSection {
   title: string;
   questionRange: string | null;
   instruction: string;
+  /** v1.0.4.0 — jabe gozine moshtarak bakh (matching box A-G) */
+  optionsBox?: { letter: string; text: string }[];
   passageTitle?: string;
   passageBody?: string;
   questions: IeltsPaperQuestion[];
@@ -175,5 +177,15 @@ export type IeltsExamPaper =
       writing?: IeltsWritingPrompt[];
       totalQuestions: number;
       source?: "b2" | "local";
+      /** v1.0.4.0 — barghe ba AI sakhte shode va baraye hamishe cash shode */
+      aiGenerated?: boolean;
     }
-  | { ok: false; reason: string; source?: "b2" | "local" };
+  | {
+      ok: false;
+      reason: string;
+      source?: "b2" | "local";
+      /** v1.0.4.0 — bargeh dar hale sakht ba AI — client bayad poll konad */
+      generating?: boolean;
+      /** v1.0.4.0 — ellate shekast sakhte hoshmand (vaghti be masire jaygozin raft) */
+      aiError?: string;
+    };
