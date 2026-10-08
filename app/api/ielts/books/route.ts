@@ -7,9 +7,9 @@ import { prisma } from "@/prisma/Prisma client";
 import type { IeltsBookSummary, IeltsScanInfo } from "@/types/ielts";
 
 // ========================================
-// GET /api/ielts/books — فهرست ۸ کتاب کمبریج (v1.0.3.3)
+// GET /api/ielts/books — فهرست ۲۱ کتاب کمبریج (v1.0.4.4)
 // REST API بخش آیلتس با شناسهٔ عددی:
-//   [{ id: 1..8, slug, titleFa, titleEn, tests: [۴ تست], files }]
+//   [{ id: 1..21, slug, titleFa, titleEn, tests: [۴ تست], files }]
 // + وضعیت فایل‌های باکت B2 + تلاش‌های کاربر
 // ?refresh=1 → اسکن مجدد باکت (پس از آپلود فایل جدید)
 // ========================================

@@ -1,16 +1,17 @@
 // ========================================
-// متادیتای آزمون‌های واقعی کمبریج (v1.0.3.3)
+// متادیتای آزمون‌های واقعی کمبریج (v1.0.4.4 — کتاب‌ها تا ۲۱)
 //
-// محتوای واقعی (PDF کتاب + فایل‌های صوتی) در باکت B2
-// کاربر است و در زمان اجرا کشف می‌شود (lib/b2-cambridge).
-// این فایل فقط «ساختار» هر کتاب/تست را تعریف می‌کند:
-// شناسه‌ها، مدت‌زمان‌ها و تعداد سوال‌ها — فرمت استاندارد آیلتس.
+// 📚 v1.0.0.7: کتاب‌های ۹ تا ۲۱ اضافه شدند — کاربر فایل‌های
+//    باکت B2 را تا کتاب ۲۱ به‌روز کرده است.
 //
-// slug کتاب: «cambridge-01» .. «cambridge-08»
-// slug تست:  «cambridge-01-t1» .. «cambridge-08-t4»
+// slug کتاب: «cambridge-01» .. «cambridge-21»
+// slug تست:  «cambridge-01-t1» .. «cambridge-21-t4»
 // اسلاگ‌های قدیمی (v1.0.3.2) مثل «cambridge-01» در تلاش‌های
 // ذخیره‌شده به کتاب همان شماره و تست ۱ تفسیر می‌شوند.
 // ========================================
+
+/** بیشترین شمارهٔ کتاب پشتیبانی‌شده — ۲۱ (v1.0.0.7) */
+export const IELTS_MAX_BOOK = 21;
 
 export interface IeltsRealTestMeta {
   /** شناسهٔ عددی تست داخل کتاب — ۱..۴ */
@@ -25,7 +26,7 @@ export interface IeltsRealTestMeta {
 }
 
 export interface IeltsRealBookMeta {
-  /** شناسهٔ عددی کتاب — ۱..۸ */
+  /** شناسهٔ عددی کتاب — ۱..۲۱ */
   id: number;
   /** slug کتاب — «cambridge-01» */
   slug: string;
@@ -58,10 +59,11 @@ function makeBook(n: number): IeltsRealBookMeta {
   };
 }
 
-/** هر ۸ کتاب × ۴ تست = ۳۲ آزمون */
-export const IELTS_BOOKS: IeltsRealBookMeta[] = [
-  1, 2, 3, 4, 5, 6, 7, 8,
-].map(makeBook);
+/** هر ۲۱ کتاب × ۴ تست = ۸۴ آزمون (v1.0.0.7) */
+export const IELTS_BOOKS: IeltsRealBookMeta[] = Array.from(
+  { length: IELTS_MAX_BOOK },
+  (_, i) => makeBook(i + 1),
+);
 
 /** یافتن کتاب با شناسهٔ عددی */
 export function getBookById(bookId: number): IeltsRealBookMeta | undefined {
@@ -88,7 +90,7 @@ export function parseTestSlug(
   if (!m) return null;
   const bookNumber = Number(m[1]);
   const testNumber = m[2] ? Number(m[2]) : 1;
-  if (bookNumber < 1 || bookNumber > 8) return null;
+  if (bookNumber < 1 || bookNumber > IELTS_MAX_BOOK) return null;
   return { bookNumber, testNumber };
 }
 

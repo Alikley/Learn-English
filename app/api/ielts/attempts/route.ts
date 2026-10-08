@@ -1,13 +1,13 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { ensureUserRow } from "@/lib/ensure-user";
-import { getTestById } from "@/lib/ielts/real-tests";
+import { getTestById, IELTS_MAX_BOOK } from "@/lib/ielts/real-tests";
 import { buildAttemptPayload, examRemainingSec, skillMinutes } from "@/lib/ielts/attempt-payload";
 import { prisma } from "@/prisma/Prisma client";
 import type { IeltsSkill, IeltsMode } from "@/types/ielts";
 
 // ========================================
 // POST /api/ielts/attempts — شروع یا ادامهٔ تلاش (v1.0.3.3)
-// بدنه: { bookId: 1..8, testId: 1..4, skill, mode }
+// بدنه: { bookId: 1..21, testId: 1..4, skill, mode }
 //  - اگر تلاش ناتمام همان تست+مهارت وجود داشته باشد ادامه داده می‌شود
 //  - پاسخ‌برگ + زمان باقی‌مانده + آدرس PDF/صوت برگردانده می‌شود
 // ========================================
@@ -31,8 +31,8 @@ export async function POST(req: Request) {
   const skill = String(body.skill ?? "") as IeltsSkill;
   const mode = String(body.mode ?? "") as IeltsMode;
 
-  if (!Number.isInteger(bookId) || bookId < 1 || bookId > 8)
-    return err("شناسهٔ کتاب نامعتبر است (۱ تا ۸)");
+  if (!Number.isInteger(bookId) || bookId < 1 || bookId > IELTS_MAX_BOOK)
+    return err(`شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_MAX_BOOK})`);
   if (!Number.isInteger(testId) || testId < 1 || testId > 4)
     return err("شناسهٔ تست نامعتبر است (۱ تا ۴)");
   if (!SKILLS.includes(skill)) return err("مهارت نامعتبر است");

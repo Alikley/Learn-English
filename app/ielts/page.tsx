@@ -104,7 +104,7 @@ export default function IeltsHubPage() {
               <div className="flex items-center gap-4 text-[11px] text-slate-400 dark:text-slate-500 pt-1">
                 <span className="flex items-center gap-1">
                   <BookMarked size={12} />
-                  {tr("۸ کتاب", "8 books")}
+                  {tr("۲۱ کتاب", "21 books")}
                 </span>
                 <span className="flex items-center gap-1">
                   <Clock3 size={12} />

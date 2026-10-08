@@ -47,7 +47,7 @@ export default function ExamPaper({
   aiGenerated,
 }: {
   skill: "reading" | "listening";
-  /** شمارهٔ کتاب کمبریج (۱..۸) — برای هدر برگه */
+  /** شمارهٔ کتاب کمبریج (۱..۲۱) — برای هدر برگه */
   bookId?: number;
   /** شمارهٔ تست (۱..۴) — برای هدر برگه */
   testId?: number;

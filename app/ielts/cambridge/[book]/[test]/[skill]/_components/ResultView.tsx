@@ -11,11 +11,19 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
-import type { IeltsResultSummary, IeltsSkill, IeltsSubmitResult } from "@/types/ielts";
+import type {
+  IeltsResultSummary,
+  IeltsSkill,
+  IeltsSubmitResult,
+  IeltsWritingPrompt,
+} from "@/types/ielts";
 
 // ========================================
 // نمای نتیجه — کارت نمره / خودتصحیحی / ریویو (v1.0.4.2)
 // (از [skill]/page.tsx جدا شد)
+//
+// ✍️ v1.0.0.7: در بخش رایتینگ، صورت سوالِ هر تسک بالای
+//    متنِ خودش نشان داده می‌شود (جدا شده از کتاب)
 // ========================================
 
 /** نشان منبع تصحیح زیر کارت نمره */
@@ -63,6 +71,7 @@ export default function ResultView({
   selfScoreError,
   exitHref,
   fullNextHref,
+  writingPrompts,
 }: {
   result: IeltsSubmitResult | null;
   stored: IeltsResultSummary | null;
@@ -78,6 +87,8 @@ export default function ResultView({
   selfScoreError: string | null;
   exitHref: string;
   fullNextHref: string | null;
+  /** صورت سوال تسک‌های رایتینگ — جدا شده از کتاب (v1.0.0.7) */
+  writingPrompts?: IeltsWritingPrompt[];
 }) {
   const { tr } = useLanguage();
 
@@ -245,25 +256,40 @@ export default function ResultView({
         </div>
       )}
 
-      {/* ---------- متن‌های رایتینگ ---------- */}
+      {/* ---------- متن‌های رایتینگ + صورت سوال هر تسک (v1.0.0.7) ---------- */}
       {skill === "writing" && result?.writingSubmissions && (
         <div className="rounded-3xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-4 space-y-3">
           <p className="text-xs font-black text-slate-700 dark:text-slate-200 px-1">
             {tr("متن‌های تو", "Your submissions")}
           </p>
-          {result.writingSubmissions.map((w) => (
-            <div key={w.questionId} className="rounded-2xl bg-slate-50 dark:bg-slate-800/60 p-3">
-              <p className="text-[10px] font-bold text-slate-500 mb-1.5" dir="ltr">
-                Task {w.questionId === "w1" ? "1" : "2"} — {w.wordCount} words
-              </p>
-              <p
-                className="text-[11px] leading-6 text-slate-600 dark:text-slate-300 whitespace-pre-wrap"
-                dir="ltr"
-              >
-                {w.text}
-              </p>
-            </div>
-          ))}
+          {result.writingSubmissions.map((w) => {
+            const taskNo = w.questionId === "w1" ? 1 : 2;
+            const q = writingPrompts?.find((p) => p.task === taskNo) ?? null;
+            return (
+              <div key={w.questionId} className="rounded-2xl bg-slate-50 dark:bg-slate-800/60 p-3 space-y-2">
+                {/* صورت سوال — بالای متن (v1.0.0.7) */}
+                {q && (
+                  <div className="rounded-xl bg-white dark:bg-slate-900/70 border border-emerald-100 dark:border-emerald-500/20 p-3" dir="ltr">
+                    <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 mb-1.5">
+                      WRITING TASK {taskNo} — {tr("صورت سوال", "the question")}
+                    </p>
+                    <p className="font-serif text-[12px] leading-7 text-slate-700 dark:text-slate-200">
+                      {q.prompt}
+                    </p>
+                  </div>
+                )}
+                <p className="text-[10px] font-bold text-slate-500 mb-1.5" dir="ltr">
+                  Task {taskNo} — {w.wordCount} words
+                </p>
+                <p
+                  className="text-[11px] leading-6 text-slate-600 dark:text-slate-300 whitespace-pre-wrap"
+                  dir="ltr"
+                >
+                  {w.text}
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
 

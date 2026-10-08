@@ -88,17 +88,17 @@ export default function BookCard({
           </div>
         </div>
 
-        {/* مهارت‌ها */}
+        {/* مهارت‌ها — ترتیب آزمون واقعی: لیسنینگ، ریدینگ، رایتینگ (v1.0.0.7) */}
         <div className="p-4 grid grid-cols-3 gap-2">
-          <SkillChip
-            icon={<ClipboardList size={13} />}
-            label={tr("ریدینگ", "Reading")}
-            meta={`40 Q · 60′`}
-          />
           <SkillChip
             icon={<Headphones size={13} />}
             label={tr("لیسنینگ", "Listening")}
             meta={`40 Q · 30′`}
+          />
+          <SkillChip
+            icon={<ClipboardList size={13} />}
+            label={tr("ریدینگ", "Reading")}
+            meta={`40 Q · 60′`}
           />
           <SkillChip
             icon={<PenLine size={13} />}

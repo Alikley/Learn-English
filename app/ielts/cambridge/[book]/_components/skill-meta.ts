@@ -2,9 +2,12 @@ import { ClipboardList, Headphones, PenLine } from "lucide-react";
 import type { IeltsAttemptSummary, IeltsSkill } from "@/types/ielts";
 
 // ========================================
-// متادیتای مهارت‌های آیلتس (v1.0.4.2 — کلین‌کد)
+// متادیتای مهارت‌های آیلتس (v1.0.4.4 — کلین‌کد)
 // آیکون/رنگ/برچسب سه مهارت + محاسبهٔ وضعیت هر مهارت از تلاش‌ها
 // (مشترک بین TestBox و صفحهٔ کتاب — از [book]/page.tsx جدا شد)
+//
+// 🔢 v1.0.0.7 — ترتیب مهارت‌ها مثل آزمون واقعی آیلتس:
+//    اول لیسنینگ، بعد ریدینگ، آخر رایتینگ
 // ========================================
 
 export const SKILLS: {
@@ -14,8 +17,8 @@ export const SKILLS: {
   icon: typeof ClipboardList;
   color: "indigo" | "sky" | "emerald";
 }[] = [
-  { key: "reading", fa: "ریدینگ", en: "Reading", icon: ClipboardList, color: "indigo" },
   { key: "listening", fa: "لیسنینگ", en: "Listening", icon: Headphones, color: "sky" },
+  { key: "reading", fa: "ریدینگ", en: "Reading", icon: ClipboardList, color: "indigo" },
   { key: "writing", fa: "رایتینگ", en: "Writing", icon: PenLine, color: "emerald" },
 ];
 

@@ -49,8 +49,8 @@ export default function CambridgeListPage() {
             </h1>
             <p className="text-[11px] text-slate-400 dark:text-slate-500">
               {tr(
-                "۸ کتاب × ۴ تست کامل آکادمیک — با PDF و صدای واقعی",
-                "8 books × 4 full Academic tests — real PDF and audio",
+                "۲۱ کتاب × ۴ تست کامل آکادمیک — با PDF و صدای واقعی",
+                "21 books × 4 full Academic tests — real PDF and audio",
               )}
             </p>
           </div>

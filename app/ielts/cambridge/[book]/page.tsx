@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { useCambridgeBook } from "@/app/hook/ielts/useIelts";
 import { useBookExamLauncher } from "@/app/hook/ielts/useBookExamLauncher";
+import { IELTS_MAX_BOOK } from "@/lib/ielts/real-tests";
 import PageLoading from "@/app/components/PageLoading";
 import BookTabs, { type BookTab } from "./_components/BookTabs";
 import TestBox from "./_components/TestBox";
@@ -27,7 +28,7 @@ export default function BookDetailPage() {
   const { book: bookParam } = useParams<{ book: string }>();
   const { tr, dir } = useLanguage();
   const bookId = Number(bookParam);
-  const valid = Number.isInteger(bookId) && bookId >= 1 && bookId <= 8;
+  const valid = Number.isInteger(bookId) && bookId >= 1 && bookId <= IELTS_MAX_BOOK;
   const { detail, loading, error, refetch } = useCambridgeBook(valid ? bookId : null);
   const [tab, setTab] = useState<BookTab>("test");
   const { starting, startError, begin } = useBookExamLauncher(bookId, valid);

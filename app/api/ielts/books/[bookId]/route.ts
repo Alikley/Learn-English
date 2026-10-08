@@ -1,6 +1,6 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { scanCambridge } from "@/lib/b2-cambridge";
-import { getBookById, bookSlugsForAttempts } from "@/lib/ielts/real-tests";
+import { getBookById, bookSlugsForAttempts, IELTS_MAX_BOOK } from "@/lib/ielts/real-tests";
 import { toAttemptSummary, ATTEMPT_SELECT } from "@/lib/ielts/attempt-view";
 import { prisma } from "@/prisma/Prisma client";
 
@@ -19,8 +19,8 @@ export async function GET(
 
   const { bookId: bookIdParam } = await params;
   const bookId = Number(bookIdParam);
-  if (!Number.isInteger(bookId) || bookId < 1 || bookId > 8) {
-    return err("شناسهٔ کتاب نامعتبر است (۱ تا ۸)", 404);
+  if (!Number.isInteger(bookId) || bookId < 1 || bookId > IELTS_MAX_BOOK) {
+    return err(`شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_MAX_BOOK})`, 404);
   }
 
   const book = getBookById(bookId);

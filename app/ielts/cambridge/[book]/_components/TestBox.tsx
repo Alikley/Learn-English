@@ -170,7 +170,7 @@ export default function TestBox({
         <button
           onClick={() => {
             setBusy(`${testId}-full`);
-            void onBegin(testId, "reading", mode, true).finally(() => setBusy(null));
+            void onBegin(testId, "listening", mode, true).finally(() => setBusy(null));
           }}
           disabled={busy === `${testId}-full`}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[10px] font-bold text-white bg-gradient-to-l from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 transition disabled:opacity-60"
