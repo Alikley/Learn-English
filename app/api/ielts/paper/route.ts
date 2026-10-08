@@ -3,9 +3,10 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { getBookPdf, getBookPages } from "@/lib/ielts/pdf-text";
 import { buildExamPaper, type PaperSkill } from "@/lib/ielts/paper-parser";
 import { acquireAiPaper, isAiExamConfigured } from "@/lib/ielts/ai-paper";
+import { buildWritingPaper } from "@/lib/ielts/writing-paper";
 
 // ========================================
-// GET /api/ielts/paper — برگهٔ امتحان (v1.0.4.0)
+// GET /api/ielts/paper — برگهٔ امتحان (v1.0.4.3)
 //
 //   ?book=1&test=1&skill=reading|listening|writing
 //     → برگهٔ امتحان ساختاریافته
@@ -13,13 +14,15 @@ import { acquireAiPaper, isAiExamConfigured } from "@/lib/ielts/ai-paper";
 //   ?book=1&pdf=1
 //     → خود فایل PDF (برای نمایشگر کتاب)
 //
-//   ?refresh=1 → ساخت دوبارهٔ برگهٔ AI (پاک کردن کش دائمی)
+//   ?refresh=1 → ساخت دوبارهٔ برگهٔ AI / بازبینی صفحات رایتینگ
 //
-// جریان اصلی (جدید):
-//   ۱) برگهٔ AI از کش دائمی (MySQL — جدول IeltsAiPaper) → فوری
-//   ۲) اگر اولین بازدید است → تولید با CodeCraft در پس‌زمینه
-//      (after) و پاسخ { ok:false, generating:true } — کلاینت
-//      هر ۵ ثانیه poll می‌کند تا READY شود
+// جریان اصلی:
+//   ۱) رایتینگ (v1.0.4.3): بدون AI — صفحات صورت سوال از
+//      نقشهٔ تأییدشده/تشخیص متن → کلاینت صفحهٔ واقعی کتاب
+//      را با #page باز می‌کند. همیشه فوری.
+//   ۲) ریدینگ/لیسنینگ: برگهٔ AI از کش دائمی (MySQL — جدول
+//      IeltsAiPaper) → فوری؛ اولین بازدید → تولید با
+//      CodeCraft در پس‌زمینه (after) و پاسخ { generating:true }
 //   ۳) اگر AI شکست خورد/غیرفعال بود → پارسر heuristic قدیمی
 //   ۴) هیچ‌کدام → { ok:false } → رابط کاربری PDF جایگزین
 // ========================================
@@ -69,7 +72,29 @@ export async function GET(req: Request) {
   const skill = skillParam as PaperSkill;
 
   // ========================================
+  // رایتینگ (v1.0.4.3) — بدون AI، همیشه فوری:
+  // صورت سوال = صفحات واقعی کتاب (نقشهٔ تأییدشده یا
+  // تشخیص از متن) + متن تسک‌ها وقتی لایهٔ متنی موجود است
+  // ========================================
+  if (skill === "writing") {
+    const wp = await buildWritingPaper(bookId, testId, force);
+    if (!wp.ok) {
+      return ok({ ok: false, reason: wp.reason });
+    }
+    return ok({
+      ok: true,
+      skill: "writing",
+      testNumber: testId,
+      sections: [],
+      writing: wp.prompts,
+      totalQuestions: 2,
+      questionPaper: wp.questionPaper,
+    });
+  }
+
+  // ========================================
   // مسیر ۱ — برگهٔ هوش مصنوعی (کش دائمی در DB)
+  // (ریدینگ/لیسنینگ)
   // ========================================
   let aiError: string | null = null;
   if (isAiExamConfigured()) {
@@ -96,7 +121,7 @@ export async function GET(req: Request) {
   }
 
   // ========================================
-  // مسیر ۲ — پارسر heuristic قدیمی (جایگزین)
+  // مسیر ۲ — پارسر heuristic قدیمی (جایگزین — ریدینگ/لیسنینگ)
   // ========================================
   const cacheKey = `${bookId}-${testId}-${skill}`;
   if (!force) {

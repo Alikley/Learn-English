@@ -162,7 +162,7 @@ function joinPages(pages: string[], from: number, to: number): string {
  *   - پاسخ‌نامه = بخش «Answer key(s)» — در کتاب‌های قدیمی بعد از
  *     tapescripts و در کتاب‌های جدید قبل از آن است؛ هر دو پشتیبانی می‌شود
  */
-function locateTestsRobust(pages: string[]): {
+export function locateTestsRobust(pages: string[]): {
   testPages: Record<number, number>;
   keyStart: number | null;
   answerKeyStart: number | null;

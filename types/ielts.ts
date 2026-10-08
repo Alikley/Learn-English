@@ -190,6 +190,16 @@ export type IeltsExamPaper =
       source?: "b2" | "local";
       /** v1.0.4.0 — barghe ba AI sakhte shode va baraye hamishe cash shode */
       aiGenerated?: boolean;
+      /**
+       * v1.0.4.3 — صفحات صورت سوال رایتینگ در PDF کتاب (۱-based).
+       * کلاینت کتاب را با «#page=N» مستقیم روی خود سوال باز می‌کند.
+       */
+      questionPaper?: {
+        task1Page: number;
+        task2Page: number;
+        fromPage: number;
+        toPage: number;
+      } | null;
     }
   | {
       ok: false;

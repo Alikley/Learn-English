@@ -463,7 +463,8 @@ export function parseReadingPaper(lines: string[]): PaperSection[] {
 
 // ---------- تجزیهٔ رایتینگ ----------
 
-function parseWritingPaper(lines: string[]): WritingTaskPrompt[] {
+/** تجزیهٔ صورت تسک‌های رایتینگ از خطوط بخش WRITING (v1.0.4.3 — export برای writing-paper) */
+export function parseWritingPaper(lines: string[]): WritingTaskPrompt[] {
   const tasks: WritingTaskPrompt[] = [];
   const taskMarks: { idx: number; task: 1 | 2 }[] = [];
 
