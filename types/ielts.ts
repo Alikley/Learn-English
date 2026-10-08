@@ -138,6 +138,17 @@ export interface IeltsSelfScoreResult {
   selfScored: true;
 }
 
+/**
+ * خلاصهٔ نتیجهٔ یک تلاش تحویل‌شده (v1.0.4.2)
+ * برای نمایش «نمای نتیجه» هنگام بازگشت به صفحهٔ آزمون
+ */
+export interface IeltsResultSummary {
+  rawScore: number | null;
+  totalQuestions: number | null;
+  bandScore: number | null;
+  selfScored: boolean | null;
+}
+
 // ---------- برگهٔ امتحان از متن PDF (v1.0.3.6) ----------
 
 /** یک سوال واقعی از PDF کتاب */
