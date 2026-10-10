@@ -1,8 +1,13 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { scanCambridge } from "@/lib/b2-cambridge";
-import { getBookById, bookSlugsForAttempts, IELTS_BOOK_COUNT } from "@/lib/ielts/real-tests";
+// v1.0.4.5 (English 1.0.0.9): تعداد کتاب از طول IELTS_BOOKS — مقاوم در برابر
+// real-tests.ts قدیمی (رفع خطای بیلد Vercel)
+import { getBookById, bookSlugsForAttempts, IELTS_BOOKS } from "@/lib/ielts/real-tests";
 import { toAttemptSummary, ATTEMPT_SELECT } from "@/lib/ielts/attempt-view";
 import { prisma } from "@/prisma/Prisma client";
+
+/** تعداد کتاب‌های کمبریج (v1.0.4.5) — از خود فهرست */
+const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
 
 // ========================================
 // GET /api/ielts/books/[bookId] — جزئیات یک کتاب (v1.0.3.3)

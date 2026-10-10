@@ -58,7 +58,12 @@ function makeBook(n: number): IeltsRealBookMeta {
   };
 }
 
-/** ۲۱ کتاب × ۴ تست = ۸۴ آزمون (v1.0.4.4 — کتاب‌های ۹..۲۱ اضافه شدند) */
+/** ۲۱ کتاب × ۴ تست = ۸۴ آزمون (v1.0.4.4 — کتاب‌های ۹..۲۱ اضافه شدند)
+ *
+ * ⚠️ v1.0.4.5 (English 1.0.0.9): این نماد فقط برای سازگاری نگه داشته شده —
+ * بقیهٔ کد حالا «IELTS_BOOKS.length» را می‌گیرد تا با real-tests.ts قدیمی
+ * هم بیلد شود (رفع خطای Vercel: Export doesn't exist in target module).
+ */
 export const IELTS_BOOK_COUNT = 21;
 
 export const IELTS_BOOKS: IeltsRealBookMeta[] = Array.from(

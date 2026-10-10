@@ -16,8 +16,8 @@ import { useLanguage } from "@/app/context/LanguageContext";
 
 const CONTENT = {
   fa: {
-    heading: ["به", "flex English", "خوش آمدید!"],
-    sub: "یادگیری زبان انگلیسی را به ساده‌ترین و جذاب‌ترین شکل تجربه کنید.",
+    heading: ["!خوش آمدید", "flex English", "به"],
+    sub: ".یادگیری زبان انگلیسی را به ساده‌ترین و جذاب‌ترین شکل تجربه کنید",
     cta: "ادامه یادگیری",
   },
   en: {
@@ -108,11 +108,7 @@ export default function MainBox() {
             >
               <motion.div
                 animate={{ y: [0, -8, 0] }}
-                transition={{
-                  duration: 3.5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
                 className="w-full flex items-end justify-center"
               >
                 <Image

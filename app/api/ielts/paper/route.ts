@@ -4,10 +4,16 @@ import { getBookPdf, getBookPages } from "@/lib/ielts/pdf-text";
 import { buildExamPaper, type PaperSkill } from "@/lib/ielts/paper-parser";
 import { acquireAiPaper, isAiExamConfigured } from "@/lib/ielts/ai-paper";
 import { buildWritingPaper } from "@/lib/ielts/writing-paper";
-import { IELTS_BOOK_COUNT } from "@/lib/ielts/real-tests";
+// v1.0.4.5 (English 1.0.0.9): «IELTS_BOOK_COUNT» به‌جای ایمپورت مستقیم از
+// طول «IELTS_BOOKS» گرفته می‌شود تا حتی با real-tests.ts قدیمی هم بیلد رد شود
+// (رفع خطای Vercel: «Export IELTS_BOOK_COUNT doesn't exist in target module»).
+import { IELTS_BOOKS } from "@/lib/ielts/real-tests";
+
+/** تعداد کتاب‌های کمبریج (v1.0.4.5) — از خود فهرست */
+const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
 
 // ========================================
-// GET /api/ielts/paper — برگهٔ امتحان (v1.0.4.3)
+// GET /api/ielts/paper — برگهٔ امتحان (v1.0.4.5)
 //
 //   ?book=1&test=1&skill=reading|listening|writing
 //     → برگهٔ امتحان ساختاریافته

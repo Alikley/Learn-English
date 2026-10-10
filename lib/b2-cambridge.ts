@@ -23,7 +23,14 @@
 //   B2_CAMBRIDGE_BUCKET              — پیش‌فرض: cambridge
 // ========================================
 
-import { IELTS_BOOK_COUNT } from "@/lib/ielts/real-tests";
+// v1.0.4.5 (English 1.0.0.9): به‌جای «IELTS_BOOK_COUNT»، تعداد کتاب‌ها از
+// خود فهرست «IELTS_BOOKS» گرفته می‌شود — این نماد در نسخه‌های قدیمی
+// real-tests.ts نبود و روی Vercel باعث «Export doesn't exist in target
+// module» می‌شد؛ «IELTS_BOOKS» در همهٔ نسخه‌ها هست و بیلد مقاوم می‌ماند.
+import { IELTS_BOOKS } from "@/lib/ielts/real-tests";
+
+/** تعداد کتاب‌های کمبریج (v1.0.4.5) — از خود فهرست، بدون نماد جدانامِ شکننده */
+const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
 
 const B2_KEY_ID = process.env.B2_KEY_ID ?? "";
 const B2_APP_KEY = process.env.B2_APP_KEY ?? "";
