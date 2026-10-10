@@ -1,21 +1,22 @@
 // ========================================
 // برگهٔ رایتینگ — صورت سوال از خود کتاب (v1.0.4.4)
 //
-// 🎯 v1.0.0.5/1.0.0.6: «فقط سوال رو نشون بده» — متن هر دو
-//    تسکِ همهٔ کتاب‌ها (۱ تا ۲۱) یک‌بار با OCR/AI جدا شده و
-//    در نقشهٔ writing-map ثبت شده؛ رابط کاربری آن را بالای
-//    صفحه نشان می‌دهد (نه کل PDF کتاب).
+// 🎯 v1.0.0.4: رفع باگ «صورت سوال رایتینگ نشان داده نمی‌شد» —
+//    کتاب‌های اسکن‌شده لایهٔ متنی ندارند.
 //
-// ✅ راه‌حل (بدون AI در زمان اجرا — همیشه فوری):
-//    ۱) نقشهٔ تأییدشدهٔ صفحات + متن تسک‌ها (lib/ielts/writing-map)
-//       — ۲۰ کتابِ موجود در باکت؛ فوری و بدون حتی بازکردن PDF
-//    ۲) تشخیص از لایهٔ متنی PDF — برای فایل‌های آینده
-//       (کتاب ۸ یا جایگزینی فایل‌ها)؛ همان الگوریتم مقاوم
-//       locateTestsRobust + جست‌وجوی «WRITING TASK N»
+// 🎯 v1.0.4.4 (English 1.0.0.5 → 1.0.0.8): صورت سوال برای
+//    «همهٔ کتاب‌ها و هر دو تسک» به‌صورت متن جدا شده و در
+//    «بالای صفحه» نمایش داده می‌شود (کاربر نمایش کل PDF را
+//    رد کرد) — نقشهٔ استخراج: لایهٔ متنی + OCR صفحات اسکن‌شده.
+//
+// ✅ مسیرها:
+//    ۱) نقشهٔ تأییدشده (lib/ielts/writing-map) — صفحات + متن
+//       سوال‌های همهٔ ۲۰ کتاب موجود؛ فوری و بدون بازکردن PDF
+//    ۲) تشخیص زنده از لایهٔ متنی PDF — برای فایل‌های آینده
 //    ۳) هیچ‌کدام → کلاینت کتاب کامل را باز می‌کند
 //
-// 📄 صفحهٔ کتاب فقط «مکمل» است — برای نمودار تسک ۱ — و
-//    در بخش جمع‌شوندهٔ «نمایش در کتاب» با #page=N باز می‌شود.
+// رابط کاربری: متن سوال در بالای صفحه؛ کتاب PDF فقط بخش
+// اختیاریِ «مشاهدهٔ صفحهٔ کتاب» است (نمودار تسک ۱).
 //
 // این ماژول فقط سمت سرور استفاده می‌شود.
 // ========================================
@@ -23,7 +24,7 @@
 import { getBookPages } from "@/lib/ielts/pdf-text";
 import { locateTestsRobust } from "@/lib/ielts/ai-paper";
 import { parseWritingPaper, type WritingTaskPrompt } from "@/lib/ielts/paper-parser";
-import { lookupWritingPages, mapWritingPrompts } from "@/lib/ielts/writing-map";
+import { lookupWritingPages, lookupWritingPrompts } from "@/lib/ielts/writing-map";
 
 const RE_TASK1 = /writing\s+task\s*1\b/i;
 const RE_TASK2 = /writing\s+task\s*2\b/i;
@@ -162,8 +163,9 @@ export async function buildWritingPaper(
   if (entry) {
     const json: WritingPaperResult = {
       ok: true,
-      // متن تسک‌ها — همهٔ کتاب‌های نقشه (استخراج یک‌بار با OCR/AI)
-      prompts: mapWritingPrompts(bookNumber, testNumber),
+      // v1.0.4.4: متن تسک‌ها برای همهٔ کتاب‌ها از نقشهٔ استخراج
+      // (لایهٔ متنی PDF + OCR صفحات اسکن‌شده — writing-map)
+      prompts: lookupWritingPrompts(bookNumber, testNumber),
       questionPaper: {
         task1Page: entry.task1Page,
         task2Page: entry.task2Page,

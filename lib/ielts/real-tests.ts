@@ -1,17 +1,16 @@
 // ========================================
-// متادیتای آزمون‌های واقعی کمبریج (v1.0.4.4 — کتاب‌ها تا ۲۱)
+// متادیتای آزمون‌های واقعی کمبریج (v1.0.3.3)
 //
-// 📚 v1.0.0.7: کتاب‌های ۹ تا ۲۱ اضافه شدند — کاربر فایل‌های
-//    باکت B2 را تا کتاب ۲۱ به‌روز کرده است.
+// محتوای واقعی (PDF کتاب + فایل‌های صوتی) در باکت B2
+// کاربر است و در زمان اجرا کشف می‌شود (lib/b2-cambridge).
+// این فایل فقط «ساختار» هر کتاب/تست را تعریف می‌کند:
+// شناسه‌ها، مدت‌زمان‌ها و تعداد سوال‌ها — فرمت استاندارد آیلتس.
 //
 // slug کتاب: «cambridge-01» .. «cambridge-21»
 // slug تست:  «cambridge-01-t1» .. «cambridge-21-t4»
 // اسلاگ‌های قدیمی (v1.0.3.2) مثل «cambridge-01» در تلاش‌های
 // ذخیره‌شده به کتاب همان شماره و تست ۱ تفسیر می‌شوند.
 // ========================================
-
-/** بیشترین شمارهٔ کتاب پشتیبانی‌شده — ۲۱ (v1.0.0.7) */
-export const IELTS_MAX_BOOK = 21;
 
 export interface IeltsRealTestMeta {
   /** شناسهٔ عددی تست داخل کتاب — ۱..۴ */
@@ -59,9 +58,11 @@ function makeBook(n: number): IeltsRealBookMeta {
   };
 }
 
-/** هر ۲۱ کتاب × ۴ تست = ۸۴ آزمون (v1.0.0.7) */
+/** ۲۱ کتاب × ۴ تست = ۸۴ آزمون (v1.0.4.4 — کتاب‌های ۹..۲۱ اضافه شدند) */
+export const IELTS_BOOK_COUNT = 21;
+
 export const IELTS_BOOKS: IeltsRealBookMeta[] = Array.from(
-  { length: IELTS_MAX_BOOK },
+  { length: IELTS_BOOK_COUNT },
   (_, i) => makeBook(i + 1),
 );
 
@@ -90,7 +91,7 @@ export function parseTestSlug(
   if (!m) return null;
   const bookNumber = Number(m[1]);
   const testNumber = m[2] ? Number(m[2]) : 1;
-  if (bookNumber < 1 || bookNumber > IELTS_MAX_BOOK) return null;
+  if (bookNumber < 1 || bookNumber > IELTS_BOOK_COUNT) return null;
   return { bookNumber, testNumber };
 }
 

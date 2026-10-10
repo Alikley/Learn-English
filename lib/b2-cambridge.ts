@@ -1,8 +1,9 @@
 // ========================================
 // اتصال Backblaze B2 — باکت «cambridge» (v1.0.3.3)
 //
-// کاربر ۸ کتاب کمبریج (PDF + فایل‌های صوتی) را روی B2
-// آپلود کرده است. این ماژول «خودشان را پیدا می‌کند»:
+// کاربر کتاب‌های کمبریج (PDF + فایل‌های صوتی) را روی B2
+// آپلود کرده است — تا کتاب ۲۱ (v1.0.4.4). این ماژول
+// «خودشان را پیدا می‌کند»:
 //
 //  ۱) باکت اختصاصی: نام دقیق از env B2_CAMBRIDGE_BUCKET
 //     (پیش‌فرض «cambridge») — با تطبیق انعطاف‌پذیر:
@@ -10,7 +11,7 @@
 //  ۲) اگر باکت اختصاصی نبود: پوشهٔ cambridge/ داخل باکت
 //     اصلی رسانه‌ها (english-media-assets) بررسی می‌شود
 //
-// سپس فایل‌ها بر اساس شمارهٔ کتاب (۱..۲۱ — v1.0.0.7) گروه‌بندی می‌شوند:
+// سپس فایل‌ها بر اساس شمارهٔ کتاب (۱..۲۱) گروه‌بندی می‌شوند:
 //  - PDF هر کتاب = بزرگ‌ترین فایل pdf آن کتاب
 //  - فایل‌های صوتی = مرتب‌شدهٔ طبیعی (شماره‌فهم)
 //
@@ -22,7 +23,7 @@
 //   B2_CAMBRIDGE_BUCKET              — پیش‌فرض: cambridge
 // ========================================
 
-import { IELTS_MAX_BOOK } from "@/lib/ielts/real-tests";
+import { IELTS_BOOK_COUNT } from "@/lib/ielts/real-tests";
 
 const B2_KEY_ID = process.env.B2_KEY_ID ?? "";
 const B2_APP_KEY = process.env.B2_APP_KEY ?? "";
@@ -183,20 +184,20 @@ async function listFiles(
 
 const AUDIO_EXT = new Set([".mp3", ".m4a", ".wav", ".aac", ".ogg", ".wma", ".flac"]);
 
-/** استخراج شمارهٔ کتاب (۱..۲۱ — v1.0.0.7) از کلید فایل */
+/** استخراج شمارهٔ کتاب (۱..۲۱) از کلید فایل */
 function extractBookNumber(key: string): number | null {
   // ۱) عدد ابتدای کلید: «1/...»، «1.pdf»، «1 - test.mp3»
   const lead = key.match(/^(\d{1,2})(?![\d])/);
   if (lead) {
     const n = Number(lead[1]);
-    if (n >= 1 && n <= IELTS_MAX_BOOK) return n;
+    if (n >= 1 && n <= IELTS_BOOK_COUNT) return n;
     return null; // عدد ابتدایی خارج از ۱..۲۱ → متعلق به هیچ کتابی
   }
   // ۲) اولین عدد داخل کلید: «book 2.pdf»، «cam3 audio»
   const any = key.match(/(\d{1,2})/);
   if (any) {
     const n = Number(any[1]);
-    if (n >= 1 && n <= IELTS_MAX_BOOK) return n;
+    if (n >= 1 && n <= IELTS_BOOK_COUNT) return n;
   }
   return null;
 }
@@ -206,7 +207,7 @@ function naturalCompare(a: string, b: string): number {
 }
 
 /**
- * گروه‌بندی فایل‌ها برای ۲۱ کتاب (v1.0.0.7).
+ * گروه‌بندی فایل‌ها برای ۲۱ کتاب.
  * مسیر کامل (نسبت به ریشهٔ باکت) حفظ می‌شود تا روت media
  * بتواند همان را سرو کند.
  */
@@ -215,13 +216,13 @@ export function groupCambridgeFiles(
   source: CambridgeSource,
 ): { books: Record<number, CambridgeBookFiles>; unmatched: number } {
   const books: Record<number, CambridgeBookFiles> = {};
-  for (let n = 1; n <= IELTS_MAX_BOOK; n++) {
+  for (let n = 1; n <= IELTS_BOOK_COUNT; n++) {
     books[n] = { pdfPath: null, pdfSize: 0, audioFiles: [] };
   }
   let unmatched = 0;
 
   const pdfs: Record<number, B2File[]> = {};
-  for (let n = 1; n <= IELTS_MAX_BOOK; n++) pdfs[n] = [];
+  for (let n = 1; n <= IELTS_BOOK_COUNT; n++) pdfs[n] = [];
 
   for (const f of files) {
     const fileName = f.fileName;
@@ -259,7 +260,7 @@ export function groupCambridgeFiles(
   }
 
   // PDF هر کتاب = بزرگ‌ترین فایل pdf آن (PDF اصلی کتاب، نه پیوست‌ها)
-  for (let n = 1; n <= IELTS_MAX_BOOK; n++) {
+  for (let n = 1; n <= IELTS_BOOK_COUNT; n++) {
     const list = pdfs[n];
     if (list.length === 0) continue;
     const best = list.reduce((a, b) => (b.contentLength > a.contentLength ? b : a));
@@ -267,7 +268,7 @@ export function groupCambridgeFiles(
     books[n].pdfSize = best.contentLength;
     books[n].audioFiles.sort(naturalCompare);
   }
-  for (let n = 1; n <= IELTS_MAX_BOOK; n++) {
+  for (let n = 1; n <= IELTS_BOOK_COUNT; n++) {
     books[n].audioFiles.sort(naturalCompare);
   }
 
