@@ -66,8 +66,8 @@ export default function IeltsHubPage() {
               <h2 className="text-lg font-bold">{tr("آیلتس آکادمیک", "IELTS Academic")}</h2>
               <p className="text-[11px] leading-relaxed text-white/80">
                 {tr(
-                  "برای پذیرش دانشگاه و مهاجرت تحصیلی — ریدینگ، لیسنینگ و رایتینگ آکادمیک.",
-                  "For university admission and study migration — Academic Reading, Listening and Writing.",
+                  "برای پذیرش دانشگاه و مهاجرت تحصیلی — لیسنینگ، ریدینگ و رایتینگ آکادمیک به ترتیب آزمون واقعی.",
+                  "For university admission and study migration — Academic Listening, Reading and Writing in real exam order.",
                 )}
               </p>
             </div>
@@ -91,7 +91,7 @@ export default function IeltsHubPage() {
                     {tr("کمبریج", "Cambridge")}
                   </h3>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                    {tr("کتاب‌های ۱ تا ۸ — تست کامل آکادمیک", "Books 1 to 8 — full Academic tests")}
+                    {tr("کتاب‌های ۱ تا ۲۱ — تست کامل آکادمیک", "Books 1 to 21 — full Academic tests")}
                   </p>
                 </div>
                 <ChevronLeft

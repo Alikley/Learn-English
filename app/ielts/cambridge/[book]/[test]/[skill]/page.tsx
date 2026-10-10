@@ -8,7 +8,6 @@ import { useLanguage } from "@/app/context/LanguageContext";
 import { useAuth } from "@/app/context/AuthContext";
 import { useExamPaper } from "@/app/hook/ielts/useExamPaper";
 import { useSkillExamSession } from "@/app/hook/ielts/useSkillExamSession";
-import { IELTS_MAX_BOOK } from "@/lib/ielts/real-tests";
 import ExamTopBar from "@/app/components/ielts/ExamTopBar";
 import ExamPaper from "@/app/components/ielts/ExamPaper";
 import RealAudioPlayer from "@/app/components/ielts/RealAudioPlayer";
@@ -23,20 +22,23 @@ import SubmitConfirmModal from "./_components/SubmitConfirmModal";
 import type { IeltsSkill, IeltsWritingPrompt } from "@/types/ielts";
 
 // ========================================
-// پلیر آزمون آیلتس — برگه از متن PDF (v1.0.4.4 / English 1.0.0.7)
+// پلیر آزمون آیلتس — برگه از متن PDF (v1.0.4.4 / English 1.0.0.8)
 // /ielts/cambridge/[book]/[test]/[skill]?mode=practice|exam&full=1
-//
-// 🔢 v1.0.0.7 — ترتیب مهارت‌ها مثل آزمون واقعی آیلتس:
-//    لیسنینگ → ریدینگ → رایتینگ (قبلاً ریدینگ اول بود)
 //
 // ریدینگ/لیسنینگ: برگهٔ امتحانی با AI از PDF ساخته می‌شود
 // (تولید یک‌بار + کش دائمی) — برگهٔ کاغذی (ExamPaper)
 //
-// رایتینگ (v1.0.4.4): صورت سوال = متن استخراج‌شدهٔ تسک‌ها بالای
-// صفحه (نقشهٔ تأییدشدهٔ همهٔ کتاب‌ها) + صفحهٔ کتاب به‌عنوان مکمل
+// رایتینگ (v1.0.4.4): بدون AI — صورت سوال «جدا‌شده از کتاب»
+// در بالای صفحه (متن استخراج‌شده برای همهٔ کتاب‌ها) + بخش
+// اختیاری «مشاهدهٔ صفحهٔ کتاب» برای نمودار تسک ۱
 //
 // اگر برگه ساخته نشد → خود PDF + ورودی سریع (PaperFallback)
 // تصحیح: کلید دستی → AI → PDF → خودتصحیحی
+//
+// 🧹 کلین‌کد: منطق نشست → useSkillExamSession، رابط‌ها →
+//    AiBuildingScreen / WritingPanel / ResultView / PaperLoadingCard /
+//    PaperFallback / PdfDrawer / SubmitConfirmModal
+// (قبلاً ۱۱۶۶ خط در یک فایل؛ اکنون این صفحه فقط چیدمان است)
 // ========================================
 
 const SKILL_LABEL: Record<string, { fa: string; en: string }> = {
@@ -45,7 +47,8 @@ const SKILL_LABEL: Record<string, { fa: string; en: string }> = {
   writing: { fa: "رایتینگ", en: "Writing" },
 };
 
-// ترتیب آزمون واقعی: لیسنینگ → ریدینگ → رایتینگ (v1.0.0.7)
+// ترتیب مهارت‌های بعدی در «آزمون کامل» = ترتیب آزمون واقعی آیلتس:
+// لیسنینگ ← ریدینگ ← رایتینگ (v1.0.4.4 — English 1.0.0.7)
 const NEXT_SKILL: Partial<Record<IeltsSkill, IeltsSkill>> = {
   listening: "reading",
   reading: "writing",
@@ -78,7 +81,9 @@ export default function SkillPlayerPage() {
     error: paperError,
     refetch: refetchPaper,
   } = useExamPaper(
-    Number.isInteger(bookId) && bookId >= 1 && bookId <= IELTS_MAX_BOOK ? bookId : null,
+    Number.isInteger(bookId) &&
+    bookId >= 1 &&
+    bookId <= 21 ? bookId : null,
     Number.isInteger(testId) && testId >= 1 && testId <= 4 ? testId : null,
     skillKey,
   );
@@ -186,7 +191,6 @@ export default function SkillPlayerPage() {
             selfScoreSaving={session.selfScoreSaving}
             selfScoreError={session.selfScoreError}
             exitHref={exitHref}
-            writingPrompts={writingPrompts}
             fullNextHref={
               NEXT_SKILL[skillKey]
                 ? `/ielts/cambridge/${bookId}/${testId}/${NEXT_SKILL[skillKey]}?mode=${payload.mode}&full=1`
@@ -207,7 +211,7 @@ export default function SkillPlayerPage() {
               />
             )}
 
-            {/* رایتینگ — صورت سوال = صفحهٔ واقعی کتاب (بدون AI) */}
+            {/* رایتینگ — صورت سوال جدا‌شده در بالای صفحه (بدون AI) */}
             {skillKey === "writing" && (
               <WritingPanel
                 answers={payload.savedAnswers}

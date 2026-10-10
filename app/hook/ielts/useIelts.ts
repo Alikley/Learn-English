@@ -28,7 +28,7 @@ export interface CambridgeBooksState {
   refetch: (refresh?: boolean) => Promise<void>;
 }
 
-/** فهرست ۸ کتاب کمبریج + وضعیت فایل‌های B2 + تلاش‌ها */
+/** فهرست ۲۱ کتاب کمبریج + وضعیت فایل‌های B2 + تلاش‌ها */
 export function useCambridgeBooks(): CambridgeBooksState {
   const [books, setBooks] = useState<IeltsBookSummary[]>([]);
   const [scan, setScan] = useState<IeltsScanInfo | null>(null);

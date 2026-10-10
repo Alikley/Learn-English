@@ -31,7 +31,7 @@ export default function Navbar({
   const { notifications, unreadCount } = useNotifications();
   const { user, logout } = useAuth();
   const { streak } = useStreak();
-  const { tr } = useLanguage();
+  const { tr, dir } = useLanguage();
   const recentNotifications = notifications.slice(0, 3);
 
   return (
@@ -73,8 +73,14 @@ export default function Navbar({
               <ChevronDown className="h-4 w-4 text-slate-500 dark:text-slate-400 transition-transform group-hover:rotate-180" />
             </div>
 
-            {/* منوی کشویی */}
-            <div className="absolute top-14 left-0 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            {/* منوی کشویی — v1.0.4.4: لنگر جهت‌آگاه (رفع خروج از کادر در فارسی)
+                پروفایل اولین آیتم است؛ در RTL سمت راست صفحه است → منو باید
+                به لبهٔ راستِ ظرف بچسبد و به داخل (چپ) باز شود */}
+            <div
+              className={`absolute top-14 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${
+                dir === "rtl" ? "right-0" : "left-0"
+              }`}
+            >
               <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-lg mb-3">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-xs font-medium mb-1">
                   <Calendar size={14} />
@@ -195,7 +201,13 @@ export default function Navbar({
             <button>
               <Search className="h-5 w-5 md:h-6 md:w-6 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400" />
             </button>
-            <div className="absolute top-12 right-0 w-64 md:w-80 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            {/* v1.0.4.4: جستجو نزدیک لبهٔ انتهایی است — لنگر جهت‌آگاه
+                (در RTL به لبهٔ چپ می‌چسبد تا از کادر بیرون نزند) */}
+            <div
+              className={`absolute top-12 w-64 md:w-80 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-100 dark:border-slate-700 p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 ${
+                dir === "rtl" ? "left-0" : "right-0"
+              }`}
+            >
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input

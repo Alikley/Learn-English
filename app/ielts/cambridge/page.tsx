@@ -100,9 +100,9 @@ export default function CambridgeListPage() {
           </div>
         )}
 
-        {/* ================= کارت‌ها ================= */}
+        {/* ================= کارت‌ها — ۲۱ کتاب: سه ستونه در نمایشگر عریض ================= */}
         {!loading && !error && (
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((b, i) => (
               <BookCard key={b.slug} book={b} index={i} stats={statsByBook.get(b.id)} />
             ))}

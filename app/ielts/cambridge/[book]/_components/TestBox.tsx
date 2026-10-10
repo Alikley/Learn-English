@@ -170,6 +170,7 @@ export default function TestBox({
         <button
           onClick={() => {
             setBusy(`${testId}-full`);
+            // آزمون کامل = ترتیب آزمون واقعی: اول لیسنینگ (v1.0.4.4)
             void onBegin(testId, "listening", mode, true).finally(() => setBusy(null));
           }}
           disabled={busy === `${testId}-full`}

@@ -146,10 +146,10 @@ export default function PartResultView({
         </Link>
         {isFull && (
           <Link
-            href={`/ielts/cambridge/${bookId}/${testId}/writing?mode=${mode}&full=1`}
+            href={`/ielts/cambridge/${bookId}/${testId}/reading?mode=${mode}&full=1`}
             className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold"
           >
-            {tr("بخش بعدی: رایتینگ", "Next section: Writing")}
+            {tr("بخش بعدی: ریدینگ", "Next section: Reading")}
           </Link>
         )}
       </div>

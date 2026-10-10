@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { startAttempt, submitSelfScore, useAttempt } from "@/app/hook/ielts/useIelts";
 import { recordStreakActivity } from "@/app/hook/ui/useStreak";
-import { IELTS_MAX_BOOK } from "@/lib/ielts/real-tests";
 import type {
   IeltsAttemptPayload,
   IeltsMode,
@@ -70,7 +69,7 @@ export function useSkillExamSession({
   const valid =
     Number.isInteger(bookId) &&
     bookId >= 1 &&
-    bookId <= IELTS_MAX_BOOK &&
+    bookId <= 21 &&
     Number.isInteger(testId) &&
     testId >= 1 &&
     testId <= 4 &&
@@ -91,10 +90,7 @@ export function useSkillExamSession({
       if (typeof window === "undefined") return;
       if (!valid) {
         setStartError(
-          tr(
-            `آزمون یافت نشد (کتاب ۱..${IELTS_MAX_BOOK}، تست ۱..۴)`,
-            `Test not found (book 1..${IELTS_MAX_BOOK}, test 1..4)`,
-          ),
+          tr("آزمون یافت نشد (کتاب ۱..۲۱، تست ۱..۴)", "Test not found (book 1..21, test 1..4)"),
         );
         return;
       }

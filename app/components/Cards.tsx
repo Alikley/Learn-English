@@ -172,15 +172,15 @@ export default function Cards() {
                 </div>
                 <p className="text-[11px] md:text-sm text-white/85 mt-1 leading-relaxed">
                   {tr(
-                    "آزمون‌های شبیه‌ساز کمبریج ۱ تا ۸ — ریدینگ، لیسنینگ و رایتینگ با تایمر، تصحیح خودکار و نمرهٔ بند",
-                    "Cambridge 1-8 mock exams — Reading, Listening and Writing with timers, auto-scoring and band results",
+                    "آزمون‌های شبیه‌ساز کمبریج ۱ تا ۲۱ — لیسنینگ، ریدینگ و رایتینگ با تایمر، تصحیح خودکار و نمرهٔ بند",
+                    "Cambridge 1-21 mock exams — Listening, Reading and Writing with timers, auto-scoring and band results",
                   )}
                 </p>
                 {/* چیپ‌های مهارت */}
                 <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                   {[
                     tr("آکادمیک", "Academic"),
-                    tr("کمبریج ۱-۸", "Cambridge 1-8"),
+                    tr("کمبریج ۱-۲۱", "Cambridge 1-21"),
                     tr("نمرهٔ بند", "Band score"),
                   ].map((chip) => (
                     <span

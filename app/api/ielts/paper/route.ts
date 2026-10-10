@@ -4,7 +4,7 @@ import { getBookPdf, getBookPages } from "@/lib/ielts/pdf-text";
 import { buildExamPaper, type PaperSkill } from "@/lib/ielts/paper-parser";
 import { acquireAiPaper, isAiExamConfigured } from "@/lib/ielts/ai-paper";
 import { buildWritingPaper } from "@/lib/ielts/writing-paper";
-import { IELTS_MAX_BOOK } from "@/lib/ielts/real-tests";
+import { IELTS_BOOK_COUNT } from "@/lib/ielts/real-tests";
 
 // ========================================
 // GET /api/ielts/paper — برگهٔ امتحان (v1.0.4.3)
@@ -44,8 +44,8 @@ export async function GET(req: Request) {
   const bookId = Number(url.searchParams.get("book") ?? "");
   const force = url.searchParams.get("refresh") === "1";
 
-  if (!Number.isInteger(bookId) || bookId < 1 || bookId > IELTS_MAX_BOOK) {
-    return err(`کتاب نامعتبر است (۱..${IELTS_MAX_BOOK})`, 400);
+  if (!Number.isInteger(bookId) || bookId < 1 || bookId > IELTS_BOOK_COUNT) {
+    return err(`کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})`, 400);
   }
 
   // ---------- خود فایل PDF ----------

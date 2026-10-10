@@ -88,7 +88,7 @@ export default function BookCard({
           </div>
         </div>
 
-        {/* مهارت‌ها — ترتیب آزمون واقعی: لیسنینگ، ریدینگ، رایتینگ (v1.0.0.7) */}
+        {/* مهارت‌ها — به ترتیب آزمون واقعی: لیسنینگ ← ریدینگ ← رایتینگ */}
         <div className="p-4 grid grid-cols-3 gap-2">
           <SkillChip
             icon={<Headphones size={13} />}

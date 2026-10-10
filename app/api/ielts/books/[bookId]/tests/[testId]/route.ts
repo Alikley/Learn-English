@@ -21,7 +21,7 @@ export async function GET(
   const testId = Number(testIdParam);
 
   const test = getTestById(bookId, testId);
-  if (!test) return err("آزمون یافت نشد (کتاب ۱..۸، تست ۱..۴)", 404);
+  if (!test) return err("آزمون یافت نشد (کتاب ۱..۲۱، تست ۱..۴)", 404);
 
   const scan = await scanCambridge();
   const media = buildMediaInfo(scan, test);
