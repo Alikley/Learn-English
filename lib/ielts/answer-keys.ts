@@ -8,25 +8,29 @@
 
 import { getBookPages } from "@/lib/ielts/pdf-text";
 import { parseAnswerKeys, type BookAnswerKeys } from "@/lib/ielts/paper-parser";
+import { cacheGet, cacheSet, cacheDel } from "@/lib/cache";
 
-const KEYS_TTL_MS = 15 * 60 * 1000;
+// v1.0.4.6 (English 1.0.0.10): پاسخ‌نامه‌ها به کش دو سطحی رفتند
+const KEYS_TTL_S = 15 * 60;
 
-const answerKeyCache = new Map<number, { keys: BookAnswerKeys; expiresAt: number }>();
-
-/** پاسخ‌نامهٔ یک کتاب — از متن PDF، با کش ۱۵ دقیقه */
+/** پاسخ‌نامهٔ یک کتاب — از متن PDF، با کش ۱۵ دقیقه (L1 + Redis) */
 export async function getBookAnswerKeys(
   bookNumber: number,
   force = false,
 ): Promise<BookAnswerKeys> {
-  const cached = answerKeyCache.get(bookNumber);
-  if (!force && cached && Date.now() < cached.expiresAt) return cached.keys;
+  if (force) {
+    await cacheDel(`keys:${bookNumber}`);
+  } else {
+    const cached = await cacheGet<BookAnswerKeys>(`keys:${bookNumber}`);
+    if (cached) return cached;
+  }
 
   const pagesResult = await getBookPages(bookNumber, force);
   let keys: BookAnswerKeys = {};
   if (pagesResult.ok) {
     keys = parseAnswerKeys(pagesResult.pages);
   }
-  answerKeyCache.set(bookNumber, { keys, expiresAt: Date.now() + KEYS_TTL_MS });
+  await cacheSet(`keys:${bookNumber}`, keys, KEYS_TTL_S);
   return keys;
 }
 

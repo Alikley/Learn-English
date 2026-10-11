@@ -2,6 +2,7 @@ import { ok, err, getSession } from "@/lib/api-helpers";
 import { lookupLocalTranslation } from "@/lib/local-dictionary";
 import { NextRequest } from "next/server";
 import { VOCAB_WORD_PATTERN, type TranslateResult } from "@/types/vocabulary";
+import { cacheGet, cacheSet } from "@/lib/cache";
 
 // ========================================
 // ترجمه یک کلمه انگلیسی (نسخه ۱.۰.۱.۶)
@@ -15,18 +16,12 @@ const VYCEAI_URL = "https://vyceai.com/v1/chat/completions";
 const VYCEAI_MODEL = "agnes-3.0-flash";
 const TIMEOUT_MS = 20_000;
 
-/** کش درخواست‌های ترجمه — حافظه سرور توسعه، سقف ۱۰۰۰ مدخل */
-const aiCache = new Map<string, string>();
-const AI_CACHE_MAX = 1000;
-
-function cacheAiTranslation(word: string, translation: string): void {
-  if (aiCache.size >= AI_CACHE_MAX) {
-    // قدیمی‌ترین مدخل را بینداز
-    const firstKey = aiCache.keys().next().value;
-    if (firstKey !== undefined) aiCache.delete(firstKey);
-  }
-  aiCache.set(word, translation);
-}
+// v1.0.4.6 (English 1.0.0.10): کش ترجمه‌های AI به «کش دو سطحی»
+// رفت (L1 حافظه + Redis) — با Redis، ترجمه‌های پرکاربرد بین
+// همهٔ کاربران و instanceها به اشتراک می‌افتند و توکن AI
+// فقط یک بار برای هر کلمه خرج می‌شود (TTL ۳۰ روز).
+const AI_TR_TTL_S = 30 * 24 * 60 * 60;
+const aiTrKey = (word: string) => `ai-tr:${word}`;
 
 const TRANSLATE_PROMPT = `You are a Persian-English dictionary. Translate the given single English word to Persian (Farsi).
 Respond ONLY with the Persian translation — no English, no explanation, no quotes, no punctuation. Maximum 4 words.`;
@@ -101,8 +96,8 @@ export async function POST(req: NextRequest) {
     return ok(result);
   }
 
-  // ۲) کش هوش مصنوعی
-  const cached = aiCache.get(normalized);
+  // ۲) کش هوش مصنوعی (دو سطحی)
+  const cached = await cacheGet<string>(aiTrKey(normalized));
   if (cached) {
     const result: TranslateResult = {
       word: normalized,
@@ -126,7 +121,7 @@ export async function POST(req: NextRequest) {
 
   const ai = await translateWithAi(normalized);
   if (ai) {
-    cacheAiTranslation(normalized, ai);
+    await cacheSet(aiTrKey(normalized), ai, AI_TR_TTL_S);
     const result: TranslateResult = {
       word: normalized,
       translation: ai,

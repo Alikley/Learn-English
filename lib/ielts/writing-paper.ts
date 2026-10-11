@@ -25,6 +25,7 @@ import { getBookPages } from "@/lib/ielts/pdf-text";
 import { locateTestsRobust } from "@/lib/ielts/ai-paper";
 import { parseWritingPaper, type WritingTaskPrompt } from "@/lib/ielts/paper-parser";
 import { lookupWritingPages, lookupWritingPrompts } from "@/lib/ielts/writing-map";
+import { cacheGet, cacheSet } from "@/lib/cache";
 
 const RE_TASK1 = /writing\s+task\s*1\b/i;
 const RE_TASK2 = /writing\s+task\s*2\b/i;
@@ -122,10 +123,9 @@ export type WritingPaperResult =
     }
   | { ok: false; reason: string };
 
-// ---------- کش حافظه ----------
+// ---------- کش (v1.0.4.6 — دو سطحی: L1 حافظه + Redis) ----------
 
-const CACHE_TTL_MS = 15 * 60 * 1000;
-const cache = new Map<string, { json: WritingPaperResult; expiresAt: number }>();
+const CACHE_TTL_S = 15 * 60;
 
 // ---------- ساخت برگهٔ رایتینگ ----------
 
@@ -141,11 +141,11 @@ export async function buildWritingPaper(
   testNumber: number,
   force = false,
 ): Promise<WritingPaperResult> {
-  const key = `${bookNumber}-${testNumber}`;
+  const key = `wp:${bookNumber}-${testNumber}`;
 
   if (!force) {
-    const cached = cache.get(key);
-    if (cached && Date.now() < cached.expiresAt) return cached.json;
+    const cached = await cacheGet<WritingPaperResult>(key);
+    if (cached) return cached;
   }
 
   // ---------- مسیر ۲ (وقتی force): تشخیص زنده از خود فایل ----------
@@ -153,7 +153,7 @@ export async function buildWritingPaper(
   if (force) {
     detected = await detectFromText(bookNumber, testNumber, true);
     if (detected.ok) {
-      cache.set(key, { json: detected, expiresAt: Date.now() + CACHE_TTL_MS });
+      await cacheSet(key, detected, CACHE_TTL_S);
       return detected;
     }
   }
@@ -174,7 +174,7 @@ export async function buildWritingPaper(
       },
       source: "map",
     };
-    cache.set(key, { json, expiresAt: Date.now() + CACHE_TTL_MS });
+    await cacheSet(key, json, CACHE_TTL_S);
     return json;
   }
 
@@ -182,7 +182,7 @@ export async function buildWritingPaper(
   if (!detected) {
     detected = await detectFromText(bookNumber, testNumber, force);
   }
-  cache.set(key, { json: detected, expiresAt: Date.now() + CACHE_TTL_MS });
+  await cacheSet(key, detected, CACHE_TTL_S);
   return detected;
 }
 

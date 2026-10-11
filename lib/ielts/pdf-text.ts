@@ -9,6 +9,13 @@
 //
 // بافر PDF ۲۰ دقیقه و متن صفحات ۳۰ دقیقه کش می‌شود.
 // این ماژول فقط سمت سرور استفاده می‌شود.
+//
+// 🎯 v1.0.4.6 (English 1.0.0.10): متن صفحات به کش دو سطحی
+//    (lib/cache — L1 + Redis) رفت تا بین instanceها مشترک شود.
+//    «بافر باینری PDF» عمداً فقط در حافظهٔ همان پروسه می‌ماند:
+//    هر کتاب ۵-۴۰MB است و گذاشتنش در Redis حافظهٔ بی‌دلیل
+//    می‌گیرد؛ متن صفحات (خروجی گران استخراج) ارزش مشترک شدن
+//    دارد.
 // ========================================
 
 import { existsSync } from "node:fs";
@@ -16,9 +23,10 @@ import { readFile as readFileAsync } from "node:fs/promises";
 import path from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
 import { scanCambridge, signedCambridgeUrl } from "@/lib/b2-cambridge";
+import { cacheGet, cacheSet, cacheDel, cacheDelPrefix } from "@/lib/cache";
 
 const PDF_TTL_MS = 20 * 60 * 1000;
-const PAGES_TTL_MS = 30 * 60 * 1000;
+const PAGES_TTL_S = 30 * 60;
 
 export type PdfSourceKind = "b2" | "local" | null;
 
@@ -27,10 +35,10 @@ export type PdfResult =
   | { ok: false; error: string };
 
 type BufferCacheEntry = { buffer: Buffer; source: "b2" | "local"; filePath: string; expiresAt: number };
-type PagesCacheEntry = { pages: string[]; expiresAt: number };
 
+// v1.0.4.6: بافر باینری فقط حافظهٔ همین پروسه (حجیم — توضیح بالا)؛
+// متن صفحات از lib/cache می‌آید (L1 + Redis)
 const bufferCache = new Map<number, BufferCacheEntry>();
-const pagesCache = new Map<number, PagesCacheEntry>();
 
 // ---------- منبع محلی ----------
 
@@ -140,10 +148,14 @@ export type PagesResult =
 
 /** متن هر صفحهٔ PDF یک کتاب (کش ۳۰ دقیقه) */
 export async function getBookPages(bookNumber: number, force = false): Promise<PagesResult> {
-  const cached = pagesCache.get(bookNumber);
-  if (!force && cached && Date.now() < cached.expiresAt) {
-    const src = bufferCache.get(bookNumber)?.source ?? "b2";
-    return { ok: true, pages: cached.pages, source: src };
+  if (!force) {
+    const cached = await cacheGet<string[]>(`pdf:pages:${bookNumber}`);
+    if (cached) {
+      const src = bufferCache.get(bookNumber)?.source ?? "b2";
+      return { ok: true, pages: cached, source: src };
+    }
+  } else {
+    await cacheDel(`pdf:pages:${bookNumber}`);
   }
 
   const pdf = await getBookPdf(bookNumber);
@@ -156,7 +168,8 @@ export async function getBookPages(bookNumber: number, force = false): Promise<P
     const pages = (Array.isArray(text) ? text : [text]).map((t) =>
       (t ?? "").replace(/\r/g, "").replace(/[ \t]+/g, " "),
     );
-    pagesCache.set(bookNumber, { pages, expiresAt: Date.now() + PAGES_TTL_MS });
+    // v1.0.4.6: ذخیره در کش دو سطحی (L1 + Redis)
+    await cacheSet(`pdf:pages:${bookNumber}`, pages, PAGES_TTL_S);
     return { ok: true, pages, source: pdf.source };
   } catch (error) {
     return {
@@ -167,12 +180,12 @@ export async function getBookPages(bookNumber: number, force = false): Promise<P
 }
 
 /** شکستن کش (بعد از آپلود فایل جدید) */
-export function invalidatePdfCache(bookNumber?: number): void {
+export async function invalidatePdfCache(bookNumber?: number): Promise<void> {
   if (bookNumber == null) {
     bufferCache.clear();
-    pagesCache.clear();
+    await cacheDelPrefix("pdf:pages:");
     return;
   }
   bufferCache.delete(bookNumber);
-  pagesCache.delete(bookNumber);
+  await cacheDel(`pdf:pages:${bookNumber}`);
 }

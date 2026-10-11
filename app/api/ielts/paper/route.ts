@@ -8,6 +8,7 @@ import { buildWritingPaper } from "@/lib/ielts/writing-paper";
 // طول «IELTS_BOOKS» گرفته می‌شود تا حتی با real-tests.ts قدیمی هم بیلد رد شود
 // (رفع خطای Vercel: «Export IELTS_BOOK_COUNT doesn't exist in target module»).
 import { IELTS_BOOKS } from "@/lib/ielts/real-tests";
+import { cacheGet, cacheSet } from "@/lib/cache";
 
 /** تعداد کتاب‌های کمبریج (v1.0.4.5) — از خود فهرست */
 const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
@@ -34,10 +35,8 @@ const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
 //   ۴) هیچ‌کدام → { ok:false } → رابط کاربری PDF جایگزین
 // ========================================
 
-const PAPER_TTL_MS = 15 * 60 * 1000;
-
-type PaperCacheEntry = { json: unknown; expiresAt: number };
-const paperCache = new Map<string, PaperCacheEntry>();
+// v1.0.4.6: کش برگهٔ heuristic به دو سطحی رفت (L1 + Redis)
+const PAPER_TTL_S = 15 * 60;
 
 const GENERATING_REASON =
   "برگهٔ امتحان با هوش مصنوعی در حال ساخت است — این فقط یک بار انجام می‌شود و برای بازدیدهای بعدی ذخیره می‌گردد";
@@ -130,11 +129,11 @@ export async function GET(req: Request) {
   // ========================================
   // مسیر ۲ — پارسر heuristic قدیمی (جایگزین — ریدینگ/لیسنینگ)
   // ========================================
-  const cacheKey = `${bookId}-${testId}-${skill}`;
+  const cacheKey = `paper:${bookId}-${testId}-${skill}`;
   if (!force) {
-    const cached = paperCache.get(cacheKey);
-    if (cached && Date.now() < cached.expiresAt) {
-      return ok(cached.json);
+    const cached = await cacheGet<unknown>(cacheKey);
+    if (cached) {
+      return ok(cached);
     }
   }
 
@@ -154,7 +153,7 @@ export async function GET(req: Request) {
     ...(aiError ? { aiError } : {}),
   };
   if (paper.ok) {
-    paperCache.set(cacheKey, { json, expiresAt: Date.now() + PAPER_TTL_MS });
+    await cacheSet(cacheKey, json, PAPER_TTL_S);
   }
   return ok(json);
 }

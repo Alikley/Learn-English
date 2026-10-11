@@ -18,6 +18,10 @@
 // همهٔ پاسخ‌ها ۵ دقیقه کش می‌شوند؛ ?refresh=1 کش را می‌شکند.
 // این ماژول فقط سمت سرور استفاده می‌شود.
 //
+// 🎯 v1.0.4.6 (English 1.0.0.10): همهٔ کش‌های این ماژول به
+//    «کش دو سطحی» (lib/cache) منتقل شدند — L1 حافظه + L2 Redis
+//    (مشترک بین instanceها؛ REDIS_URL خالی = همان رفتار قبلی).
+//
 // متغیرهای محیطی (همان کلیدهای 1.0.2.8):
 //   B2_KEY_ID, B2_APP_KEY            — کلیدهای اکانت B2
 //   B2_CAMBRIDGE_BUCKET              — پیش‌فرض: cambridge
@@ -28,6 +32,7 @@
 // real-tests.ts نبود و روی Vercel باعث «Export doesn't exist in target
 // module» می‌شد؛ «IELTS_BOOKS» در همهٔ نسخه‌ها هست و بیلد مقاوم می‌ماند.
 import { IELTS_BOOKS } from "@/lib/ielts/real-tests";
+import { cacheGet, cacheSet, cacheDel, cacheWrap } from "@/lib/cache";
 
 /** تعداد کتاب‌های کمبریج (v1.0.4.5) — از خود فهرست، بدون نماد جدانامِ شکننده */
 const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
@@ -41,9 +46,12 @@ const AUTH_API = "https://api.backblazeb2.com/b2api/v2";
 
 const AUTH_TTL_MS = 23 * 60 * 60 * 1000; // توکن اکانت: ۲۴س → تازه‌سازی ۲۳س
 const DOWNLOAD_TTL_S = 7 * 24 * 60 * 60; // توکن دانلود: حداکثر ۷ روز
-const DOWNLOAD_TTL_MS = 6 * 24 * 60 * 60 * 1000;
-const LIST_TTL_MS = 5 * 60 * 1000; // کش فهرست فایل‌ها: ۵ دقیقه
-const BUCKETS_TTL_MS = 10 * 60 * 1000; // کش فهرست باکت‌ها: ۱۰ دقیقه
+
+// TTLها بر حسب ثانیه برای lib/cache
+const AUTH_TTL_S = 23 * 60 * 60;
+const LIST_TTL_S = 5 * 60;
+const BUCKETS_TTL_S = 10 * 60;
+const DL_TOKEN_TTL_S = 6 * 24 * 60 * 60; // توکن دانلود: ۶ روز
 
 // ---------- انواع ----------
 
@@ -77,12 +85,9 @@ export type CambridgeScan = {
   error: string | null;
 };
 
-// ---------- کش‌های سطح ماژول ----------
-
-let accountAuth: AccountAuth | null = null;
-let bucketsCache: { list: B2Bucket[]; expiresAt: number } | null = null;
-const downloadTokens = new Map<string, { token: string; expiresAt: number }>();
-let scanCache: { scan: CambridgeScan; expiresAt: number } | null = null;
+// ---------- کش‌ها (v1.0.4.6 — دو سطحی از lib/cache) ----------
+// توکن اکانت / باکت‌ها / توکن دانلود / اسکن کامل همه از
+// L1+L2 می‌آیند؛ متغیرهای سطح‌ماژول حذف شدند.
 
 // ---------- احراز هویت اکانت ----------
 
@@ -91,29 +96,29 @@ function isCambridgeConfigured(): boolean {
 }
 
 async function authorize(): Promise<AccountAuth> {
-  if (accountAuth && Date.now() < accountAuth.expiresAt) return accountAuth;
+  // v1.0.4.6: کش دو سطحی — کل instanceها توکن یکسان را می‌بینند
+  return cacheWrap<AccountAuth>("b2:auth", AUTH_TTL_S, async () => {
+    const basic = Buffer.from(`${B2_KEY_ID}:${B2_APP_KEY}`).toString("base64");
+    const res = await fetch(`${AUTH_API}/b2_authorize_account`, {
+      headers: { Authorization: `Basic ${basic}` },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`B2 authorize failed: ${res.status}`);
+    const data = (await res.json()) as {
+      authorizationToken: string;
+      apiUrl: string;
+      downloadUrl: string;
+      accountId: string;
+    };
 
-  const basic = Buffer.from(`${B2_KEY_ID}:${B2_APP_KEY}`).toString("base64");
-  const res = await fetch(`${AUTH_API}/b2_authorize_account`, {
-    headers: { Authorization: `Basic ${basic}` },
-    cache: "no-store",
+    return {
+      token: data.authorizationToken,
+      apiUrl: data.apiUrl,
+      downloadUrl: data.downloadUrl.replace(/\/+$/, ""),
+      accountId: data.accountId,
+      expiresAt: Date.now() + AUTH_TTL_MS,
+    };
   });
-  if (!res.ok) throw new Error(`B2 authorize failed: ${res.status}`);
-  const data = (await res.json()) as {
-    authorizationToken: string;
-    apiUrl: string;
-    downloadUrl: string;
-    accountId: string;
-  };
-
-  accountAuth = {
-    token: data.authorizationToken,
-    apiUrl: data.apiUrl,
-    downloadUrl: data.downloadUrl.replace(/\/+$/, ""),
-    accountId: data.accountId,
-    expiresAt: Date.now() + AUTH_TTL_MS,
-  };
-  return accountAuth;
 }
 
 async function callB2(path: string, body: unknown): Promise<Record<string, unknown>> {
@@ -131,14 +136,11 @@ async function callB2(path: string, body: unknown): Promise<Record<string, unkno
 // ---------- فهرست باکت‌ها ----------
 
 async function listBuckets(): Promise<B2Bucket[]> {
-  if (bucketsCache && Date.now() < bucketsCache.expiresAt) return bucketsCache.list;
-
-  const auth = await authorize();
-  const data = await callB2("b2_list_buckets", { accountId: auth.accountId });
-  const buckets = (data.buckets as B2Bucket[]) ?? [];
-
-  bucketsCache = { list: buckets, expiresAt: Date.now() + BUCKETS_TTL_MS };
-  return buckets;
+  return cacheWrap<B2Bucket[]>("b2:buckets", BUCKETS_TTL_S, async () => {
+    const auth = await authorize();
+    const data = await callB2("b2_list_buckets", { accountId: auth.accountId });
+    return (data.buckets as B2Bucket[]) ?? [];
+  });
 }
 
 /** یافتن باکت cambridge با تطبیق انعطاف‌پذیر */
@@ -295,15 +297,18 @@ const EMPTY_SCAN: CambridgeScan = {
 };
 
 /**
- * اسکن کامل باکت کمبریج (کش ۵ دقیقه).
+ * اسکن کامل باکت کمبریج (کش ۵ دقیقه — دو سطحی).
  * force=true کش را می‌شکند (برای دکمهٔ «اسکن مجدد»).
  */
 export async function scanCambridge(force = false): Promise<CambridgeScan> {
   if (!isCambridgeConfigured()) {
     return { ...EMPTY_SCAN };
   }
-  if (!force && scanCache && Date.now() < scanCache.expiresAt) {
-    return scanCache.scan;
+  if (force) {
+    await cacheDel("b2:scan");
+  } else {
+    const cached = await cacheGet<CambridgeScan>("b2:scan");
+    if (cached) return cached;
   }
 
   try {
@@ -338,7 +343,8 @@ export async function scanCambridge(force = false): Promise<CambridgeScan> {
       totalFiles: files.length,
       error: null,
     };
-    scanCache = { scan, expiresAt: Date.now() + LIST_TTL_MS };
+    // v1.0.4.6: فقط اسکن موفق کش می‌شود (خطا کش نمی‌شود)
+    await cacheSet("b2:scan", scan, LIST_TTL_S);
     return scan;
   } catch (error) {
     const message = error instanceof Error ? error.message : "B2 scan failed";
@@ -365,21 +371,15 @@ async function getBucketIdByName(bucketName: string): Promise<string> {
 }
 
 async function getDownloadToken(bucketName: string): Promise<string> {
-  const cached = downloadTokens.get(bucketName);
-  if (cached && Date.now() < cached.expiresAt) return cached.token;
-
-  const bucketId = await getBucketIdByName(bucketName);
-  const data = await callB2("b2_get_download_authorization", {
-    bucketId,
-    fileNamePrefix: "",
-    validDurationInSeconds: DOWNLOAD_TTL_S,
+  return cacheWrap<string>(`b2:dltok:${bucketName}`, DL_TOKEN_TTL_S, async () => {
+    const bucketId = await getBucketIdByName(bucketName);
+    const data = await callB2("b2_get_download_authorization", {
+      bucketId,
+      fileNamePrefix: "",
+      validDurationInSeconds: DOWNLOAD_TTL_S,
+    });
+    return data.authorizationToken as string;
   });
-
-  downloadTokens.set(bucketName, {
-    token: data.authorizationToken as string,
-    expiresAt: Date.now() + DOWNLOAD_TTL_MS,
-  });
-  return data.authorizationToken as string;
 }
 
 /**

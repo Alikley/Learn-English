@@ -4,6 +4,9 @@
 // سرو می‌شوند؛ لینک‌ها «امضادار» و محدود به
 // دامنه‌های مجاز هستند (بدون لینک عمومی دائمی).
 //
+// 🎯 v1.0.4.6 (English 1.0.0.10): کش‌های این ماژول به
+//    کش دو سطحی (lib/cache — L1 حافظه + L2 Redis) رفتند.
+//
 // متغیرهای محیطی لازم:
 //   B2_KEY_ID      — شناسه کلید اپلیکیشن B2
 //   B2_APP_KEY     — کلید مخفی اپلیکیشن B2
@@ -15,13 +18,14 @@ const B2_KEY_ID = process.env.B2_KEY_ID ?? "";
 const B2_APP_KEY = process.env.B2_APP_KEY ?? "";
 export const B2_BUCKET = process.env.B2_BUCKET ?? "english-media-assets";
 
+import { cacheWrap } from "@/lib/cache";
+
 const AUTH_API = "https://api.backblazeb2.com/b2api/v2";
 
 // توکن اکانت: ۲۴ ساعت اعتبار → تازه‌سازی در ۲۳ ساعت
 const AUTH_TTL_MS = 23 * 60 * 60 * 1000;
 // توکن دانلود: حداکثر ۷ روز اعتبار → تازه‌سازی در ۶ روز
 const DOWNLOAD_TTL_S = 7 * 24 * 60 * 60;
-const DOWNLOAD_TTL_MS = 6 * 24 * 60 * 60 * 1000;
 
 type AccountAuth = {
   token: string;
@@ -31,12 +35,7 @@ type AccountAuth = {
   expiresAt: number;
 };
 
-type DownloadAuth = { token: string; expiresAt: number };
-
-// کش در سطح ماژول — در سرور گرم فقط هر ۶ روز یک
-// بار درخواست توکن جدید زده می‌شود
-let accountAuth: AccountAuth | null = null;
-let downloadAuth: DownloadAuth | null = null;
+// ---------- کش‌ها (v1.0.4.6 — دو سطحی از lib/cache) ----------
 
 /** آیا کلیدهای B2 تنظیم شده‌اند؟ */
 export function isMediaConfigured(): boolean {
@@ -44,29 +43,28 @@ export function isMediaConfigured(): boolean {
 }
 
 async function authorize(): Promise<AccountAuth> {
-  if (accountAuth && Date.now() < accountAuth.expiresAt) return accountAuth;
+  return cacheWrap<AccountAuth>("b2m:auth", 23 * 60 * 60, async () => {
+    const basic = Buffer.from(`${B2_KEY_ID}:${B2_APP_KEY}`).toString("base64");
+    const res = await fetch(`${AUTH_API}/b2_authorize_account`, {
+      headers: { Authorization: `Basic ${basic}` },
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`B2 authorize failed: ${res.status}`);
+    const data = (await res.json()) as {
+      authorizationToken: string;
+      apiUrl: string;
+      downloadUrl: string;
+      accountId: string;
+    };
 
-  const basic = Buffer.from(`${B2_KEY_ID}:${B2_APP_KEY}`).toString("base64");
-  const res = await fetch(`${AUTH_API}/b2_authorize_account`, {
-    headers: { Authorization: `Basic ${basic}` },
-    cache: "no-store",
+    return {
+      token: data.authorizationToken,
+      apiUrl: data.apiUrl,
+      downloadUrl: data.downloadUrl.replace(/\/+$/, ""),
+      accountId: data.accountId,
+      expiresAt: Date.now() + AUTH_TTL_MS,
+    };
   });
-  if (!res.ok) throw new Error(`B2 authorize failed: ${res.status}`);
-  const data = (await res.json()) as {
-    authorizationToken: string;
-    apiUrl: string;
-    downloadUrl: string;
-    accountId: string;
-  };
-
-  accountAuth = {
-    token: data.authorizationToken,
-    apiUrl: data.apiUrl,
-    downloadUrl: data.downloadUrl.replace(/\/+$/, ""),
-    accountId: data.accountId,
-    expiresAt: Date.now() + AUTH_TTL_MS,
-  };
-  return accountAuth;
 }
 
 async function callB2(path: string, body: unknown): Promise<Record<string, unknown>> {
@@ -83,37 +81,26 @@ async function callB2(path: string, body: unknown): Promise<Record<string, unkno
 
 /** توکن دانلود امضادار (محدود به کل باکت، اعتبار ۷ روز) */
 async function getDownloadToken(): Promise<string> {
-  if (downloadAuth && Date.now() < downloadAuth.expiresAt) {
-    return downloadAuth.token;
-  }
-
-  const bucketId = await getBucketId();
-  const data = await callB2("b2_get_download_authorization", {
-    bucketId,
-    fileNamePrefix: "",
-    validDurationInSeconds: DOWNLOAD_TTL_S,
+  return cacheWrap<string>("b2m:dltok", 6 * 24 * 60 * 60, async () => {
+    const bucketId = await getBucketId();
+    const data = await callB2("b2_get_download_authorization", {
+      bucketId,
+      fileNamePrefix: "",
+      validDurationInSeconds: DOWNLOAD_TTL_S,
+    });
+    return data.authorizationToken as string;
   });
-
-  downloadAuth = {
-    token: data.authorizationToken as string,
-    expiresAt: Date.now() + DOWNLOAD_TTL_MS,
-  };
-  return downloadAuth.token;
 }
 
-let cachedBucketId: string | null = null;
-
 async function getBucketId(): Promise<string> {
-  if (cachedBucketId) return cachedBucketId;
-
-  const auth = await authorize();
-  const data = await callB2("b2_list_buckets", { accountId: auth.accountId });
-  const buckets = data.buckets as Array<{ bucketName: string; bucketId: string }>;
-  const found = buckets.find((b) => b.bucketName === B2_BUCKET);
-  if (!found) throw new Error(`B2 bucket not found: ${B2_BUCKET}`);
-
-  cachedBucketId = found.bucketId;
-  return cachedBucketId;
+  return cacheWrap<string>("b2m:bucketid", 6 * 24 * 60 * 60, async () => {
+    const auth = await authorize();
+    const data = await callB2("b2_list_buckets", { accountId: auth.accountId });
+    const buckets = data.buckets as Array<{ bucketName: string; bucketId: string }>;
+    const found = buckets.find((b) => b.bucketName === B2_BUCKET);
+    if (!found) throw new Error(`B2 bucket not found: ${B2_BUCKET}`);
+    return found.bucketId;
+  });
 }
 
 /**
