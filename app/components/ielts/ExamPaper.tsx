@@ -69,9 +69,15 @@ export default function ExamPaper({
   const prefix: QuestionPrefix = skill === "reading" ? "r" : "l";
 
   // تاریخ امروز — بعد از mount (جلوگیری از ناهماهنگی hydration)
+  // v1.0.6.0 (English 1.0.1.3): setState هم‌زمان داخل effect ممنوع
+  // شده (eslint-config-next 16) — در تایمر 0ms زمان‌بندی می‌شود.
   const [dateStr, setDateStr] = useState("");
   useEffect(() => {
-    setDateStr(new Date().toLocaleDateString("en-GB"));
+    const t = window.setTimeout(
+      () => setDateStr(new Date().toLocaleDateString("en-GB")),
+      0,
+    );
+    return () => clearTimeout(t);
   }, []);
 
   const ids = useMemo(

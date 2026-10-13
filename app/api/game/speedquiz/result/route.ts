@@ -2,6 +2,7 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/Prisma client";
 import { NextRequest } from "next/server";
 import { updateStreak, getStreak } from "@/lib/streak";
+import { reportError } from "@/lib/report-error";
 
 const GAME_KEY = "speedquiz";
 
@@ -34,7 +35,7 @@ export async function GET() {
       streak,
     });
   } catch (e) {
-    console.error("Speed quiz stats error:", e);
+    reportError(e, { route: "/api/game/speedquiz/result", userId });
     return err("خطا در دریافت آمار بازی کوییز سرعتی", 500);
   }
 }
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
 
     return err("action نامعتبر است", 400);
   } catch (e) {
-    console.error("Speed quiz result error:", e);
+    reportError(e, { route: "/api/game/speedquiz/result", userId });
     return err("خطا در ثبت نتیجه بازی کوییز سرعتی", 500);
   }
 }

@@ -52,8 +52,11 @@ export function useExamPaper(
 
   useEffect(() => {
     if (!bookId || !testId || !skill) {
-      setLoading(false);
-      return;
+      // v1.0.6.0 (English 1.0.1.3): setState هم‌زمان داخل effect ممنوع
+      // شده (قانون eslint-config-next 16.2.6) — در تایمر 0ms
+      // زمان‌بندی می‌شود؛ رفتار دیده‌شده تغییری نکرده.
+      const t = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(t);
     }
 
     let cancelled = false;

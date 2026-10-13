@@ -2,6 +2,7 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/Prisma client";
 import { NextRequest } from "next/server";
 import { updateStreak } from "@/lib/streak";
+import { reportError } from "@/lib/report-error";
 
 export async function GET(
   _req: NextRequest,
@@ -145,7 +146,7 @@ export async function POST(
       bestResult: false,
     });
   } catch (e) {
-    console.error("Listening submit error:", e);
+    reportError(e, { route: "/api/listening/[id]", userId });
     return err("خطا در ثبت نتایج", 500);
   }
 }

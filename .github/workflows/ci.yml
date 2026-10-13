@@ -1,0 +1,59 @@
+# ========================================
+# CI — Flex English (v1.0.6.0 / English 1.0.1.3)
+#
+# روی هر پوش اجرا می‌شود: lint → typecheck (چک سینتکس
+# import/export) → تست مسیرهای حیاتی (لاگین/ثبت‌نام، XP و
+# استریک، ثبت نتیجهٔ بازی) → بیلد production.
+#
+# نیازی به دیتابیس واقعی ندارد: تست‌ها با prisma ماک اجرا
+# می‌شوند و صفحات اپ dynamic هستند (کوئری موقع runtime، نه build).
+#
+# Sentry: بدون SENTRY_AUTH_TOKEN بیلد تمیز رد می‌شود (wrapper
+# غیرفعال). برای آپلود سورس‌مپ در CI، سه secret بساز:
+# SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT
+# ========================================
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, master]
+  # اجازهٔ اجرای دستی از تب Actions
+  workflow_dispatch:
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+
+    env:
+      # فقط برای بیلد — هیچ اتصال واقعی برقرار نمی‌شود
+      DATABASE_URL: "mysql://ci:ci@localhost:3306/ci"
+      NEXTAUTH_SECRET: "ci-placeholder-secret"
+      NEXTAUTH_URL: "http://localhost:3000"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies (npm ci + prisma generate)
+        run: npm ci
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Typecheck (tsc --noEmit — import/export syntax)
+        run: npx tsc --noEmit
+
+      - name: Tests (critical paths — vitest)
+        run: npm test
+
+      - name: Build (next build)
+        run: npm run build

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/prisma/Prisma client";
+import { reportError } from "@/lib/report-error";
 
 export async function POST(req: NextRequest) {
   try {
@@ -49,7 +50,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ user }, { status: 201 });
   } catch (e) {
-    console.log(e);
+    // v1.0.6.0 — لاگ سرور + گزارش به Sentry (اگر DSN تنظیم شده باشد)
+    reportError(e, { route: "/api/auth/register" });
     return NextResponse.json({ error: "خطای سرور" }, { status: 500 });
   }
 }

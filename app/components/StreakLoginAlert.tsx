@@ -16,6 +16,10 @@ export default function StreakLoginAlert() {
 
   // ✅ v1.0.3.0 — گام ۳: به‌محض بالا رفتن عدد استریک (ثبت هر فعالیت)،
   // آلارت همان لحظه نشان داده می‌شود — بدون نیاز به رفرش صفحه
+  //
+  // v1.0.6.0 (English 1.0.1.3): setState هم‌زمان داخل effect ممنوع
+  // شده (قانون جدید eslint-config-next 16 — رندر آبشاری)؛ نمایش
+  // در تایمر 0ms زمان‌بندی می‌شود — رفتار دیده‌شده تغییری نکرده.
   const currentStreak = streak.current;
   useEffect(() => {
     if (loading) return;
@@ -27,9 +31,12 @@ export default function StreakLoginAlert() {
     if (prev === null) return;
 
     if (currentStreak > prev) {
-      setShow(true);
+      const showTimer = window.setTimeout(() => setShow(true), 0);
       const hideTimer = window.setTimeout(() => setShow(false), 5000);
-      return () => clearTimeout(hideTimer);
+      return () => {
+        clearTimeout(showTimer);
+        clearTimeout(hideTimer);
+      };
     }
   }, [loading, currentStreak]);
 

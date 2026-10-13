@@ -2,6 +2,7 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/Prisma client";
 import { NextRequest } from "next/server";
 import { updateStreak, getStreak } from "@/lib/streak";
+import { reportError } from "@/lib/report-error";
 
 const GAME_KEY = "hangman";
 
@@ -34,7 +35,7 @@ export async function GET() {
       streak,
     });
   } catch (e) {
-    console.error("Hangman stats error:", e);
+    reportError(e, { route: "/api/game/hangman/result", userId });
     return err("خطا در دریافت آمار بازی", 500);
   }
 }
@@ -177,7 +178,7 @@ export async function POST(req: NextRequest) {
 
     return err("action نامعتبر است", 400);
   } catch (e) {
-    console.error("Hangman result error:", e);
+    reportError(e, { route: "/api/game/hangman/result", userId });
     return err("خطا در ثبت نتیجه بازی", 500);
   }
 }
