@@ -2,12 +2,13 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { scanCambridge } from "@/lib/b2-cambridge";
 // v1.0.4.5 (English 1.0.0.9): تعداد کتاب از طول IELTS_BOOKS — مقاوم در برابر
 // real-tests.ts قدیمی (رفع خطای بیلد Vercel)
-import { getBookById, bookSlugsForAttempts, IELTS_BOOKS } from "@/lib/ielts/real-tests";
+import { getBookById, bookSlugsForAttempts } from "@/lib/ielts/real-tests";
 import { toAttemptSummary, ATTEMPT_SELECT } from "@/lib/ielts/attempt-view";
 import { prisma } from "@/prisma/Prisma client";
-
-/** تعداد کتاب‌های کمبریج (v1.0.4.5) — از خود فهرست */
-const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
+// v1.0.5.0 (English 1.0.1.0): ولیدیشن zod پارامتر مسیر (سقف کتاب
+// از IELTS_BOOKS.length داخل lib/validation.ts — قاعدهٔ مقاوم v1.0.4.5)
+import { validateObject, bookIdPathParam } from "@/lib/validation";
+import { z } from "zod";
 
 // ========================================
 // GET /api/ielts/books/[bookId] — جزئیات یک کتاب (v1.0.3.3)
@@ -22,11 +23,11 @@ export async function GET(
   const auth = await requireAuth();
   if (auth.error) return auth.error;
 
-  const { bookId: bookIdParam } = await params;
-  const bookId = Number(bookIdParam);
-  if (!Number.isInteger(bookId) || bookId < 1 || bookId > IELTS_BOOK_COUNT) {
-    return err(`شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`, 404);
-  }
+  const { bookId: bookIdRaw } = await params;
+  // v1.0.5.0 — ولیدیشن zod (پیام/کد وضعیت مثل قبل: ۴۰۴)
+  const parsed = validateObject(z.object({ bookId: bookIdPathParam }), { bookId: bookIdRaw }, 404);
+  if (!parsed.ok) return parsed.response;
+  const bookId = parsed.data.bookId;
 
   const book = getBookById(bookId);
   if (!book) return err("کتاب یافت نشد", 404);

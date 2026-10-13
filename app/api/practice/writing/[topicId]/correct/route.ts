@@ -2,6 +2,9 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { WRITING_TOPICS } from "@/data/training/writing-topics";
 import { NextRequest } from "next/server";
 import type { WritingFeedback, WritingCorrection } from "@/types/training";
+// v1.0.5.0 (English 1.0.1.0): ولیدیشن zod + سقف روزانهٔ مصرف AI
+import { validateJson, writingCorrectSchema } from "@/lib/validation";
+import { consumeAiQuota, quotaMessage } from "@/lib/ai-rate-limit";
 
 // اصلاح متن نوشتاری با هوش مصنوعی (VYCEAI)
 // نسخه ۱.۰.۱.۴ — کلید را در .env با نام VYCEAI_API_KEY تنظیم کنید
@@ -111,15 +114,11 @@ export async function POST(
   const topic = WRITING_TOPICS.find((t) => t.id === topicId);
   if (!topic) return err("موضوع یافت نشد", 404);
 
-  // متن دانشجو
-  let body: { text?: unknown } | null = null;
-  try {
-    body = (await req.json()) as { text?: unknown };
-  } catch {
-    return err("درخواست نامعتبر است", 400);
-  }
+  // متن دانشجو — v1.0.5.0: ولیدیشن zod
+  const parsed = await validateJson(req, writingCorrectSchema);
+  if (!parsed.ok) return parsed.response;
 
-  const text = typeof body?.text === "string" ? body.text.trim() : "";
+  const text = parsed.data.text.trim();
   const words = text.split(/\s+/).filter(Boolean);
 
   if (words.length < MIN_WORDS) {
@@ -138,6 +137,12 @@ export async function POST(
       "کلید سرویس اصلاح متن تنظیم نشده است — VYCEAI_API_KEY را در فایل .env اضافه کنید",
       502,
     );
+  }
+
+  // v1.0.5.0 — سقف روزانهٔ اصلاح متن (پیش از تماس پولی AI)
+  const quota = await consumeAiQuota(auth.session.user.id, "writing-correct");
+  if (!quota.allowed) {
+    return err(quotaMessage("writing-correct", quota), 429);
   }
 
   try {

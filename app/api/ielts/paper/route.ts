@@ -1,4 +1,5 @@
 import { after } from "next/server";
+import { z } from "zod";
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { getBookPdf, getBookPages } from "@/lib/ielts/pdf-text";
 import { buildExamPaper, type PaperSkill } from "@/lib/ielts/paper-parser";
@@ -7,14 +8,15 @@ import { buildWritingPaper } from "@/lib/ielts/writing-paper";
 // v1.0.4.5 (English 1.0.0.9): «IELTS_BOOK_COUNT» به‌جای ایمپورت مستقیم از
 // طول «IELTS_BOOKS» گرفته می‌شود تا حتی با real-tests.ts قدیمی هم بیلد رد شود
 // (رفع خطای Vercel: «Export IELTS_BOOK_COUNT doesn't exist in target module»).
-import { IELTS_BOOKS } from "@/lib/ielts/real-tests";
 import { cacheGet, cacheSet } from "@/lib/cache";
-
-/** تعداد کتاب‌های کمبریج (v1.0.4.5) — از خود فهرست */
-const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
+// v1.0.5.0 (English 1.0.1.0): ولیدیشن zod (سقف کتاب از IELTS_BOOKS.length
+// داخل lib/validation.ts خوانده می‌شود — همان قاعدهٔ مقاوم v1.0.4.5)
+// + سقف روزانهٔ ساخت برگهٔ AI (lib/ai-rate-limit)
+import { validateQuery, bookIdParam, testIdParam, skillParam } from "@/lib/validation";
+import { getAiQuota, consumeAiQuota, quotaMessage } from "@/lib/ai-rate-limit";
 
 // ========================================
-// GET /api/ielts/paper — برگهٔ امتحان (v1.0.4.5)
+// GET /api/ielts/paper — برگهٔ امتحان (v1.0.5.0)
 //
 //   ?book=1&test=1&skill=reading|listening|writing
 //     → برگهٔ امتحان ساختاریافته
@@ -45,16 +47,14 @@ export async function GET(req: Request) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
 
-  const url = new URL(req.url);
-  const bookId = Number(url.searchParams.get("book") ?? "");
-  const force = url.searchParams.get("refresh") === "1";
-
-  if (!Number.isInteger(bookId) || bookId < 1 || bookId > IELTS_BOOK_COUNT) {
-    return err(`کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})`, 400);
-  }
+  // v1.0.5.0 — ولیدیشن zod (همان پیام‌های قبلی، حالا type-safe)
+  const base = validateQuery(req, z.object({ book: bookIdParam, pdf: z.string().optional(), refresh: z.string().optional() }));
+  if (!base.ok) return base.response;
+  const bookId = base.data.book;
+  const force = base.data.refresh === "1";
 
   // ---------- خود فایل PDF ----------
-  if (url.searchParams.get("pdf") === "1") {
+  if (base.data.pdf === "1") {
     const pdf = await getBookPdf(bookId);
     if (!pdf.ok) return err(pdf.error, 404);
     return new Response(new Uint8Array(pdf.buffer), {
@@ -67,15 +67,13 @@ export async function GET(req: Request) {
   }
 
   // ---------- برگهٔ امتحان ----------
-  const testId = Number(url.searchParams.get("test") ?? "");
-  const skillParam = url.searchParams.get("skill") ?? "";
-  if (!Number.isInteger(testId) || testId < 1 || testId > 4) {
-    return err("تست نامعتبر است (۱..۴)", 400);
-  }
-  if (!["reading", "listening", "writing"].includes(skillParam)) {
-    return err("مهارت نامعتبر است (reading/listening/writing)", 400);
-  }
-  const skill = skillParam as PaperSkill;
+  const paperQuery = validateQuery(
+    req,
+    z.object({ test: testIdParam, skill: skillParam }),
+  );
+  if (!paperQuery.ok) return paperQuery.response;
+  const testId = paperQuery.data.test;
+  const skill = paperQuery.data.skill as PaperSkill;
 
   // ========================================
   // رایتینگ (v1.0.4.3) — بدون AI، همیشه فوری:
@@ -104,6 +102,12 @@ export async function GET(req: Request) {
   // ========================================
   let aiError: string | null = null;
   if (isAiExamConfigured()) {
+    // v1.0.5.0 — سقف روزانهٔ ساخت برگه (سهمیه فقط با شروع تولیدِ
+    // تازه مصرف می‌شود — برگهٔ READY از کش دیتابیس بی‌شمارش است)
+    const quota = await getAiQuota(auth.session.user.id, "ielts-paper");
+    if (quota.remaining <= 0) {
+      aiError = quotaMessage("ielts-paper", quota);
+    } else {
     const state = await acquireAiPaper(bookId, testId, skill, force);
 
     if (state.status === "READY") {
@@ -112,6 +116,8 @@ export async function GET(req: Request) {
     }
 
     if (state.status === "STARTED") {
+      // تولید تازه شروع می‌شود → سهمیه همین‌جا مصرف شود
+      await consumeAiQuota(auth.session.user.id, "ielts-paper");
       // تولید در پس‌زمینه — پاسخ سریع، کلاینت poll می‌کند
       after(() => state.run());
       return ok({ ok: false, generating: true, reason: GENERATING_REASON });
@@ -124,6 +130,7 @@ export async function GET(req: Request) {
 
     // FAILED → ادامه به مسیر جایگزین (بدون retry خودکار — صرفه‌جویی توکن)
     aiError = state.error;
+    }
   }
 
   // ========================================

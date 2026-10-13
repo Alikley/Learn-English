@@ -43,7 +43,8 @@ export default function BookDetailPage() {
 
       <div className="relative max-w-4xl mx-auto px-5 py-8">
         <nav className="flex items-center gap-2 text-sm text-slate-500 dark:text-gray-500 mb-10">
-          <Link href="/" className="hover:text-slate-700 dark:hover:text-gray-300 transition">
+          {/* v1.0.5.0 — خانه = پنل اصلی */}
+          <Link href="/home" className="hover:text-slate-700 dark:hover:text-gray-300 transition">
             {tr("خانه", "Home")}
           </Link>
           <svg

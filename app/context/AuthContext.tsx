@@ -37,7 +37,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       redirect: false,
     });
     if (res?.error) return { error: "ایمیل یا رمز عبور اشتباه است" };
-    router.push("/");
+    // v1.0.5.0 — ریشه لندینگ عمومی شد؛ بعد از ورود مستقیم به پنل اصلی
+    router.push("/home");
     return {};
   };
 
@@ -59,11 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (signInRes?.error) return { error: "ثبت نام موفق بود، لطفاً وارد شوید" };
 
-    router.push("/");
+    // v1.0.5.0 — بعد از ثبت‌نام مستقیم به پنل اصلی
+    router.push("/home");
     return {};
   };
 
-  const logout = () => signOut({ callbackUrl: "/login" });
+  // v1.0.5.0 — بعد از خروج، کاربر لندینگ را ببیند (نه صفحهٔ ورود)
+  const logout = () => signOut({ callbackUrl: "/" });
 
   return (
     <AuthContext.Provider

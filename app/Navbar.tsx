@@ -226,8 +226,9 @@ export default function Navbar({
         </div>
 
         {/* لوگو */}
+        {/* v1.0.5.0 — لوگو به پنل اصلی می‌رود (ریشه لندینگ عمومی شد) */}
         <Link
-          href="/"
+          href="/home"
           className="text-xl md:text-2xl font-bold text-blue-600 dark:text-blue-400"
         >
           flex <span className="text-slate-900 dark:text-slate-100">English</span>

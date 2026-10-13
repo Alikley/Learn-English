@@ -28,6 +28,7 @@ model user {
   chatReactions     ChatReaction[]
   ieltsAttempts     IeltsAttempt[]
   bookProgress      BookProgress[]
+  aiUsageCounters   AiUsageCounter[]
 }
 
 model course {
@@ -430,4 +431,32 @@ model IeltsAiPaper {
   updatedAt    DateTime  @updatedAt
 
   @@index([bookNumber, testNumber, skill])
+}
+
+// ========================================
+// سقف مصرف روزانهٔ هوش مصنوعی به ازای هر کاربر (v1.0.5.0)
+//
+// هر ردیف = (کاربر × روت × روز). «روز» به وقت تهران است
+// (YYYY-MM-DD) و نیمه‌شب تهران شمارنده عملاً صفر می‌شود.
+// route: writing-correct | ielts-paper | vocab-translate
+// سقف‌ها از env قابل تنظیم‌اند: AI_DAILY_LIMIT_WRITING /
+// AI_DAILY_LIMIT_PAPER / AI_DAILY_LIMIT_TRANSLATE — پیش‌فرض‌ها
+// در lib/ai-rate-limit.ts (۳۰/۱۰۰/۳۰۰ در روز).
+//
+// مصرف فقط وقتی ثبت می‌شود که واقعاً درخواست AI زده شود
+// (برگهٔ READY از کش دیتابیس → بدون شمارش).
+// ========================================
+
+model AiUsageCounter {
+  id        String   @id @default(cuid())
+  userId    String
+  route     String   @db.VarChar(32)
+  day       String   @db.VarChar(10)
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, route, day])
+  @@index([userId, day])
 }

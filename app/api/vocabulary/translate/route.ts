@@ -1,8 +1,11 @@
 import { ok, err, getSession } from "@/lib/api-helpers";
 import { lookupLocalTranslation } from "@/lib/local-dictionary";
 import { NextRequest } from "next/server";
-import { VOCAB_WORD_PATTERN, type TranslateResult } from "@/types/vocabulary";
+import { type TranslateResult } from "@/types/vocabulary";
 import { cacheGet, cacheSet } from "@/lib/cache";
+// v1.0.5.0 (English 1.0.1.0): ولیدیشن zod + سقف روزانهٔ مصرف AI
+import { validateJson, translateWordSchema } from "@/lib/validation";
+import { consumeAiQuota, quotaMessage } from "@/lib/ai-rate-limit";
 
 // ========================================
 // ترجمه یک کلمه انگلیسی (نسخه ۱.۰.۱.۶)
@@ -72,18 +75,11 @@ async function translateWithAi(word: string): Promise<string | null> {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { word?: unknown } | null = null;
-  try {
-    body = (await req.json()) as { word?: unknown };
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
+  // v1.0.5.0 — ولیدیشن zod (همان پیام قبلی)
+  const parsed = await validateJson(req, translateWordSchema);
+  if (!parsed.ok) return parsed.response;
 
-  const word = typeof body?.word === "string" ? body.word.trim() : "";
-  if (!word || !VOCAB_WORD_PATTERN.test(word))
-    return err("فقط یک کلمه انگلیسی معتبر بفرستید");
-
-  const normalized = word.toLowerCase();
+  const normalized = parsed.data.word.trim().toLowerCase();
 
   // ۱) لغت‌نامه محلی — بدون نیاز به ورود
   const local = lookupLocalTranslation(normalized);
@@ -115,6 +111,18 @@ export async function POST(req: NextRequest) {
       translation: null,
       source: null,
       message: "این کلمه در لغت‌نامه محلی نیست — برای ترجمه هوشمند وارد شوید",
+    };
+    return ok(result);
+  }
+
+  // v1.0.5.0 — سقف روزانهٔ ترجمهٔ هوشمند (پیش از تماس پولی AI)
+  const quota = await consumeAiQuota(session.user.id, "vocab-translate");
+  if (!quota.allowed) {
+    const result: TranslateResult = {
+      word: normalized,
+      translation: null,
+      source: null,
+      message: quotaMessage("vocab-translate", quota),
     };
     return ok(result);
   }

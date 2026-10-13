@@ -4,6 +4,8 @@ import { buildAttemptPayload, examRemainingSec, skillMinutes } from "@/lib/ielts
 import { countWords } from "@/lib/ielts/grade";
 import { getAnswerKey } from "@/lib/ielts/keys";
 import { prisma } from "@/prisma/Prisma client";
+// v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنهٔ ذخیرهٔ خودکار
+import { validateJson, answersSaveSchema, sanitizeAnswers } from "@/lib/validation";
 
 // ========================================
 // /api/ielts/attempts/[id] (v1.0.3.3)
@@ -97,19 +99,10 @@ export async function PUT(
   if (error || !attempt) return error!;
   if (attempt.status === "SUBMITTED") return err("این آزمون تحویل شده است");
 
-  let body: { answers?: Record<string, string> };
-  try {
-    body = await req.json();
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
-  const answers = body.answers;
-  if (!answers || typeof answers !== "object") return err("پاسخ‌ها ارسال نشده است");
-
-  const entries = Object.entries(answers)
-    .filter(([qid, v]) => typeof qid === "string" && qid.length <= 20 && typeof v === "string")
-    .slice(0, 80)
-    .map(([questionId, value]) => ({ questionId, value: value.slice(0, 20000) }));
+  // v1.0.5.0 — ولیدیشن zod + پاک‌سازی مثل قبل (سقف ۸۰ مدخل/طول مقدار)
+  const parsed = await validateJson(req, answersSaveSchema);
+  if (!parsed.ok) return parsed.response;
+  const entries = sanitizeAnswers(parsed.data.answers);
 
   // upsert سطر به سطر (حجم کم — حداکثر ۴۰ سوال/۲ تسک)
   for (const entry of entries) {

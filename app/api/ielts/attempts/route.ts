@@ -2,13 +2,13 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { ensureUserRow } from "@/lib/ensure-user";
 // v1.0.4.5 (English 1.0.0.9): تعداد کتاب از طول IELTS_BOOKS — مقاوم در برابر
 // real-tests.ts قدیمی (رفع خطای بیلد Vercel)
-import { getTestById, IELTS_BOOKS } from "@/lib/ielts/real-tests";
+import { getTestById } from "@/lib/ielts/real-tests";
 import { buildAttemptPayload, examRemainingSec, skillMinutes } from "@/lib/ielts/attempt-payload";
 import { prisma } from "@/prisma/Prisma client";
+// v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنه (سقف کتاب از
+// IELTS_BOOKS.length داخل lib/validation.ts — قاعدهٔ مقاوم v1.0.4.5)
+import { validateJson, attemptStartSchema } from "@/lib/validation";
 import type { IeltsSkill, IeltsMode } from "@/types/ielts";
-
-/** تعداد کتاب‌های کمبریج (v1.0.4.5) — از خود فهرست */
-const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
 
 // ========================================
 // POST /api/ielts/attempts — شروع یا ادامهٔ تلاش (v1.0.3.3)
@@ -17,31 +17,16 @@ const IELTS_BOOK_COUNT = IELTS_BOOKS.length;
 //  - پاسخ‌برگ + زمان باقی‌مانده + آدرس PDF/صوت برگردانده می‌شود
 // ========================================
 
-const SKILLS = ["reading", "listening", "writing"] as const;
-const MODES = ["practice", "exam"] as const;
-
 export async function POST(req: Request) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
 
-  let body: { bookId?: unknown; testId?: unknown; skill?: unknown; mode?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
-
-  const bookId = Number(body.bookId);
-  const testId = Number(body.testId);
-  const skill = String(body.skill ?? "") as IeltsSkill;
-  const mode = String(body.mode ?? "") as IeltsMode;
-
-  if (!Number.isInteger(bookId) || bookId < 1 || bookId > IELTS_BOOK_COUNT)
-    return err(`شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`);
-  if (!Number.isInteger(testId) || testId < 1 || testId > 4)
-    return err("شناسهٔ تست نامعتبر است (۱ تا ۴)");
-  if (!SKILLS.includes(skill)) return err("مهارت نامعتبر است");
-  if (!MODES.includes(mode)) return err("حالت نامعتبر است");
+  // v1.0.5.0 — ولیدیشن zod (همان پیام‌های فارسی قبلی، حالا type-safe)
+  const parsed = await validateJson(req, attemptStartSchema);
+  if (!parsed.ok) return parsed.response;
+  const { bookId, testId } = parsed.data;
+  const skill = parsed.data.skill as IeltsSkill;
+  const mode = parsed.data.mode as IeltsMode;
 
   const test = getTestById(bookId, testId);
   if (!test) return err("آزمون یافت نشد", 404);

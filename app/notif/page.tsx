@@ -27,7 +27,8 @@ export default function NotificationsPage() {
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <Link href="/" className="p-2 rounded-full hover:bg-slate-100">
+          {/* v1.0.5.0 — بازگشت به پنل اصلی */}
+          <Link href="/home" className="p-2 rounded-full hover:bg-slate-100">
             <ArrowLeft size={24} className="text-slate-600" />
           </Link>
           <h1 className="text-2xl font-bold text-slate-800">{tr("اعلان‌ها", "Notifications")}</h1>

@@ -5,6 +5,8 @@ import { getPdfAnswerKey } from "@/lib/ielts/answer-keys";
 import { getAiAnswerKey } from "@/lib/ielts/ai-paper";
 import { isAnswerCorrect, rawToBand, countWords } from "@/lib/ielts/grade";
 import { prisma } from "@/prisma/Prisma client";
+// v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنهٔ تحویل
+import { attemptSubmitSchema, answersToMap } from "@/lib/validation";
 
 // ========================================
 // POST /api/ielts/attempts/[id]/submit — تحویل (v1.0.3.6)
@@ -37,9 +39,12 @@ export async function POST(
   const test = getTestById(parsed.bookNumber, parsed.testNumber);
   if (!test) return err("آزمون یافت نشد", 404);
 
-  let body: { elapsedSec?: number; answers?: Record<string, string> } = {};
+  // v1.0.5.0 — ولیدیشن zod؛ بدنهٔ خالی/خراب مثل قبل «هیچی» حساب می‌شود
+  let body: { elapsedSec?: number; answers?: Record<string, unknown> } = {};
   try {
-    body = await req.json();
+    const raw: unknown = await req.json();
+    const parsed = attemptSubmitSchema.safeParse(raw);
+    if (parsed.success) body = parsed.data;
   } catch {
     /* بدنهٔ خالی مجاز است */
   }
@@ -48,9 +53,7 @@ export async function POST(
   const savedAnswers: Record<string, string> = {};
   for (const a of attempt.answers) savedAnswers[a.questionId] = a.value;
   if (body.answers && typeof body.answers === "object") {
-    for (const [qid, v] of Object.entries(body.answers)) {
-      if (typeof v === "string" && qid.length <= 20) savedAnswers[qid] = v.slice(0, 20000);
-    }
+    Object.assign(savedAnswers, answersToMap(body.answers));
   }
 
   const skill = attempt.skill.toLowerCase() as "reading" | "listening" | "writing";

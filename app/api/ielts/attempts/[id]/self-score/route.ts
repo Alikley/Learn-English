@@ -2,6 +2,8 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { parseTestSlug, getTestById } from "@/lib/ielts/real-tests";
 import { rawToBand } from "@/lib/ielts/grade";
 import { prisma } from "@/prisma/Prisma client";
+// v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنهٔ خودتصحیحی
+import { validateJson, selfScoreSchema } from "@/lib/validation";
 
 // ========================================
 // POST /api/ielts/attempts/[id]/self-score (v1.0.3.3)
@@ -30,16 +32,10 @@ export async function POST(
   if (skill !== "reading" && skill !== "listening")
     return err("خودتصحیحی فقط برای ریدینگ و لیسنینگ است");
 
-  let body: { rawScore?: unknown };
-  try {
-    body = await req.json();
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
-
-  const rawScore = Number(body.rawScore);
-  if (!Number.isInteger(rawScore) || rawScore < 0)
-    return err("نمرهٔ خام نامعتبر است");
+  // v1.0.5.0 — ولیدیشن zod (همان پیام قبلی)
+  const parsedBody = await validateJson(req, selfScoreSchema);
+  if (!parsedBody.ok) return parsedBody.response;
+  const rawScore = parsedBody.data.rawScore;
 
   const parsed = parseTestSlug(attempt.testSlug);
   if (!parsed) return err("آزمون یافت نشد", 404);
