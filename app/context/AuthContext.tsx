@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useEffect } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -29,6 +29,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isLoading = status === "loading";
+
+  // v1.0.5.1 — پاکسازی کوکی سشنِ سرگردان:
+  // نشستِ authenticated بدون user.id یعنی کوکیِ به‌جامانده از دیتابیسِ
+  // قبلی که سرور آن را بی‌اعتبار کرده است. با signOut بدون ریدایرکت،
+  // کوکی از مرورگر حذف می‌شود تا دفعهٔ بعد تمیز باشد؛ کاربر همین‌جا
+  // مهمان می‌ماند و از لندینگ به داخل پریده نمی‌شود.
+  useEffect(() => {
+    if (status === "authenticated" && !session?.user?.id) {
+      void signOut({ redirect: false });
+    }
+  }, [status, session]);
 
   const login = async (email: string, password: string) => {
     const res = await signIn("credentials", {

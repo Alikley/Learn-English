@@ -1,8 +1,54 @@
 import { NextAuthOptions } from "next-auth";
+import type { Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/prisma/Prisma client";
+
+// ========================================
+// v1.0.5.1 (English 1.0.1.1) — رفع باگ
+// «پرش خودکار از لندینگ به داخل برنامه بدون ثبت‌نام»
+//
+// ریشه: NextAuth با استراتژی jwt فقط امضای کوکی سشن را چک می‌کند
+// و دیتابیس را نمی‌بیند. اگر دیتابیس بازسازی شده باشد (مثلاً
+// مایگریشن تازه روی دیتابیس خالی) ولی کوکی سشنِ به‌جامانده از
+// ورودِ قبلی هنوز در مرورگر باشد، /api/auth/session یک «کاربرِ
+// سرگردان» برمی‌گرداند — بدون اینکه حتی یک رکورد کاربر در
+// دیتابیس وجود داشته باشد. نتیجه: AuthGuard مهمان را همان لحظه
+// از لندینگ (/) به پنل اصلی (/home) می‌پراند.
+//
+// راه‌حل: callback سشن پیش از تحویلِ نشست، وجود رکورد کاربر را در
+// دیتابیس چک می‌کند (کش ۶۰ ثانیه‌ای به ازای هر کاربر تا DB در
+// هر درخواست کتک نخورد). اگر کاربر موجود نبود، نشست «بدون کاربر»
+// برگردانده می‌شود → کلاینت مهمان می‌ماند و AuthContext کوکیِ
+// سرگردان را پاک می‌کند.
+//
+// خطای موقت DB → نشست معتبر فرض می‌شود (رفتار ایمن: خروج گروهی
+// کاربران واقعی هنگام هیکپِ لحظه‌ای دیتابیس نداریم).
+// ========================================
+
+const SESSION_USER_CHECK_TTL_MS = 60_000;
+const sessionUserCache = new Map<string, { ok: boolean; at: number }>();
+
+async function sessionUserExists(userId: string): Promise<boolean> {
+  const hit = sessionUserCache.get(userId);
+  if (hit && Date.now() - hit.at < SESSION_USER_CHECK_TTL_MS) return hit.ok;
+
+  let ok = true;
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    ok = row !== null;
+  } catch {
+    // DB در دسترس نیست → نشست را بی‌اعتبار نکن
+    ok = true;
+  }
+
+  sessionUserCache.set(userId, { ok, at: Date.now() });
+  return ok;
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
@@ -43,7 +89,15 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session.user) session.user.id = token.id as string;
+      const userId = token.id as string | undefined;
+
+      // کوکی سرگردان (کاربر در دیتابیس نیست یا شناسه ندارد) →
+      // نشست بدون کاربر برگردان → کلاینت مهمان دیده می‌شود
+      if (!userId || !(await sessionUserExists(userId))) {
+        return { ...session, user: undefined } as unknown as Session;
+      }
+
+      if (session.user) session.user.id = userId;
       return session;
     },
   },
