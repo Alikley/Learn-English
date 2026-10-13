@@ -146,7 +146,8 @@ export function useStructuredPartSession({
         sessionStorage.setItem(sessionKey, r.payload.attemptId);
         setAttemptId(r.payload.attemptId);
         setMode(r.payload.mode);
-        void recordStreakActivity();
+        // v1.0.5.2 — استریک دیگر با «شروع» آزمون ثبت نمی‌شود؛
+        // فقط با «تحویلِ کامل» آن در doSubmit ثبت می‌شود
       })();
     }, 0);
     return () => clearTimeout(t);
@@ -266,6 +267,10 @@ export function useStructuredPartSession({
       } catch {
         /* حافظهٔ نشست پر است */
       }
+      // v1.0.5.2 (English 1.0.1.2) — رفع باگ استریک: روزِ فعالیت فقط با
+      // «تحویلِ کامل» آزمون آیلتس ثبت می‌شود، نه با شروع آن — آزمونی که
+      // رها شود روزِ کاربر را فعال نمی‌کند
+      void recordStreakActivity();
     } else {
       submittedRef.current = false;
     }

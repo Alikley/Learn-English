@@ -66,10 +66,10 @@ export default function BookReaderPage() {
   const bookId = params.bookId as string;
   const { book, loading, notFound } = useBook(bookId);
 
-  // v1.0.3.0 — گام ۲: مطالعه کتاب هم یک فعالیت روزانه حساب می‌شود
-  useEffect(() => {
-    void recordStreakActivity();
-  }, []);
+  // v1.0.5.2 (English 1.0.1.2) — رفع باگ استریک: قبلاً «باز کردنِ» کتاب
+  // روزِ فعالیت را ثبت می‌کرد؛ حالا فقط «تمام‌کردنِ» کتاب (رسیدن به صفحهٔ
+  // آخر و دیدن صفحهٔ پایان) روزِ فعالیت را ثبت می‌کند — مطابق خواسته:
+  // فعالیتی که شروع شده را باید تا آخر برد.
 
   const [page, setPage] = useState(0);
   const [direction, setDirection] = useState<Direction>(1);
@@ -160,6 +160,9 @@ export default function BookReaderPage() {
       }
       // v1.0.3.3 — پایان کتاب روی سرور هم ثبت می‌شود
       saveProgressToServer(bookId, 0, totalPages, true);
+      // v1.0.5.2 — استریک فقط با «تمام‌کردن» کتاب ثبت می‌شود (نه باز کردن آن)؛
+      // برای مهمان‌ها POST بی‌صدا رد می‌شود (401) و مشکلی پیش نمی‌آید
+      void recordStreakActivity();
       return;
     }
     goTo(page + 1);

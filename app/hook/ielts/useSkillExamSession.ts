@@ -112,8 +112,8 @@ export function useSkillExamSession({
         }
         sessionStorage.setItem(sessionKey, r.payload.attemptId);
         setAttemptId(r.payload.attemptId);
-        // آیلتس بخشی از استریک روزانه است
-        void recordStreakActivity();
+        // v1.0.5.2 — استریک دیگر با «شروع» آزمون ثبت نمی‌شود؛
+        // فقط با «تحویلِ کامل» آن در doSubmit ثبت می‌شود
       })();
     }, 0);
     return () => clearTimeout(t);
@@ -176,6 +176,10 @@ export function useSkillExamSession({
       setResult(r);
       setSubmittedView(null);
       sessionStorage.removeItem(sessionKey);
+      // v1.0.5.2 (English 1.0.1.2) — رفع باگ استریک: روزِ فعالیت فقط با
+      // «تحویلِ کامل» آزمون آیلتس ثبت می‌شود، نه با شروع آن — آزمونی که
+      // رها شود روزِ کاربر را فعال نمی‌کند
+      void recordStreakActivity();
     } else {
       submittedRef.current = false;
     }

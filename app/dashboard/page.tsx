@@ -4,8 +4,6 @@ import PageLoading from "@/app/components/PageLoading";
 
 import { useDashboard } from "@/app/hook/useDashboard";
 import { useAuth } from "@/app/context/AuthContext";
-import { useEffect } from "react";
-import { recordStreakActivity } from "@/app/hook/ui/useStreak";
 import ProfileBox from "../components/dashboarde/ProfileBox";
 import PerformanceBox from "../components/dashboarde/PerformanceBox";
 
@@ -16,10 +14,11 @@ export default function DashboardPage() {
   const { data, loading, saving, updateProfile } = useDashboard();
   const { user: authUser } = useAuth();
 
-  // v1.0.3.0 — گام ۲: بازدید داشبورد هم یک فعالیت روزانه حساب می‌شود
-  useEffect(() => {
-    void recordStreakActivity();
-  }, []);
+  // v1.0.5.2 (English 1.0.1.2) — رفع باگ «روزهای متوالی بدون انجام فعالیت»:
+  // قبلاً صرفِ بازدید داشبورد روزِ فعالیت را ثبت می‌کرد (recordStreakActivity
+  // روی mount) و کاربرِ تازه‌ثبت‌نام‌شده بلافاصله «۱ روز متوالی» می‌شد — بدون
+  // اینکه هیچ فعالیتی (درس/کتاب/تمرین/دوره) را تمام کرده باشد. حذف شد.
+  // روزهای متوالی حالا فقط با «تمام‌کردنِ» یک فعالیت فعال می‌شود.
 
   if (loading || !data) return <PageLoading />;
 

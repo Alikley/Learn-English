@@ -12,6 +12,15 @@ const publicPaths = ["/login", "/register"];
 // می‌بیند؛ کاربرِ واردشده به /home (پنل اصلی) هدایت می‌شود.
 const LANDING_PATH = "/";
 
+// v1.0.5.2 (English 1.0.1.2) — رفع باگ «لندینگ بعد از ساخت اکانت»:
+// قبلاً کاربرِ واردشده روی login/register با router.replace("/dashboard")
+// به داشبورد پرتاب می‌شد که با router.push("/home") در AuthContext مسابقه
+// می‌داد و بسته به تایمینگ کاربر جای اشتباه فرود می‌آمد. حالا مقصدِ همهٔ
+// مسیرهای عمومی فقط و فقط /home است — همین‌طور که login() و register()
+// خودشان آنجا می‌روند؛ یعنی دو ناوبری همیشه هم‌هدف و بدون رقابت.
+// (هدایت خودکار صفحهٔ / روی سرور هم انجام می‌شود — app/page.tsx)
+const AUTH_HOME_PATH = "/home";
+
 export function useIsPublicPath() {
   const pathname = usePathname();
   // ریشه — دقیقاً "/" (نه startsWith، وگرنه همهٔ مسیرها عمومی می‌شدند!)
@@ -35,14 +44,13 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     if (isLoading) return;
 
     if (!user && !isPublic) router.replace("/login");
-    // v1.0.5.0 — کاربرِ واردشده:
-    //   روی لندینگ → پنل اصلی (/home)
-    //   روی login/register → داشبورد (مثل قبل)
+    // v1.0.5.2 — کاربرِ واردشده روی هر مسیر عمومی (لندینگ، ورود، ثبت‌نام)
+    // فقط به /home می‌رود — مقصد واحد، بدون مسابقه با push در AuthContext.
+    // (صفحهٔ خواندن کتاب عمومی می‌ماند — خواندن بدون داشبورد مجاز است)
     if (user && isPublic) {
-      if (pathname === LANDING_PATH) {
-        router.replace("/home");
-      } else if (publicPaths.some((p) => pathname.startsWith(p))) {
-        router.replace("/dashboard");
+      const isBookRead = /^\/library\/\d+\/read$/.test(pathname);
+      if (!isBookRead) {
+        router.replace(AUTH_HOME_PATH);
       }
     }
   }, [user, isLoading, pathname, router, isPublic]);
