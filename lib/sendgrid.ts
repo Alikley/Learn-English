@@ -17,6 +17,9 @@
 //    OUTBOUND_PROXY_URL تنظیم شده باشد (SOCKS/HTTP)، فراخوانی
 //    از تونل VPN می‌گذرد و خطای تحریمی 451 حل می‌شود.
 //    (اثبات‌شده: کلید و فرستندهٔ سالم + IP غیرتحریمی → 202)
+//  - v1.0.6.7: اگر پروکسی تنظیم شده ولی خاموش/قطع باشد، لایهٔ
+//    خروجی خودکار «مستقیم» می‌فرستد (اپ نمی‌شکند)؛ پیام خطای این
+//    حالت اینجا فارسی و روشن است (ECONNREFUSED / تایم‌اوت).
 // ========================================
 
 import { outboundRequest } from "@/lib/outbound-proxy";
@@ -53,8 +56,12 @@ function friendlyError(status: number, detail: string): string {
   if (status === 451) {
     return (
       `SendGrid 451: درخواست از IP مبدا رد شد (تحریم منطقه‌ای — Unavailable For Legal Reasons). ` +
-      `کلید و فرستنده سالم‌اند؛ راه‌حل: در .env مقدار OUTBOUND_PROXY_URL را روی پروکسی VPN بگذارید ` +
-      `(مثلاً socks5://127.0.0.1:10808 برای v2rayN) و سرور را ری‌استارت کنید. ` +
+      `کلید و فرستنده سالم‌اند (اثبات‌شده). راه‌حل قطعی: ` +
+      `۱) لوکال: v2rayN/VPN را روشن کنید و در .env مقدار OUTBOUND_PROXY_URL را روی پروکسی آن بگذارید ` +
+      `(مثلاً socks5://127.0.0.1:10808 — پیش‌فرض v2rayN) و سرور را ری‌استارت کنید؛ اگر VPN روشن بود و باز 451 گرفتید، ` +
+      `سرور قبل از روشن‌شدن VPN استارت شده — ری‌استارت کنید. ` +
+      `۲) روی Vercel: OUTBOUND_PROXY_URL را خالی بگذارید (IP خود Vercel سالم است و ایمیل بدون هیچ تنظیمی می‌رود). ` +
+      `تست سریع: curl http://localhost:3000/api/notify/diagnose — ` +
       `جزئیات: ${detail || "(بدون جزئیات)"}`
     );
   }
@@ -65,6 +72,30 @@ function friendlyError(status: number, detail: string): string {
     );
   }
   return `SendGrid ${status}: ${detail || "(بدون جزئیات)"}`;
+}
+
+/**
+ * v1.0.6.7 — ترجمهٔ خطاهای شبکه به پیام قابل‌اقدام:
+ *  رایج‌ترین حالتِ دنیای واقعی: OUTBOUND_PROXY_URL تنظیم شده
+ *  ولی VPN در لحظهٔ ارسال خاموش بوده (ECONNREFUSED روی پورت
+ *  پروکسی) — اینجا دقیقاً می‌گوییم چه کار کنند.
+ */
+function friendlyNetworkError(error: string): string {
+  if (/ECONNREFUSED/i.test(error)) {
+    return (
+      `شبکه: پورت پروکسی بسته است (${error}). یعنی OUTBOUND_PROXY_URL تنظیم شده ولی VPN ` +
+      `(مثلاً v2rayN) روشن نیست. یا VPN را روشن کنید و دوباره امتحان کنید، یا مقدار ` +
+      `OUTBOUND_PROXY_URL را در .env خالی کنید. روی Vercel این متغیر باید خالی باشد.`
+    );
+  }
+  if (/تایم\u200cاوت|تایم‌اوت|Timeout/i.test(error)) {
+    return (
+      `شبکه: پاسخی از SendGrid نگرفتیم (${error}). اگر IP شما تحریمی است، VPN را روشن کنید ` +
+      `و OUTBOUND_PROXY_URL را روی پروکسی VPN بگذارید (مثلاً socks5://127.0.0.1:10808). ` +
+      `روی Vercel نیازی به پروکسی نیست — مقدار را خالی بگذارید.`
+    );
+  }
+  return `شبکه: ${error} — اگر IP شما تحریمی است، VPN را روشن کنید (OUTBOUND_PROXY_URL در .env)؛ روی Vercel پروکسی لازم نیست.`;
 }
 
 export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
@@ -97,7 +128,7 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
   });
 
   if (result.kind === "network-error") {
-    return { ok: false, error: result.error };
+    return { ok: false, error: friendlyNetworkError(result.error) };
   }
 
   // 202 Accepted = موفق (SendGrid همیشه 202 برمی‌گرداند)

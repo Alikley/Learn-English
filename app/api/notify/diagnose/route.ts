@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { reportError } from "@/lib/report-error";
 import {
   outboundRequest,
+  probeOutboundProxy,
   getOutboundProxyUrl,
   classifyProxy,
   describeProxy,
@@ -14,16 +15,27 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // ========================================
-// GET /api/notify/diagnose (v1.0.6.6 / English 1.0.1.9)
+// GET /api/notify/diagnose (v1.0.6.7 / English 1.0.1.10)
 //
-// «تشخیص خودکار» مشکلات ایمیل (SendGrid) و پوش (OneSignal) —
-// همان الگوی محبوب proxy-check در 1.0.1.6:
+// «تشخیص خودکار» مشکلات ایمیل (SendGrid) و پوش (OneSignal):
 //  - هیچ ایمیلی و هیچ پوشی ارسال نمی‌شود (فقط GET)
 //  - هیچ مقدار کلیدی در پاسخ لو نمی‌رود (فقط وضعیت)
 //
+// v1.0.6.7 — سه اصلاح مهم بر پایهٔ گزارش واقعی ۱.۰.1.9:
+//  1) «مستقیم» این‌بار واقعاً مستقیم است (forceDirect) — قبلاً
+//     چکِ direct هم از پروکسی می‌گذشت و نتیجه گمراه‌کننده بود.
+//  2) وضعیت پروکسی با «پروبِ TCP» جداگانه اعلام می‌شود — اگر
+//     OUTBOUND_PROXY_URL تنظیم شده ولی VPN خاموش باشد (خطای
+//     ECONNREFUSED که در لاگ شما دیدید)، همین روت علت را دقیق
+//     می‌گوید و می‌گوید ایمیل‌ها فعلاً مستقیم می‌روند.
+//  3) همهٔ چک‌ها موازی اجرا می‌شوند (تأخیر ~۱۱ ثانیه‌ای حذف شد)
+//     و چکِ فایل سرویس‌ورکر با fetch سادهٔ خودِ سایت انجام
+//     می‌شود (قبلاً بی‌دلیل از پروکسی می‌گذشت).
+//
 // بررسی‌ها:
 //  SendGrid:
-//   1) کلید → GET api.sendgrid.com/v3/scopes (مستقیم و از پروکسی)
+//   1) کلید → GET api.sendgrid.com/v3/scopes (مستقیمِ واقعی + از
+//      مسیر پیش‌فرض = پروکسی اگر زنده باشد)
 //      200 = سالم · 401 = کلید غلط · 451 = بلاک تحریمی IP مبدا
 //   2) فرستنده → GET /v3/verified_senders (باید verified=true)
 //  OneSignal:
@@ -60,10 +72,30 @@ function httpBrief(r: OutboundResult): string {
     : `شبکه: ${r.error.slice(0, 140)}`;
 }
 
+/** تایم‌اوت هر چک — کوتاه؛ همهٔ چک‌ها موازی اجرا می‌شوند */
+const CHECK_TIMEOUT_MS = 5_000;
+const WORKER_TIMEOUT_MS = 4_000;
+
 type KeyCheck = {
   direct: { tested: boolean; brief: string; status?: number };
   viaProxy: { tested: boolean; brief: string; status?: number };
 };
+
+async function oneSendgridScopesCall(
+  headers: Record<string, string>,
+  forceDirect: boolean,
+): Promise<{ brief: string; status?: number }> {
+  const r = await outboundRequest("https://api.sendgrid.com/v3/scopes", {
+    method: "GET",
+    headers,
+    timeoutMs: CHECK_TIMEOUT_MS,
+    forceDirect,
+  });
+  return {
+    brief: httpBrief(r),
+    status: r.kind === "http" ? r.status : undefined,
+  };
+}
 
 async function checkSendgridKey(): Promise<KeyCheck> {
   const key = process.env.SENDGRID_API_KEY!;
@@ -73,31 +105,22 @@ async function checkSendgridKey(): Promise<KeyCheck> {
     viaProxy: { tested: false, brief: "" },
   };
 
-  const direct = await outboundRequest("https://api.sendgrid.com/v3/scopes", {
-    method: "GET",
-    headers,
-    timeoutMs: 8_000,
-  });
-  out.direct = {
-    tested: true,
-    brief: httpBrief(direct),
-    status: direct.kind === "http" ? direct.status : undefined,
-  };
-
-  // اگر کلید از IP مبدا بلاک شد و پروکسی تنظیم است، از پروکسی هم تست کن
-  const blockedDirect = direct.kind === "http" && direct.status === 451;
-  if (getOutboundProxyUrl() && blockedDirect) {
-    const via = await outboundRequest("https://api.sendgrid.com/v3/scopes", {
-      method: "GET",
-      headers,
-      timeoutMs: 8_000,
-    });
-    out.viaProxy = {
-      tested: true,
-      brief: httpBrief(via),
-      status: via.kind === "http" ? via.status : undefined,
-    };
+  // v1.0.6.7 — «مستقیم واقعی» (forceDirect) و «مسیر پیش‌فرض»
+  // (پروکسی اگر تنظیم و زنده باشد) موازی اجرا می‌شوند
+  const proxyConfigured = Boolean(getOutboundProxyUrl());
+  const jobs: Array<Promise<void>> = [
+    oneSendgridScopesCall(headers, true).then((r) => {
+      out.direct = { tested: true, ...r };
+    }),
+  ];
+  if (proxyConfigured) {
+    jobs.push(
+      oneSendgridScopesCall(headers, false).then((r) => {
+        out.viaProxy = { tested: true, ...r };
+      }),
+    );
   }
+  await Promise.all(jobs);
   return out;
 }
 
@@ -111,7 +134,7 @@ async function checkSendgridSender(): Promise<{
   const key = process.env.SENDGRID_API_KEY!;
   const res = await outboundRequest(
     "https://api.sendgrid.com/v3/verified_senders",
-    { method: "GET", headers: { Authorization: `Bearer ${key}` }, timeoutMs: 8_000 },
+    { method: "GET", headers: { Authorization: `Bearer ${key}` }, timeoutMs: CHECK_TIMEOUT_MS },
   );
   if (res.kind !== "http") {
     return { tested: true, verified: false, fromEmail, brief: httpBrief(res) };
@@ -144,7 +167,7 @@ async function checkOneSignalApp(): Promise<OneSignalCheck> {
   const restKey = process.env.ONESIGNAL_REST_API_KEY!;
   const res = await outboundRequest(
     `https://api.onesignal.com/apps/${appId}`,
-    { method: "GET", headers: { Authorization: onesignalAuthHeader(restKey) }, timeoutMs: 8_000 },
+    { method: "GET", headers: { Authorization: onesignalAuthHeader(restKey) }, timeoutMs: CHECK_TIMEOUT_MS },
   );
   if (res.kind !== "http") {
     return { tested: true, brief: httpBrief(res) };
@@ -161,21 +184,46 @@ async function checkOneSignalApp(): Promise<OneSignalCheck> {
   return { tested: true, status: res.status, brief: `HTTP ${res.status}`, webPushOrigin: origin };
 }
 
-/** فایل سرویس‌ورکر OneSignal باید در ریشهٔ سایت باشد (مستندات رسمی) */
+/**
+ * فایل سرویس‌ورکر OneSignal باید در ریشهٔ سایت باشد (مستندات رسمی).
+ * v1.0.6.7 — این فایل از «خودِ سایت» خوانده می‌شود؛ fetch ساده
+ * (بدون پروکسی خروجی — سایت خودمان است، نه سرویس خارجی).
+ */
 async function checkWorkerFile(origin: string): Promise<{ ok: boolean; brief: string }> {
-  const res = await outboundRequest(`${origin}/OneSignalSDKWorker.js`, {
-    method: "GET",
-    headers: {},
-    timeoutMs: 6_000,
-  });
-  return {
-    ok: res.kind === "http" && res.status === 200,
-    brief: httpBrief(res),
-  };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), WORKER_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${origin}/OneSignalSDKWorker.js`, {
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    let hasImportScripts = false;
+    if (res.ok) {
+      const text = await res.text().catch(() => "");
+      hasImportScripts = /importScripts/i.test(text);
+    }
+    return {
+      ok: res.ok && hasImportScripts,
+      brief: hasImportScripts
+        ? `HTTP ${res.status}`
+        : `HTTP ${res.status} (بدون importScripts!)`,
+    };
+  } catch (e) {
+    const aborted = e instanceof Error && e.name === "AbortError";
+    return {
+      ok: false,
+      brief: aborted
+        ? `تایم‌اوت ${WORKER_TIMEOUT_MS / 1000} ثانیه`
+        : `شبکه: ${e instanceof Error ? e.message : String(e)}`,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function handle(req: NextRequest) {
   try {
+    const startedAt = Date.now();
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       req.nextUrl.origin;
@@ -189,34 +237,49 @@ async function handle(req: NextRequest) {
     const siteOrigin = req.nextUrl.origin;
     const proxyUrl = getOutboundProxyUrl();
     const proxyClass = proxyUrl ? classifyProxy(proxyUrl) : null;
+
+    // ── همهٔ چک‌ها موازی (v1.0.6.7 — تأخیر ~۱۱ ثانیه‌ای حذف شد) ──
+    const sendgridOn = Boolean(process.env.SENDGRID_API_KEY);
+    const onesignalOn = isOneSignalConfigured();
+
+    const [
+      probe,
+      sendgridKey,
+      sendgridSender,
+      onesignalApp,
+      worker,
+    ] = await Promise.all([
+      proxyUrl ? probeOutboundProxy() : Promise.resolve(null),
+      sendgridOn
+        ? checkSendgridKey()
+        : Promise.resolve<KeyCheck>({ direct: { tested: false, brief: "" }, viaProxy: { tested: false, brief: "" } }),
+      sendgridOn
+        ? checkSendgridSender()
+        : Promise.resolve({
+            tested: false,
+            verified: false,
+            fromEmail: process.env.SENDGRID_FROM_EMAIL ?? "",
+            brief: "",
+          }),
+      onesignalOn
+        ? checkOneSignalApp()
+        : Promise.resolve<OneSignalCheck>({ tested: false, brief: "" }),
+      onesignalOn
+        ? checkWorkerFile(siteOrigin)
+        : Promise.resolve<{ ok: boolean; brief: string } | null>(null),
+    ]);
+
     const proxy = {
       configured: Boolean(proxyUrl),
       describe: proxyUrl ? describeProxy(proxyUrl) : "",
       kind: proxyClass?.kind ?? null,
       scheme: proxyClass?.scheme ?? null,
       reason: proxyClass?.reason ?? null,
+      // v1.0.6.7 — نتیجهٔ پروبِ در دسترس‌بودن پروکسی
+      probe: probe
+        ? { reachable: probe.reachable, detail: probe.detail }
+        : null,
     };
-
-    // ── SendGrid ──
-    let sendgridKey: KeyCheck = { direct: { tested: false, brief: "" }, viaProxy: { tested: false, brief: "" } };
-    let sendgridSender: Awaited<ReturnType<typeof checkSendgridSender>> = {
-      tested: false,
-      verified: false,
-      fromEmail: process.env.SENDGRID_FROM_EMAIL ?? "",
-      brief: "",
-    };
-    if (process.env.SENDGRID_API_KEY) {
-      sendgridKey = await checkSendgridKey();
-      sendgridSender = await checkSendgridSender();
-    }
-
-    // ── OneSignal ──
-    let onesignalApp: OneSignalCheck = { tested: false, brief: "" };
-    let worker: { ok: boolean; brief: string } | null = null;
-    if (isOneSignalConfigured()) {
-      onesignalApp = await checkOneSignalApp();
-      worker = await checkWorkerFile(siteOrigin);
-    }
 
     // ── جمع‌بندی دوزبانه ──
     const verdicts: Verdict[] = [];
@@ -229,11 +292,19 @@ async function handle(req: NextRequest) {
         en: `OUTBOUND_PROXY_URL is invalid (${proxy.reason}) — requests go direct`,
       });
     } else if (proxy.configured) {
-      verdicts.push({
-        level: "info",
-        fa: `پروکسی خروجی فعال است: ${proxy.describe} [${proxy.scheme}]`,
-        en: `Outbound proxy active: ${proxy.describe} [${proxy.scheme}]`,
-      });
+      if (proxy.probe && !proxy.probe.reachable) {
+        verdicts.push({
+          level: "error",
+          fa: `پروکسی تنظیم شده (${proxy.describe}) ولی پاسخ نمی‌دهد: ${proxy.probe.detail} — یعنی VPN (مثلاً v2rayN) روشن نیست و درخواست‌ها فعلاً «مستقیم» ارسال می‌شوند. راه‌حل: VPN را باز کنید و پورت SOCKS را چک کنید (پیش‌فرض v2rayN: 10808) یا مقدار OUTBOUND_PROXY_URL را در .env خالی کنید. روی Vercel این مقدار باید خالی باشد.`,
+          en: `Proxy is configured (${proxy.describe}) but not reachable: ${proxy.probe.detail} — the VPN is off, so requests currently go direct. Fix: open your VPN (v2rayN default SOCKS port: 10808) or clear OUTBOUND_PROXY_URL. On Vercel this must be empty.`,
+        });
+      } else {
+        verdicts.push({
+          level: "info",
+          fa: `پروکسی خروجی فعال و در دسترس است: ${proxy.describe} [${proxy.scheme}]`,
+          en: `Outbound proxy active and reachable: ${proxy.describe} [${proxy.scheme}]`,
+        });
+      }
     }
 
     // SendGrid
@@ -248,7 +319,9 @@ async function handle(req: NextRequest) {
       if (st === 200) {
         verdicts.push({
           level: "ok",
-          fa: "کلید SendGrid از این IP پذیرفته شد (سالم)",
+          fa: proxy.configured
+            ? "کلید SendGrid از IP این سرور پذیرفته شد (سالم) — می‌توانید OUTBOUND_PROXY_URL را خالی بگذارید"
+            : "کلید SendGrid از این IP پذیرفته شد (سالم)",
           en: "SendGrid key accepted from this IP (valid)",
         });
       } else if (st === 401 || st === 403) {
@@ -265,10 +338,17 @@ async function handle(req: NextRequest) {
             en: "Origin IP is sanctions-blocked (451) but the key works via proxy ✔ — emails will send through OUTBOUND_PROXY_URL",
           });
         } else {
+          const proxyPart = proxy.configured
+            ? proxy.probe && !proxy.probe.reachable
+              ? " — پروکسی هم تنظیم شده ولی خاموش است (VPN را روشن کنید و دوباره این تشخیص را اجرا کنید)"
+              : sendgridKey.viaProxy.tested
+                ? ` — تست از پروکسی هم ناموفق بود (${sendgridKey.viaProxy.brief}؛ VPN را در حالت TUN/سیستمی بررسی کنید)`
+                : ""
+            : "";
           verdicts.push({
             level: "error",
-            fa: `IP مبدا بلاک تحریمی است (451 — کلید و فرستنده سالم‌اند). راه‌حل: در .env مقدار OUTBOUND_PROXY_URL را روی پروکسی VPN بگذارید (مثلاً socks5://127.0.0.1:10808 برای v2rayN) و سرور را ری‌استارت کنید${sendgridKey.viaProxy.tested ? ` — تست از پروکسی هم ناموفق بود (${sendgridKey.viaProxy.brief}؛ VPN را روشن/در حالت TUN بررسی کنید)` : ""}`,
-            en: `Origin IP is sanctions-blocked (451 — key and sender are fine). Fix: set OUTBOUND_PROXY_URL to your VPN proxy in .env (e.g. socks5://127.0.0.1:10808 for v2rayN) and restart the server`,
+            fa: `IP مبدا بلاک تحریمی است (451 — کلید و فرستنده سالم‌اند). راه‌حل: VPN (v2rayN) را روشن کنید و در .env مقدار OUTBOUND_PROXY_URL را روی پروکسی آن بگذارید (مثلاً socks5://127.0.0.1:10808) و سرور را ری‌استارت کنید${proxyPart}`,
+            en: `Origin IP is sanctions-blocked (451 — key and sender are fine). Fix: turn on your VPN, set OUTBOUND_PROXY_URL in .env (e.g. socks5://127.0.0.1:10808) and restart the server`,
           });
         }
       } else if (!st) {
@@ -349,6 +429,7 @@ async function handle(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       ranAt: new Date().toISOString(),
+      elapsedMs: Date.now() - startedAt,
       siteOrigin,
       proxy,
       sendgrid: {

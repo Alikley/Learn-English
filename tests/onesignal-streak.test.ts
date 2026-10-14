@@ -416,6 +416,35 @@ describe("GET/POST /api/cron/streak-reminders — گیت امنیتی", () => {
     expect(res2.status).toBe(401);
   });
 
+  it("v1.0.6.7 — 401 حالا hint عیب‌یابی دارد: طول رمز دریافتی/منتظر (بدون لو رفتن مقدار)", async () => {
+    process.env.CRON_SECRET = "da70afc2001e41264fdf9e936e90c5fe"; // 32 کاراکتر
+    const res = await cronGET(cronRequest({ "x-cron-secret": "wrong" })); // 5 کاراکتر
+    expect(res.status).toBe(401);
+    const body = await res.json();
+    expect(body.hint).toBeDefined();
+    expect(body.hint.via).toBe("x-cron-secret");
+    expect(body.hint.receivedLength).toBe(5);
+    expect(body.hint.expectedLength).toBe(32);
+    expect(body.hint.lengthMatches).toBe(false);
+    expect(body.hint.note).toContain("32");
+    expect(body.hint.note).toContain("5");
+    // هیچ مقدار رمزی نباید لو برود
+    const text = JSON.stringify(body);
+    expect(text).not.toContain("da70afc");
+    expect(text).not.toContain("top-secret");
+  });
+
+  it("v1.0.6.7 — در حالت لوکال، ?secret=… هم پذیرفته می‌شود (تست مرورگری)", async () => {
+    process.env.CRON_SECRET = "top-secret";
+    // NODE_ENV در vitest = test (غیر production) → query پذیرفته می‌شود
+    const req = new NextRequest(`${CRON_URL}?secret=top-secret`);
+    const res = await cronGET(req);
+    // رمز درست بود → از گیت رد شد و به پیام «OneSignal تنظیم نشده» رسید (503)
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.error).toContain("OneSignal");
+  });
+
   it("رمز درست + OneSignal تنظیم نشده → 503 با پیام OneSignal", async () => {
     process.env.CRON_SECRET = "top-secret";
     const res = await cronGET(
