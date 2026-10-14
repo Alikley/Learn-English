@@ -1,8 +1,8 @@
 // ========================================
-// v1.0.6.5 (English 1.0.1.8) — ارسال ایمیل با SendGrid
+// v1.0.6.6 (English 1.0.1.9) — ارسال ایمیل با SendGrid
 //
-// ساده‌ترین مسیر رسمی: REST API خود SendGrid با fetch خام —
-// بدون وابستگی جدید (پکیج @sendgrid/mail لازم نیست).
+// ساده‌ترین مسیر رسمی: REST API خود SendGrid — بدون وابستگی
+// جدید (پکیج @sendgrid/mail لازم نیست).
 //   POST https://api.sendgrid.com/v3/mail/send
 //   Authorization: Bearer <SENDGRID_API_KEY>
 //
@@ -12,8 +12,14 @@
 //  - بدون کلید/فرستنده → isSendgridConfigured() = false و
 //    روتِ فراموشی رمز به «حالت توسعه» می‌رود (لینک فقط در
 //    کنسول سرور چاپ می‌شود).
-//  - تایم‌اوت ۱۰ ثانیه (آباپتر) تا کاربر معطل نماند.
+//  - تایم‌اوت ۱۰ ثانیه (آداپتر) تا کاربر معطل نماند.
+//  - v1.0.6.6: درخواست‌ها از outboundRequest() می‌روند → اگر
+//    OUTBOUND_PROXY_URL تنظیم شده باشد (SOCKS/HTTP)، فراخوانی
+//    از تونل VPN می‌گذرد و خطای تحریمی 451 حل می‌شود.
+//    (اثبات‌شده: کلید و فرستندهٔ سالم + IP غیرتحریمی → 202)
 // ========================================
+
+import { outboundRequest } from "@/lib/outbound-proxy";
 
 const SENDGRID_ENDPOINT = "https://api.sendgrid.com/v3/mail/send";
 const TIMEOUT_MS = 10_000;
@@ -42,6 +48,25 @@ export function sendgridFromName(): string {
   return process.env.SENDGRID_FROM_NAME?.trim() || DEFAULT_FROM_NAME;
 }
 
+/** پیام فارسیِ روشن برای خطاهای شناخته‌شدهٔ SendGrid */
+function friendlyError(status: number, detail: string): string {
+  if (status === 451) {
+    return (
+      `SendGrid 451: درخواست از IP مبدا رد شد (تحریم منطقه‌ای — Unavailable For Legal Reasons). ` +
+      `کلید و فرستنده سالم‌اند؛ راه‌حل: در .env مقدار OUTBOUND_PROXY_URL را روی پروکسی VPN بگذارید ` +
+      `(مثلاً socks5://127.0.0.1:10808 برای v2rayN) و سرور را ری‌استارت کنید. ` +
+      `جزئیات: ${detail || "(بدون جزئیات)"}`
+    );
+  }
+  if (status === 401 || status === 403) {
+    return (
+      `SendGrid ${status}: کلید API یا فرستنده پذیرفته نشد — کلید و Verify Single Sender را در داشبورد SendGrid بررسی کنید. ` +
+      `جزئیات: ${detail || "(بدون جزئیات)"}`
+    );
+  }
+  return `SendGrid ${status}: ${detail || "(بدون جزئیات)"}`;
+}
+
 export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
   const apiKey = process.env.SENDGRID_API_KEY;
   const fromEmail = process.env.SENDGRID_FROM_EMAIL;
@@ -53,53 +78,34 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
     };
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const result = await outboundRequest(SENDGRID_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: args.to }] }],
+      from: { email: fromEmail, name: sendgridFromName() },
+      subject: args.subject,
+      content: [
+        { type: "text/plain", value: args.text },
+        { type: "text/html", value: args.html },
+      ],
+    }),
+    timeoutMs: TIMEOUT_MS,
+  });
 
-  try {
-    const res = await fetch(SENDGRID_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: args.to }] }],
-        from: { email: fromEmail, name: sendgridFromName() },
-        subject: args.subject,
-        content: [
-          { type: "text/plain", value: args.text },
-          { type: "text/html", value: args.html },
-        ],
-      }),
-      signal: controller.signal,
-    });
-
-    // 202 Accepted = موفق (SendGrid همیشه 202 برمی‌گرداند)
-    if (res.ok) return { ok: true, status: res.status };
-
-    // خطا — بدنهٔ JSON یا متنی SendGrid را برای لاگ می‌خوانیم
-    let detail = "";
-    try {
-      const body = await res.text();
-      detail = body.slice(0, 300);
-    } catch {
-      /* بدنه خوانده نشد — مهم نیست */
-    }
-    return {
-      ok: false,
-      status: res.status,
-      error: `SendGrid ${res.status}: ${detail || "(بدون جزئیات)"}`,
-    };
-  } catch (e) {
-    const aborted = e instanceof Error && e.name === "AbortError";
-    return {
-      ok: false,
-      error: aborted
-        ? "SendGrid پاسخ نداد (تایم‌اوت ۱۰ ثانیه) — احتمالاً شبکه/تحریم"
-        : `خطای شبکه به SendGrid: ${e instanceof Error ? e.message : String(e)}`,
-    };
-  } finally {
-    clearTimeout(timer);
+  if (result.kind === "network-error") {
+    return { ok: false, error: result.error };
   }
+
+  // 202 Accepted = موفق (SendGrid همیشه 202 برمی‌گرداند)
+  if (result.ok) return { ok: true, status: result.status };
+
+  return {
+    ok: false,
+    status: result.status,
+    error: friendlyError(result.status, result.bodyText.slice(0, 300)),
+  };
 }

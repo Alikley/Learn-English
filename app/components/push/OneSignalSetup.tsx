@@ -1,7 +1,7 @@
 "use client";
 
 // ========================================
-// v1.0.6.5 (English 1.0.1.8) — بارگذاری OneSignal Web SDK (v16)
+// v1.0.6.6 (English 1.0.1.9) — بارگذاری OneSignal Web SDK (v16)
 //
 // این کامپوننت در layout ریشه نشسته و appId را به‌صورت prop از
 // سرور می‌گیرد (خواندن env در زمان درخواست — نه موقع بیلد).
@@ -10,6 +10,14 @@
 //    init انجام می‌شود و شنوندهٔ تغییرِ اشتراک، subscription ID
 //    را برای کاربرِ واردشده در /api/push/subscribe ثبت می‌کند
 //
+// v1.0.6.6:
+//  - allowLocalhostAsSecureOrigin در لوکال (طبق مستندات رسمی
+//    «Local testing») → تست لوکال فقط در مرورگرهای کرومیومی.
+//  - اگر init شکست خورد (مثل «App not configured for web push»
+//    وقتی وب‌پوش در داشبورد تنظیم نشده)، رویداد «flex:onesignal-error»
+//    با کدِ تفکیک‌شده پخش می‌شود تا PushReminderCard پیامِ راهنما
+//    نشان دهد (به‌جای خطای خام کنسول).
+//
 // برای UI تنظیم (فعال/غیرفعال‌کردن یادآور) → PushReminderCard
 // که روی /notif نشسته و به رویداد "flex:onesignal-ready" گوش
 // می‌دهد (همین فایل پخش می‌کند).
@@ -17,9 +25,24 @@
 
 import { useEffect } from "react";
 
+/** کد خطای init — تفکیک برای پیام راهنمای دقیق در UI */
+export type OneSignalInitErrorCode =
+  | "web-push-not-configured"
+  | "wrong-site"
+  | "other";
+
+export type OneSignalInitError = {
+  code: OneSignalInitErrorCode;
+  message: string;
+};
+
 /** زیرمجموعهٔ SDK که استفاده می‌کنیم (تایپِ سبک — خود SDK کامل است) */
 export type OneSignalNamespace = {
-  init: (options: { appId: string }) => Promise<void>;
+  init: (options: {
+    appId: string;
+    /** مستندات رسمی: برای تست لوکال (فقط مرورگرهای کرومیومی) */
+    allowLocalhostAsSecureOrigin?: boolean;
+  }) => Promise<void>;
   Slidedown: { promptPush: () => Promise<void> };
   Notifications: { permission: string };
   User: {
@@ -59,6 +82,26 @@ async function registerSubscription(subscriptionId: string) {
   }
 }
 
+/** لوکال هستیم؟ (localhost/127.0.0.1 با هر پورت) */
+function isLocalOrigin(): boolean {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(
+    window.location.origin,
+  );
+}
+
+/** تبدیل پیام خطای SDK به کدِ قابل‌استفاده در UI */
+export function classifyOneSignalError(
+  message: string,
+): OneSignalInitErrorCode {
+  if (/not configured for web push/i.test(message)) {
+    return "web-push-not-configured";
+  }
+  if (/can only be used on/i.test(message) || /wrongsiteurl/i.test(message)) {
+    return "wrong-site";
+  }
+  return "other";
+}
+
 export default function OneSignalSetup({ appId }: { appId?: string }) {
   useEffect(() => {
     if (!appId) return;
@@ -74,7 +117,11 @@ export default function OneSignalSetup({ appId }: { appId?: string }) {
     window.OneSignalDeferred = window.OneSignalDeferred || [];
     window.OneSignalDeferred.push(async (OneSignal) => {
       try {
-        await OneSignal.init({ appId });
+        await OneSignal.init(
+          isLocalOrigin()
+            ? { appId, allowLocalhostAsSecureOrigin: true }
+            : { appId },
+        );
 
         // به کارتِ تنظیم (روی /notif) بگویم SDK آماده است
         window.dispatchEvent(new CustomEvent("flex:onesignal-ready"));
@@ -93,7 +140,17 @@ export default function OneSignalSetup({ appId }: { appId?: string }) {
           }
         });
       } catch (e) {
+        // خطای init — قابل‌درک برای کاربر گزارش شود، نه فقط کنسول
+        const message = e instanceof Error ? e.message : String(e);
         console.error("[onesignal] init failed:", e);
+        window.dispatchEvent(
+          new CustomEvent<OneSignalInitError>("flex:onesignal-error", {
+            detail: {
+              code: classifyOneSignalError(message),
+              message: message.slice(0, 300),
+            },
+          }),
+        );
       }
     });
   }, [appId]);

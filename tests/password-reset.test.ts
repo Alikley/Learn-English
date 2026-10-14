@@ -24,6 +24,7 @@ vi.stubGlobal(
     ok: true,
     status: 202,
     json: async () => ({}),
+    text: async () => "",
   })),
 );
 
@@ -221,6 +222,36 @@ describe("POST /api/auth/forgot-password", () => {
     expect(payload.from.email).toBe("noreply@example.com");
     expect(payload.subject).toContain("بازیابی");
     expect(payload.content[1].value).toContain("reset-password?token=");
+  });
+
+  it("SendGrid تنظیم‌شده + خطای 451 در حالت لوکال → devLink + devEmailError (v1.0.6.6)", async () => {
+    seedUser();
+    process.env.SENDGRID_API_KEY = "SG.test-key";
+    process.env.SENDGRID_FROM_EMAIL = "noreply@example.com";
+    process.env.NEXTAUTH_URL = "http://localhost:3000";
+
+    vi.mocked(globalThis.fetch).mockImplementationOnce(
+      async () =>
+        ({
+          ok: false,
+          status: 451,
+          text: async () => "451 Unavailable For Legal Reasons",
+        }) as unknown as Response,
+    );
+
+    const res = await forgotPasswordPOST(
+      jsonRequest(FORGOT_URL, { email: "ali@example.com" }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    // ایمیل نرفت ولی جریان لوکال کامل می‌شود: لینک روی صفحه
+    expect(body.devLink).toMatch(
+      /^http:\/\/localhost:3000\/reset-password\?token=[a-f0-9]{64}$/,
+    );
+    // دلیل خطا (451 تحریمی + راه‌حل OUTBOUND_PROXY_URL) هم می‌آید
+    expect(body.devEmailError).toContain("451");
+    expect(body.devEmailError).toContain("OUTBOUND_PROXY_URL");
+    expect(body.devEmailError).toContain("socks5");
   });
 
   it("SendGrid تنظیم‌شده + ایمیلِ ناشناس → هیچ فچی (ضد حدس‌زدن)", async () => {

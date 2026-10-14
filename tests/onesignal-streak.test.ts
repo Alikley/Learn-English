@@ -29,6 +29,7 @@ const fetchMock = vi.fn(
       ok: true,
       status: 200,
       json: async () => ({ id: "notif-1", recipients: 3 }),
+      text: async () => JSON.stringify({ id: "notif-1", recipients: 3 }),
     }) as unknown as Response,
 );
 vi.stubGlobal("fetch", fetchMock);
@@ -105,6 +106,36 @@ describe("lib/onesignal — ارسال پوش", () => {
     expect(payload.url).toBe("https://example.com/home");
   });
 
+  it("کلید جدید os_v2_… → هدر Bearer (مستندات Keys & IDs رسمی)", async () => {
+    setKeys();
+    process.env.ONESIGNAL_REST_API_KEY = "os_v2_app_abc123";
+    const result = await sendPushToSubscriptions(["sub-1"], {
+      headings: { fa: "ف", en: "E" },
+      contents: { fa: "م", en: "B" },
+    });
+    expect(result.ok).toBe(true);
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      "Bearer os_v2_app_abc123",
+    );
+    clearKeys();
+  });
+
+  it("کلید قدیمی → همان Basic کلاسیک", async () => {
+    setKeys();
+    process.env.ONESIGNAL_REST_API_KEY = "legacy-rest-key";
+    const result = await sendPushToSubscriptions(["sub-1"], {
+      headings: { fa: "ف", en: "E" },
+      contents: { fa: "م", en: "B" },
+    });
+    expect(result.ok).toBe(true);
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      "Basic legacy-rest-key",
+    );
+    clearKeys();
+  });
+
   it("لیست خالی → موفق بدون فراخوانی", async () => {
     setKeys();
     const result = await sendPushToSubscriptions([], {
@@ -123,6 +154,7 @@ describe("lib/onesignal — ارسال پوش", () => {
           ok: false,
           status: 400,
           json: async () => ({ errors: ["bad ids"] }),
+          text: async () => JSON.stringify({ errors: ["bad ids"] }),
         }) as unknown as Response,
     );
     const result = await sendPushToSubscriptions(["sub-1"], {
@@ -231,6 +263,7 @@ describe("lib/streak-reminders — نامزدها و ارسال", () => {
           ok: true,
           status: 200,
           json: async () => ({ id: "notif-1", recipients: 1 }),
+          text: async () => JSON.stringify({ id: "notif-1", recipients: 1 }),
         }) as unknown as Response,
     );
     process.env.NEXTAUTH_URL = "http://localhost:3000";
@@ -321,6 +354,7 @@ describe("lib/streak-reminders — نامزدها و ارسال", () => {
             ok: false,
             status: 500,
             json: async () => ({}),
+            text: async () => "{}",
           }) as unknown as Response,
       )
       .mockImplementation(
@@ -329,6 +363,7 @@ describe("lib/streak-reminders — نامزدها و ارسال", () => {
             ok: true,
             status: 200,
             json: async () => ({ id: "n", recipients: 1 }),
+            text: async () => JSON.stringify({ id: "n", recipients: 1 }),
           }) as unknown as Response,
       );
 

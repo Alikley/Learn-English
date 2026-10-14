@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // ========================================
-// POST /api/auth/forgot-password (v1.0.6.5 / English 1.0.1.8)
+// POST /api/auth/forgot-password (v1.0.6.6 / English 1.0.1.9)
 //
 // ورودی: { email }
 //
@@ -25,10 +25,15 @@ export const runtime = "nodejs";
 //    می‌شود؛ و اگر NEXTAUTH_URL لوکال باشد، لینک در پاسخ هم
 //    می‌آید (devLink) تا بدون SendGrid هم کل جریان قابل تست باشد
 //
+// v1.0.6.6: اگر ارسال ایمیل «ناموفق» بود (مثلاً 451 تحریمی) و
+// اپ لوکال است، باز هم devLink + دلیل خطا (devEmailError) در
+// پاسخ می‌آید — یعنی حتی وقتی SendGrid بلاک است، کل جریان
+// بازیابی رمز در حالت توسعه قابل تکمیل است.
+//
 // محدودیت: هر ۹۰ ثانیه یک درخواست به ازای هر کاربر.
 // ========================================
 
-/** فقط وقتی SendGrid نیست و اپ لوکال است، لینک ریست در پاسخ می‌آید */
+/** اپ لوکال + حالت توسعه است؟ (لینک ریست در پاسخ می‌آید — حالت توسعه یا خطای ارسال) */
 function isLocalDevMode(): boolean {
   const base = appBaseUrl();
   return (
@@ -80,6 +85,15 @@ export async function POST(req: NextRequest) {
         console.error(
           `[forgot-password] ارسال ایمیل ناموفق (${email}): ${result.error}`,
         );
+        // حالت لوکال: لینک را روی صفحه هم بگذار تا جریان کامل شود
+        // (با دلیل خطا — معمولاً 451 تحریمی؛ راه‌حلش OUTBOUND_PROXY_URL است)
+        if (isLocalDevMode()) {
+          return NextResponse.json({
+            ...generic,
+            devLink: resetUrl,
+            devEmailError: result.error.slice(0, 300),
+          });
+        }
       }
     } else {
       // حالت توسعه — بدون SendGrid: لینک فقط در کنسول سرور

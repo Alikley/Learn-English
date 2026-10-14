@@ -1,25 +1,43 @@
 "use client";
 
-// v1.0.6.5 — فرم کلاینت «فراموشی رمز عبور».
+// v1.0.6.6 (English 1.0.1.9) — فرم کلاینت «فراموشی رمز عبور».
 // POST /api/auth/forgot-password → پیام عمومی (ضد حدس‌زدن اعضا).
 // در حالت توسعه (SendGrid تنظیم نشده + NEXTAUTH_URL لوکال) سرور
 // devLink برمی‌گرداند تا کل جریان بدون SendGrid قابل تست باشد.
+//
+// v1.0.6.6: اگر ارسال ایمیل ناموفق باشد (مثل 451 تحریمی) و اپ
+// لوکال است، devLink + devEmailError برمی‌گردد — لینک روی صفحه
+// نمایش داده می‌شود تا جریان کامل شود؛ به‌علاوه دکمهٔ «تشخیص
+// خودکار» (GET /api/notify/diagnose) علت دقیق (کلید/فرستنده/IP
+// بلاک/پروکسی) را دوزبانه نشان می‌دهد.
 import { useLanguage } from "@/app/context/LanguageContext";
 
 import { useForm } from "react-hook-form";
 import Link from "next/link";
-import { ArrowRight, Mail, Send } from "lucide-react";
+import { ArrowRight, Mail, Send, Stethoscope } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 
 type ForgotForm = { email: string };
+
+type DiagnoseVerdict = { level: string; fa: string; en: string };
+
+const VERDICT_STYLES: Record<string, string> = {
+  ok: "text-green-700 dark:text-green-400",
+  info: "text-slate-600 dark:text-slate-300",
+  warn: "text-amber-700 dark:text-amber-400",
+  error: "text-red-700 dark:text-red-400",
+};
 
 export default function ForgotPasswordForm() {
   const { tr, dir } = useLanguage();
   const [serverError, setServerError] = useState("");
   const [sent, setSent] = useState(false);
   const [devLink, setDevLink] = useState("");
+  const [devEmailError, setDevEmailError] = useState("");
   const [sending, setSending] = useState(false);
+  const [verdicts, setVerdicts] = useState<DiagnoseVerdict[] | null>(null);
+  const [diagnosing, setDiagnosing] = useState(false);
   const {
     register,
     handleSubmit,
@@ -30,6 +48,8 @@ export default function ForgotPasswordForm() {
   const onSubmit = async (data: ForgotForm) => {
     setServerError("");
     setDevLink("");
+    setDevEmailError("");
+    setVerdicts(null);
     setSending(true);
     try {
       const res = await fetch("/api/auth/forgot-password", {
@@ -45,6 +65,9 @@ export default function ForgotPasswordForm() {
       if (typeof body?.devLink === "string" && body.devLink) {
         setDevLink(body.devLink);
       }
+      if (typeof body?.devEmailError === "string" && body.devEmailError) {
+        setDevEmailError(body.devEmailError);
+      }
       setSent(true);
     } catch {
       setServerError(
@@ -52,6 +75,23 @@ export default function ForgotPasswordForm() {
       );
     } finally {
       setSending(false);
+    }
+  };
+
+  const runDiagnose = async () => {
+    setDiagnosing(true);
+    setVerdicts(null);
+    try {
+      const res = await fetch("/api/notify/diagnose").then((r) => r.json()).catch(() => null);
+      if (res?.verdicts) {
+        setVerdicts(res.verdicts as DiagnoseVerdict[]);
+      } else {
+        setServerError(
+          tr("تشخیص خودکار در دسترس نبود — چند لحظه بعد دوباره امتحان کنید", "Auto-diagnose unavailable — try again in a moment"),
+        );
+      }
+    } finally {
+      setDiagnosing(false);
     }
   };
 
@@ -96,13 +136,32 @@ export default function ForgotPasswordForm() {
                 )}
               </p>
 
+              {devEmailError && (
+                <div className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-right">
+                  <p className="text-xs text-red-700 dark:text-red-400 mb-2 leading-6">
+                    {tr(
+                      "ارسال ایمیل ناموفق بود (جزئیات فقط در حالت لوکال نمایش داده می‌شود):",
+                      "Email delivery failed (details only shown in local mode):",
+                    )}
+                  </p>
+                  <p className="text-[11px] text-red-600 dark:text-red-300 break-all leading-5" dir="ltr">
+                    {devEmailError}
+                  </p>
+                </div>
+              )}
+
               {devLink && (
                 <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 rounded-xl text-right">
                   <p className="text-xs text-amber-700 dark:text-amber-400 mb-2 leading-6">
-                    {tr(
-                      "حالت توسعه (SendGrid تنظیم نشده) — لینک اینجا هم نمایش داده شد:",
-                      "Dev mode (SendGrid not configured) — link shown here too:",
-                    )}
+                    {devEmailError
+                      ? tr(
+                          "چون ایمیل نرفت، لینک بازیابی اینجا هم نمایش داده شد (فقط حالت لوکال):",
+                          "Since the email failed, the reset link is shown here too (local mode only):",
+                        )
+                      : tr(
+                          "حالت توسعه (SendGrid تنظیم نشده) — لینک اینجا هم نمایش داده شد:",
+                          "Dev mode (SendGrid not configured) — link shown here too:",
+                        )}
                   </p>
                   <a
                     href={devLink}
@@ -114,9 +173,36 @@ export default function ForgotPasswordForm() {
               )}
 
               <button
+                onClick={runDiagnose}
+                disabled={diagnosing}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-200 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 transition-colors mb-3"
+              >
+                {diagnosing ? (
+                  <span className="w-4 h-4 border-2 border-slate-400/40 border-t-slate-500 rounded-full animate-spin" />
+                ) : (
+                  <Stethoscope size={16} />
+                )}
+                {tr("ایمیل نیامد؟ تشخیص خودکار مشکل", "No email? Auto-diagnose")}
+              </button>
+
+              {verdicts && (
+                <div className="mb-6 p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-700 rounded-xl text-xs leading-6 space-y-1.5 text-right">
+                  <p className="font-bold text-slate-700 dark:text-slate-200 mb-1">
+                    {tr("نتیجهٔ تشخیص خودکار:", "Auto-diagnose results:")}
+                  </p>
+                  {verdicts.map((v, i) => (
+                    <p key={i} className={VERDICT_STYLES[v.level] ?? VERDICT_STYLES.info}>
+                      {tr(v.fa, v.en)}
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              <button
                 onClick={() => {
                   setSent(false);
                   setDevLink("");
+                  setDevEmailError("");
                 }}
                 className="w-full py-3 rounded-xl border border-slate-200 dark:border-slate-600 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors mb-3"
               >

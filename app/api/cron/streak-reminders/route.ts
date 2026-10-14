@@ -47,7 +47,11 @@ async function handle(req: NextRequest) {
     const provided = extractSecret(req);
     if (provided !== expected) {
       return NextResponse.json(
-        { error: "رمز جاب نادرست است" },
+        {
+          error:
+            "رمز جاب نادرست است — اگر آدرس را مستقیم در مرورگر باز کرده‌اید این ۴۰۱ طبیعی است؛ این مسیر فقط با هدر «x-cron-secret» یا «Authorization: Bearer» توسط زمان‌بند صدا زده می‌شود",
+          example: `curl -H "x-cron-secret: <CRON_SECRET>" ${req.nextUrl.origin}/api/cron/streak-reminders`,
+        },
         { status: 401 },
       );
     }

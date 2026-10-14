@@ -1,10 +1,10 @@
 // ========================================
-// v1.0.6.5 (English 1.0.1.8) — ارسال پوش با OneSignal
+// v1.0.6.6 (English 1.0.1.9) — ارسال پوش با OneSignal
 //
-// مسیر رسمی: REST API خود OneSignal با fetch خام — بدون
-// وابستگی جدید (پکیج لازم نیست):
+// مسیر رسمی: REST API خود OneSignal — بدون وابستگی جدید:
 //   POST https://api.onesignal.com/notifications
-//   Authorization: Basic <ONESIGNAL_REST_API_KEY>
+//   Authorization: Bearer <کلیدهای جدید os_v2_…>
+//   (کلیدهای قدیمی همان «Basic <کلید>» کلاسیک می‌مانند)
 //   { app_id, include_subscription_ids, headings, contents }
 //
 // طراحی:
@@ -14,7 +14,15 @@
 //  - تایم‌اوت ۱۰ ثانیه
 //  - سقف include_subscription_ids در هر درخواست = ۲۰۰۰
 //    (مستندات OneSignal) → خودکار تکه‌تکه می‌شود
+//  - v1.0.6.6: درخواست‌ها از outboundRequest() می‌روند → اگر
+//    OUTBOUND_PROXY_URL تنظیم شده باشد، فراخوانی از تونل VPN
+//    می‌گذرد (api.onesignal.com هم سرویس آمریکایی است).
+//    احراز هویت هوشمند: کلیدهای جدید OneSignal (شروع با os_v2)
+//    طبق مستندات رسمی فقط با Bearer کار می‌کنند (اثبات‌شده:
+//    GET /apps با Basic → 401، با Bearer → 200).
 // ========================================
+
+import { outboundRequest } from "@/lib/outbound-proxy";
 
 const ONESIGNAL_ENDPOINT = "https://api.onesignal.com/notifications";
 const TIMEOUT_MS = 10_000;
@@ -43,6 +51,15 @@ export function isOneSignalConfigured(): boolean {
   );
 }
 
+/**
+ * هدر Authorization برای REST API — v1.0.6.6:
+ *  کلیدهای جدید (os_v2_…) → «Bearer» (طبق Keys & IDs رسمی)
+ *  کلیدهای قدیمی          → همان «Basic» کلاسیک
+ */
+export function onesignalAuthHeader(restKey: string): string {
+  return restKey.startsWith("os_v2") ? `Bearer ${restKey}` : `Basic ${restKey}`;
+}
+
 async function callOneSignal(
   subscriptionIds: string[],
   payload: PushPayload,
@@ -58,61 +75,50 @@ async function callOneSignal(
     };
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-  try {
-    const res = await fetch(ONESIGNAL_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${restKey}`,
-        "Content-Type": "application/json",
+  const result = await outboundRequest(ONESIGNAL_ENDPOINT, {
+    method: "POST",
+    headers: {
+      Authorization: onesignalAuthHeader(restKey),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      app_id: appId,
+      include_subscription_ids: subscriptionIds,
+      headings: {
+        en: payload.headings.en,
+        fa: payload.headings.fa,
       },
-      body: JSON.stringify({
-        app_id: appId,
-        include_subscription_ids: subscriptionIds,
-        headings: {
-          en: payload.headings.en,
-          fa: payload.headings.fa,
-        },
-        contents: {
-          en: payload.contents.en,
-          fa: payload.contents.fa,
-        },
-        ...(payload.url ? { url: payload.url } : {}),
-      }),
-      signal: controller.signal,
-    });
+      contents: {
+        en: payload.contents.en,
+        fa: payload.contents.fa,
+      },
+      ...(payload.url ? { url: payload.url } : {}),
+    }),
+    timeoutMs: TIMEOUT_MS,
+  });
 
-    const body = (await res.json().catch(() => ({}))) as {
-      recipients?: number;
-      errors?: string[];
-      id?: string;
-    };
-
-    // 200 + notification id = موفق (recipients شاید 0 باشد)
-    if (res.ok && (body.id || typeof body.recipients === "number")) {
-      return { ok: true, notified: body.recipients ?? 0 };
-    }
-
-    const errs = Array.isArray(body.errors) ? body.errors.join("; ") : "";
-    return {
-      ok: false,
-      notified: 0,
-      error: `OneSignal ${res.status}${errs ? `: ${errs}` : ""}`.slice(0, 300),
-    };
-  } catch (e) {
-    const aborted = e instanceof Error && e.name === "AbortError";
-    return {
-      ok: false,
-      notified: 0,
-      error: aborted
-        ? "OneSignal پاسخ نداد (تایم‌اوت ۱۰ ثانیه)"
-        : `خطای شبکه به OneSignal: ${e instanceof Error ? e.message : String(e)}`,
-    };
-  } finally {
-    clearTimeout(timer);
+  if (result.kind === "network-error") {
+    return { ok: false, notified: 0, error: result.error };
   }
+
+  let body: { recipients?: number; errors?: string[]; id?: string } = {};
+  try {
+    body = JSON.parse(result.bodyText || "{}");
+  } catch {
+    /* بدنهٔ JSON نبود — خالی می‌ماند */
+  }
+
+  // 200 + notification id = موفق (recipients شاید 0 باشد)
+  if (result.ok && (body.id || typeof body.recipients === "number")) {
+    return { ok: true, notified: body.recipients ?? 0 };
+  }
+
+  const errs = Array.isArray(body.errors) ? body.errors.join("; ") : "";
+  return {
+    ok: false,
+    notified: 0,
+    error: `OneSignal ${result.status}${errs ? `: ${errs}` : ""}`.slice(0, 300),
+  };
 }
 
 /**
