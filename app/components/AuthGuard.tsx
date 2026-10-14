@@ -5,7 +5,10 @@ import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 // صفحات عمومی — ورود و ثبت‌نام
-const publicPaths = ["/login", "/register"];
+// v1.0.6.5 — /forgot-password و /reset-password هم عمومی شدند
+// (بازیابی رمز بدون لاگین باید ممکن باشد؛ /reset-password حتی
+// برای کاربرِ واردشده عمومی می‌مانَد تا از لینک ایمیل رمز عوض کند)
+const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password"];
 
 // v1.0.5.0 (English 1.0.1.0) — ریشهٔ سایت = لندینگ عمومی:
 // بازدیدکنندهٔ جدید بدون لاگین همین‌جا می‌ماند و معرفی سایت را
@@ -49,7 +52,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     // (صفحهٔ خواندن کتاب عمومی می‌ماند — خواندن بدون داشبورد مجاز است)
     if (user && isPublic) {
       const isBookRead = /^\/library\/\d+\/read$/.test(pathname);
-      if (!isBookRead) {
+      // v1.0.6.5 — /reset-password برای کاربرِ واردشده هم می‌مانَد:
+      // از لینک ایمیل رمزش را عوض می‌کند (لودینگ مجدد سشن لازم نیست)
+      const isResetPassword = pathname.startsWith("/reset-password");
+      if (!isBookRead && !isResetPassword) {
         router.replace(AUTH_HOME_PATH);
       }
     }

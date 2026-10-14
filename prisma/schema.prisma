@@ -28,6 +28,8 @@ model user {
   chatReactions     ChatReaction[]
   ieltsAttempts     IeltsAttempt[]
   bookProgress      BookProgress[]
+  passwordResetTokens PasswordResetToken[]
+  pushSubscriptions  PushSubscription[]
   aiUsageCounters   AiUsageCounter[]
 }
 
@@ -459,4 +461,55 @@ model AiUsageCounter {
 
   @@unique([userId, route, day])
   @@index([userId, day])
+}
+
+// ========================================
+// بازیابی رمز عبور (v1.0.6.5 / English 1.0.1.8)
+//
+// توکن یک‌بارمصرفِ «فراموشی رمز»: در ایمیل، توکنِ خام به کاربر
+// می‌رسد ولی در دیتابیس فقط هش SHA-256 آن ذخیره می‌شود — اگر
+// دیتابیس لو برود، توکن‌ها قابل بازیابی نیستند.
+// عمر توکن ۳۰ دقیقه است و بعد از مصرف، همهٔ توکن‌های آن کاربر
+// باطل می‌شوند (روت /api/auth/reset-password).
+// ========================================
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  /// SHA-256 هگز (۶۴ کاراکتر) از توکنِ خام
+  tokenHash String    @unique @db.VarChar(64)
+  /// انقضا — ۳۰ دقیقه بعد از ساخت
+  expiresAt DateTime
+  /// زمان مصرف — null یعنی هنوز استفاده نشده
+  usedAt    DateTime?
+  /// برای محدودیت سرعت (هر ۹۰ ثانیه یک درخواست)
+  createdAt DateTime  @default(now())
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ========================================
+// یادآور استریک با پوش OneSignal (v1.0.6.5 / English 1.0.1.8)
+//
+// اشتراک پوش هر کاربر — OneSignal به ازای هر مرورگر یک
+// «subscription ID» می‌دهد؛ اینجا نگه داشته می‌شود تا جاب
+// یادآور استریک (api/cron/streak-reminders) بتواند دقیقاً به
+// کاربرهایی که استریک‌شان در خطر قطع‌شدن است پوش بفرستد.
+// یک کاربر می‌تواند چند دستگاه (چند ردیف) داشته باشد.
+// ========================================
+
+model PushSubscription {
+  id             String   @id @default(cuid())
+  userId         String
+  /// شناسهٔ اشتراک OneSignal (طولانی رشته‌ای)
+  subscriptionId String   @db.VarChar(128)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subscriptionId])
+  @@index([userId])
 }

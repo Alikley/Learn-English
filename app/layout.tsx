@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AppShell from "@/app/components/AppShell";
 import AuthGuard from "@/app/components/AuthGuard";
+import OneSignalSetup from "@/app/components/push/OneSignalSetup";
 import { WordHoverProvider } from "@/app/components/vocabulary/WordHoverProvider";
 import { ThemeProvider } from "@/app/context/ThemeContext";
 import { LanguageProvider } from "@/app/context/LanguageContext";
@@ -42,6 +43,9 @@ export default function RootLayout({
       </head>
       <body className="h-full flex flex-col bg-gray-50 dark:bg-[#0b1220] transition-colors duration-300">
         <Providers>
+          {/* v1.0.6.5 — OneSignal Web SDK (اگر NEXT_PUBLIC_ONESIGNAL_APP_ID
+              تنظیم شده باشد؛ خالی = هیچ اسکریپتی لود نمی‌شود) */}
+          <OneSignalSetup appId={process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID} />
           <ThemeProvider>
             <LanguageProvider>
               <AuthGuard>

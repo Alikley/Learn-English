@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { useState } from "react";
+import PushReminderCard from "@/app/components/push/PushReminderCard";
 
 export default function NotificationsPage() {
   const { tr } = useLanguage();
@@ -98,6 +99,10 @@ export default function NotificationsPage() {
           ))
         )}
       </div>
+
+      {/* v1.0.6.5 — یادآور استریک با پوش OneSignal
+          (اگر تنظیم نشده باشد، کلاً رندر نمی‌شود) */}
+      <PushReminderCard />
     </div>
   );
 }

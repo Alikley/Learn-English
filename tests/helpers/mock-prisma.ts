@@ -62,12 +62,31 @@ export type MockListeningProgressRow = {
   completedAt: Date | null;
 };
 
+export type MockPasswordResetTokenRow = {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  usedAt: Date | null;
+  createdAt: Date;
+};
+
+export type MockPushSubscriptionRow = {
+  id: string;
+  userId: string;
+  subscriptionId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 export const mockDb = {
   users: [] as MockUserRow[],
   streaks: [] as MockStreakRow[],
   gameScores: [] as MockGameScoreRow[],
   listeningEpisodes: [] as MockListeningEpisodeRow[],
   listeningProgress: [] as MockListeningProgressRow[],
+  passwordResetTokens: [] as MockPasswordResetTokenRow[],
+  pushSubscriptions: [] as MockPushSubscriptionRow[],
 };
 
 let autoId = 0;
@@ -80,6 +99,8 @@ export function resetMockDb() {
   mockDb.gameScores = [];
   mockDb.listeningEpisodes = [];
   mockDb.listeningProgress = [];
+  mockDb.passwordResetTokens = [];
+  mockDb.pushSubscriptions = [];
   autoId = 0;
 }
 
@@ -96,7 +117,7 @@ function findUser(where: Record<string, unknown>): MockUserRow | null {
   return null;
 }
 
-/** ایجاد کاربر با پشتیبانی از streak تودرتو (مثل register و linkGoogleUser) */
+/** ایجاد کاربر با پشتیبانی از streak تودرتو (مثل register) */
 function createUser(data: Record<string, unknown>): MockUserRow {
   const nested = data.streak as { create?: Record<string, unknown> } | undefined;
   const row: MockUserRow = {
@@ -168,6 +189,44 @@ export const prismaMock = {
     findUnique: vi.fn(
       async (args: { where: { userId: string } }) =>
         mockDb.streaks.find((s) => s.userId === args?.where?.userId) ?? null,
+    ),
+    // v1.0.6.5 — برای getStreakReminderCandidates (include: user + push)
+    findMany: vi.fn(
+      async (args: {
+        where: {
+          current?: { gt?: number };
+          lastActiveAt?: { gte?: Date; lt?: Date };
+        };
+      }) => {
+        const w = args?.where ?? {};
+        return mockDb.streaks
+          .filter((s) =>
+            w.current?.gt !== undefined ? s.current > w.current.gt : true,
+          )
+          .filter((s) => {
+            const t = s.lastActiveAt.getTime();
+            const gte = w.lastActiveAt?.gte?.getTime();
+            const lt = w.lastActiveAt?.lt?.getTime();
+            return (
+              (gte === undefined || t >= gte) && (lt === undefined || t < lt)
+            );
+          })
+          .map((s) => {
+            const user = mockDb.users.find((u) => u.id === s.userId);
+            return {
+              ...s,
+              user: user
+                ? {
+                    name: user.name,
+                    nickname: user.nickname,
+                    pushSubscriptions: mockDb.pushSubscriptions
+                      .filter((p) => p.userId === s.userId)
+                      .map((p) => ({ subscriptionId: p.subscriptionId })),
+                  }
+                : null,
+            };
+          });
+      },
     ),
     create: vi.fn(async (args: { data: Record<string, unknown> }) => {
       const row: MockStreakRow = {
@@ -278,6 +337,103 @@ export const prismaMock = {
         };
         mockDb.listeningProgress.push(created);
         return created;
+      },
+    ),
+  },
+
+  // v1.0.6.5 (English 1.0.1.8) — بازیابی رمز عبور
+  passwordResetToken: {
+    findUnique: vi.fn(
+      async (args: { where: { tokenHash: string } }) =>
+        mockDb.passwordResetTokens.find(
+          (t) => t.tokenHash === args?.where?.tokenHash,
+        ) ?? null,
+    ),
+    findFirst: vi.fn(
+      async (args: {
+        where: { userId: string; createdAt?: { gte?: Date } };
+      }) => {
+        const gte = args?.where?.createdAt?.gte;
+        return (
+          mockDb.passwordResetTokens
+            .filter((t) => t.userId === args?.where?.userId)
+            .filter((t) => (gte ? t.createdAt.getTime() >= gte.getTime() : true))
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ??
+          null
+        );
+      },
+    ),
+    create: vi.fn(async (args: { data: Record<string, unknown> }) => {
+      const row: MockPasswordResetTokenRow = {
+        id: nextId("prt"),
+        userId: args.data.userId as string,
+        tokenHash: args.data.tokenHash as string,
+        expiresAt: (args.data.expiresAt as Date) ?? now(),
+        usedAt: (args.data.usedAt as Date | null) ?? null,
+        createdAt: now(),
+      };
+      mockDb.passwordResetTokens.push(row);
+      return row;
+    }),
+    deleteMany: vi.fn(
+      async (args: {
+        where: { userId: string; usedAt?: null };
+      }) => {
+        const before = mockDb.passwordResetTokens.length;
+        mockDb.passwordResetTokens = mockDb.passwordResetTokens.filter(
+          (t) =>
+            !(
+              t.userId === args?.where?.userId &&
+              (args?.where?.usedAt === null ? t.usedAt === null : true)
+            ),
+        );
+        return { count: before - mockDb.passwordResetTokens.length };
+      },
+    ),
+  },
+
+  // v1.0.6.5 (English 1.0.1.8) — اشتراک پوش OneSignal
+  pushSubscription: {
+    upsert: vi.fn(
+      async (args: {
+        where: { userId_subscriptionId: { userId: string; subscriptionId: string } };
+        create: Record<string, unknown>;
+        update: Record<string, unknown>;
+      }) => {
+        const { userId, subscriptionId } = args.where.userId_subscriptionId;
+        const row = mockDb.pushSubscriptions.find(
+          (p) => p.userId === userId && p.subscriptionId === subscriptionId,
+        );
+        if (row) {
+          Object.assign(row, args.update ?? {}, { updatedAt: now() });
+          return row;
+        }
+        const created: MockPushSubscriptionRow = {
+          id: nextId("push"),
+          userId,
+          subscriptionId,
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        mockDb.pushSubscriptions.push(created);
+        return created;
+      },
+    ),
+    deleteMany: vi.fn(
+      async (args: {
+        where: { userId: string; subscriptionId?: string };
+      }) => {
+        const before = mockDb.pushSubscriptions.length;
+        mockDb.pushSubscriptions = mockDb.pushSubscriptions.filter(
+          (p) =>
+            !(
+              p.userId === args?.where?.userId &&
+              (args?.where?.subscriptionId
+                ? p.subscriptionId === args?.where?.subscriptionId
+                : true)
+            ),
+        );
+        return { count: before - mockDb.pushSubscriptions.length };
       },
     ),
   },

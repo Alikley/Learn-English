@@ -133,6 +133,16 @@ export default function LoginForm() {
             </button>
           </form>
 
+          {/* v1.0.6.5 — بازیابی رمز عبور با SendGrid */}
+          <div className="mt-4 text-center">
+            <Link
+              href="/forgot-password"
+              className="text-sm text-slate-500 hover:text-blue-600 hover:underline transition-colors"
+            >
+              {tr("رمز عبورت را فراموش کردی؟", "Forgot your password?")}
+            </Link>
+          </div>
+
           <div className="mt-6 pt-5 border-t border-slate-100 text-center">
             <p className="text-sm text-slate-500">
               {tr("حساب کاربری نداری؟", "Don't have an account?")}{" "}

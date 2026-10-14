@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // ========================================
 // مسیر حیاتی ۱ — ثبت‌نام / ورود (v1.0.6.0 / English 1.0.1.3)
 //
-// POST /api/auth/register  +  Credentials authorize  +  Google link
+// POST /api/auth/register  +  Credentials authorize
 // + قانون ۱.۰.1.2 (streak با ثبت‌نام صفر می‌مانَد)  +  رگرسیون
 // ۱.۰.1.1 (کوکی سرگردان → نشست بدون کاربر؛ fail-open روی خطای DB)
 // ========================================
@@ -169,13 +169,13 @@ describe("Credentials authorize — ورود با رمز", () => {
     ).resolves.toBeNull();
   });
 
-  it("کاربرِ فقط-گوگلی (بدون رمز) → null (با رمز وارد نمی‌شود)", async () => {
+  it("کاربر بدون رمز عبور (رکورد ناقص) → null (با رمز وارد نمی‌شود)", async () => {
     mockDb.users.push({
-      id: "u-google-only",
-      name: "کاربر گوگلی",
+      id: "u-nopass-1",
+      name: "کاربر بدون رمز",
       nickname: null,
-      email: "google-only@test.dev",
-      image: "https://lh3.googleusercontent/photo",
+      email: "nopass@test.dev",
+      image: null,
       password: null,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -184,83 +184,17 @@ describe("Credentials authorize — ورود با رمز", () => {
     const authorize = getCredentialsAuthorize();
 
     await expect(
-      authorize({ email: "google-only@test.dev", password: "anything" }),
+      authorize({ email: "nopass@test.dev", password: "anything" }),
     ).resolves.toBeNull();
   });
 });
 
-describe("jwt callback — اتصال ورود با گوگل", () => {
+describe("jwt callback — ورود با رمز", () => {
   beforeEach(() => {
     resetMockDb();
   });
 
-  it("گوگل + ایمیل تازه → کاربر جدید با streak صفر و token.id=DB id", async () => {
-    const out = await authOptions.callbacks!.jwt!({
-      token: {} as never,
-      user: {
-        id: "google-sub-1",
-        name: "Sara Google",
-        email: "sara@gmail.test",
-        image: "https://lh3.googleusercontent.com/sara.png",
-      } as never,
-      account: { provider: "google" } as never,
-    });
-
-    const created = mockDb.users.find((u) => u.email === "sara@gmail.test");
-    expect(created).toBeTruthy();
-    expect(created!.id).not.toBe("google-sub-1"); // شناسهٔ DB، نه sub گوگل
-    expect(out.id).toBe(created!.id);
-
-    const streak = mockDb.streaks.find((s) => s.userId === created!.id);
-    expect(streak?.current).toBe(0);
-
-    expect(mockDb.users).toHaveLength(1);
-  });
-
-  it("گوگل + ایمیلی که قبلاً با رمز ثبت‌نام شده → همان حساب (اتصال)", async () => {
-    mockDb.users.push({
-      id: "u-existing-1",
-      name: "کاربر قدیمی",
-      nickname: null,
-      email: "old@test.dev",
-      image: null,
-      password: "hashed",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    const out = await authOptions.callbacks!.jwt!({
-      token: {} as never,
-      user: {
-        id: "google-sub-2",
-        name: "Old User",
-        email: "old@test.dev",
-        image: "https://lh3.googleusercontent.com/old.png",
-      } as never,
-      account: { provider: "google" } as never,
-    });
-
-    expect(out.id).toBe("u-existing-1");
-    expect(mockDb.users).toHaveLength(1); // هیچ کاربر تکراری ساخته نشد
-
-    // تصویر خالی با آواتار گوگل پر شد
-    expect(
-      mockDb.users.find((u) => u.id === "u-existing-1")?.image,
-    ).toContain("googleusercontent");
-  });
-
-  it("گوگل بدون ایمیل → بدون token.id (نشست مهمان می‌مانَد)", async () => {
-    const out = await authOptions.callbacks!.jwt!({
-      token: {} as never,
-      user: { id: "google-sub-3", name: "No Email" } as never,
-      account: { provider: "google" } as never,
-    });
-
-    expect(out.id).toBeUndefined();
-    expect(mockDb.users).toHaveLength(0);
-  });
-
-  it("ورود رمزی (بدون account گوگل) → token.id از خود کاربر", async () => {
+  it("ورود رمزی → token.id از خود کاربر", async () => {
     const out = await authOptions.callbacks!.jwt!({
       token: {} as never,
       user: { id: "u-plain-9" } as never,
