@@ -2,8 +2,6 @@
 
 // v1.0.5.2 — از page.tsx (سروری) جدا شد؛ فرم کلاینت ورود.
 // کاربرِ واردشده قبل از رندرِ این فرم، روی سرور به /home ریدایرکت می‌شود.
-// v1.0.6.0 (English 1.0.1.3) — دکمهٔ اختیاری «ورود با گوگل» (فقط وقتی
-// کلیدهای گوگل در .env تنظیم شده باشند از صفحهٔ سروری پاس داده می‌شود).
 import { localizeMessage } from "@/lib/message-i18n";
 import { useLanguage } from "@/app/context/LanguageContext";
 
@@ -13,15 +11,10 @@ import Link from "next/link";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
-import GoogleButton from "@/app/components/auth/GoogleButton";
 
 type LoginForm = { email: string; password: string };
 
-export default function LoginForm({
-  googleEnabled = false,
-}: {
-  googleEnabled?: boolean;
-}) {
+export default function LoginForm() {
   const { tr, dir } = useLanguage();
   const { login, isLoading } = useAuth();
   const [showPass, setShowPass] = useState(false);
@@ -139,23 +132,6 @@ export default function LoginForm({
               )}
             </button>
           </form>
-
-          {/* v1.0.6.0 — ورود با گوگل (فقط وقتی کلیدها تنظیم شده باشند) */}
-          {googleEnabled && (
-            <>
-              <div className="flex items-center gap-3 my-5">
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-                <span className="text-xs text-slate-400 font-medium">
-                  {tr("یا", "or")}
-                </span>
-                <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-              </div>
-              <GoogleButton
-                labelFa="ورود با گوگل"
-                labelEn="Continue with Google"
-              />
-            </>
-          )}
 
           <div className="mt-6 pt-5 border-t border-slate-100 text-center">
             <p className="text-sm text-slate-500">

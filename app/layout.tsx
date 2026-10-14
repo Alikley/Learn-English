@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/app/components/AppShell";
 import AuthGuard from "@/app/components/AuthGuard";
@@ -8,15 +7,10 @@ import { ThemeProvider } from "@/app/context/ThemeContext";
 import { LanguageProvider } from "@/app/context/LanguageContext";
 import Providers from "./Providers";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// v1.0.6.4 (English 1.0.1.7) — فونت‌ها از next/font/google حذف شدند
+// (به درخواست کاربر: هیچ وابستگی به سرویس‌های گوگل). حالا پشتهٔ
+// فونت سیستمیِ امن استفاده می‌شود — بدون هیچ دانلود/فچ گوگل موقع
+// dev/build (که در شبکهٔ ایران می‌توانست کند یا خطا بدهد).
 
 export const metadata: Metadata = {
   title: "Flex English",
@@ -40,7 +34,7 @@ export default function RootLayout({
     <html
       lang="fa"
       dir="rtl"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <head>

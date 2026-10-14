@@ -1,7 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import type { Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/prisma/Prisma client";
 
@@ -25,32 +24,11 @@ import { prisma } from "@/prisma/Prisma client";
 //
 // خطای موقت DB → نشست معتبر فرض می‌شود (رفتار ایمن: خروج گروهی
 // کاربران واقعی هنگام هیکپِ لحظه‌ای دیتابیس نداریم).
-// ========================================
-
-// ========================================
-// v1.0.6.0 (English 1.0.1.3) — ورود با گوگل
 //
-// فعال‌سازی: GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET در .env
-// (خالی = دکمهٔ گوگل در فرم‌ها مخفی می‌شود — مثل قبل).
-//
-// چطور بدون مایگریشن کار می‌کند؟
-//  NextAuth برای OAuth همیشه جدول Account می‌خواهد؛ به‌جای آن،
-//  اتصال در callback jwt انجام می‌شود:
-//   ۱) ایمیلی که گوگل (صاحبِ تأییدشدهٔ ایمیل) برمی‌گرداند را در
-//      جدول user جستجو می‌کنیم:
-//      - هست (مثلاً قبلاً با همان ایمیل ثبت‌نام کرده) → همان حساب
-//        به ورود با گوگل هم وصل می‌شود (کاهش اصطکاک!)
-//      - نیست → کاربر تازه با streak صفر (قانون ۱.۰.1.2: استریک
-//        فقط با تمام‌کردن فعالیت فعال می‌شود) ساخته می‌شود
-//   ۲) token.id = شناسهٔ رکورد DB → بقیهٔ زنجیره (چک سشن،
-//      AuthGuard و…) دقیقاً مثل ورود با رمز کار می‌کند
+// v1.0.6.4 (English 1.0.1.7) — حذف کامل ورود با گوگل:
+// provider گوگل، اتصال حساب و تمام کد/کلید/پروکسی مرتبط با آن
+// به درخواست کاربر حذف شدند. ورود فقط با ایمل + رمز عبور است.
 // ========================================
-
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-/** آیا ورود با گوگل با کلیدهای .env فعال شده است؟ */
-export const googleAuthEnabled = Boolean(googleClientId && googleClientSecret);
 
 const SESSION_USER_CHECK_TTL_MS = 60_000;
 const sessionUserCache = new Map<string, { ok: boolean; at: number }>();
@@ -75,55 +53,8 @@ async function sessionUserExists(userId: string): Promise<boolean> {
   return ok;
 }
 
-/** ساخت یا اتصال کاربر DB برای ورود با گوگل — خروجی: شناسهٔ کاربر DB */
-async function linkGoogleUser(profile: {
-  email?: string | null;
-  name?: string | null;
-  image?: string | null;
-}): Promise<string | null> {
-  const email = profile.email?.trim().toLowerCase() || null;
-  if (!email) return null; // گوگل ایمیل نداد → نشست بدون کاربر
-
-  const existing = await prisma.user.findUnique({ where: { email } });
-
-  if (existing) {
-    // اکانت موجود (مثلاً ثبت‌نام رمزی با همین ایمیل) → همان حساب
-    // پروفایل خالی را از گوگل تکمیل کن (بدون بازنویسی نام کاربر)
-    if (!existing.image && profile.image) {
-      try {
-        await prisma.user.update({
-          where: { id: existing.id },
-          data: { image: profile.image },
-        });
-      } catch {
-        // فقط تصویر بود — ناکامی مهم نیست
-      }
-    }
-    return existing.id;
-  }
-
-  // کاربر تازه — streak با current=0 (قانون ۱.۰.1.2)
-  const created = await prisma.user.create({
-    data: {
-      id: crypto.randomUUID(),
-      name: profile.name?.trim() || null,
-      nickname: profile.name?.trim() || null,
-      email,
-      image: profile.image ?? null,
-      streak: {
-        create: { current: 0, longest: 0 },
-      },
-    },
-    select: { id: true },
-  });
-
-  return created.id;
-}
-
 export const authOptions: NextAuthOptions = {
-  // v1.0.6.0 — adapter حذف شد: استراتژی jwt است و برای OAuth هم
-  // اتصال کاربر در callback jwt انجام می‌شود؛ جدول Account لازم
-  // نیست → بدون مایگریشن، دیتابیس دست نمی‌خورد.
+  // استراتژی jwt — جدول Account لازم نیست → بدون مایگریشن.
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
@@ -154,34 +85,9 @@ export const authOptions: NextAuthOptions = {
         return { id: user.id, name: user.name, email: user.email };
       },
     }),
-    // ⚙️ فقط وقتی کلیدها در .env هستند اضافه می‌شود
-    ...(googleAuthEnabled
-      ? [
-          GoogleProvider({
-            clientId: googleClientId as string,
-            clientSecret: googleClientSecret as string,
-          }),
-        ]
-      : []),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
-      // ---- ورود با گوگل: ساخت/اتصال کاربر DB ----
-      if (user && account?.provider === "google") {
-        const dbId = await linkGoogleUser({
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        });
-        if (!dbId) {
-          // بدون ایمیل قابل‌اتکا → نشست بدون کاربر
-          return token;
-        }
-        token.id = dbId;
-        return token;
-      }
-
-      // ---- ورود با رمز (رفتار قبلی) ----
+    async jwt({ token, user }) {
       if (user) token.id = user.id;
       return token;
     },

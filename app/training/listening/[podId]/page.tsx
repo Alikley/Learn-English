@@ -120,7 +120,6 @@ export default function ListeningPlayerPage() {
     const pickVoice = () => {
       const voices = window.speechSynthesis.getVoices();
       enVoiceRef.current =
-        voices.find((v) => /en[-_]/i.test(v.lang) && /google/i.test(v.name)) ||
         voices.find((v) => /en[-_]US/i.test(v.lang)) ||
         voices.find((v) => /en[-_]/i.test(v.lang)) ||
         null;
