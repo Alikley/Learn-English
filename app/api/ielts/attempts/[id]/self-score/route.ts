@@ -2,6 +2,8 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { parseTestSlug, getTestById } from "@/lib/ielts/real-tests";
 import { rawToBand } from "@/lib/ielts/grade";
 import { prisma } from "@/prisma/Prisma client";
+// v1.0.6.9 — اعلان ثبت نمرهٔ خودتصحیحی
+import { notifyUser, faDigits } from "@/lib/notify";
 // v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنهٔ خودتصحیحی
 import { validateJson, selfScoreSchema } from "@/lib/validation";
 
@@ -51,6 +53,17 @@ export async function POST(
   await prisma.ieltsAttempt.update({
     where: { id: attempt.id },
     data: { rawScore, totalQuestions: total, bandScore, selfScored: true },
+  });
+
+  // v1.0.6.9 — اعلان ثبت نمرهٔ خودتصحیحی (هرگز خطا نمی‌دهد)
+  const band = String(bandScore);
+  await notifyUser(auth.session.user.id, {
+    type: "ielts",
+    link: "/ielts",
+    titleFa: `نمرهٔ خودت ثبت شد — بند ${faDigits(band)}`,
+    titleEn: `Self-score recorded — band ${band}`,
+    textFa: `نمرهٔ خام ${faDigits(rawScore)} از ${faDigits(total)} ثبت شد و به بند ${faDigits(band)} تبدیل شد. نتیجهٔ کامل در صفحهٔ آزمون‌ها است.`,
+    textEn: `Your raw score ${rawScore}/${total} was recorded as band ${band}. The full result is on the exams page.`,
   });
 
   return ok({

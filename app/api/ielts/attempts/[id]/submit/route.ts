@@ -7,6 +7,26 @@ import { isAnswerCorrect, rawToBand, countWords } from "@/lib/ielts/grade";
 import { prisma } from "@/prisma/Prisma client";
 // v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنهٔ تحویل
 import { attemptSubmitSchema, answersToMap } from "@/lib/validation";
+// v1.0.6.9 — اعلان ثبت آزمون برای کاربر
+import { notifyUser, faDigits } from "@/lib/notify";
+
+/** نام فارسی مهارت برای متن اعلان */
+function skillFa(skill: string): string {
+  if (skill === "reading") return "ریدینگ";
+  if (skill === "listening") return "لیسنینگ";
+  return "رایتینگ";
+}
+
+/** نام انگلیسی مهارت (حرف اول بزرگ) برای متن اعلان */
+function skillEn(skill: string): string {
+  const s = skill === "reading" || skill === "listening" ? skill : "writing";
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** بند آیلتس به رشتهٔ خوانا — 7 → "7" و 7.5 → "7.5" */
+function formatBand(band: number): string {
+  return String(band);
+}
 
 // ========================================
 // POST /api/ielts/attempts/[id]/submit — تحویل (v1.0.3.6)
@@ -82,6 +102,18 @@ export async function POST(
         where: { id: attempt.id },
         data: { status: "SUBMITTED", submittedAt: new Date(), elapsedSec },
       });
+    });
+
+    // v1.0.6.9 — اعلان ثبت رایتینگ (بعد از تراکنش، هرگز خطا نمی‌دهد)
+    await notifyUser(auth.session.user.id, {
+      type: "ielts",
+      link: "/ielts",
+      titleFa: "متن رایتینگ ثبت شد ✍️",
+      titleEn: "Writing submitted ✍️",
+      textFa:
+        "متن تسک‌های رایتینگت ثبت شد. نمره را می‌توانی در صفحهٔ آزمون ببینی.",
+      textEn:
+        "Your writing tasks were recorded. You can view the result on the exam page.",
     });
 
     return ok({
@@ -178,6 +210,16 @@ export async function POST(
       });
     });
 
+    // v1.0.6.9 — اعلان آزمون تصحیح‌شده (بعد از تراکنش، هرگز خطا نمی‌دهد)
+    await notifyUser(auth.session.user.id, {
+      type: "ielts",
+      link: "/ielts",
+      titleFa: `آزمون آیلتس ثبت شد — بند ${faDigits(formatBand(rawToBand(rawScore)))}`,
+      titleEn: `IELTS exam submitted — band ${formatBand(rawToBand(rawScore))}`,
+      textFa: `کتاب ${faDigits(parsed.bookNumber)} — تست ${faDigits(parsed.testNumber)} (${skillFa(skill)}): نمرهٔ خام ${faDigits(rawScore)} از ${faDigits(meta.questions)}.`,
+      textEn: `Book ${parsed.bookNumber} — Test ${parsed.testNumber} (${skillEn(skill)}): raw score ${rawScore}/${meta.questions}.`,
+    });
+
     return ok({
       skill,
       status: "SUBMITTED" as const,
@@ -213,6 +255,18 @@ export async function POST(
         elapsedSec,
       },
     });
+  });
+
+  // v1.0.6.9 — اعلان حالت خودتصحیحی (بعد از تراکنش، هرگز خطا نمی‌دهد)
+  await notifyUser(auth.session.user.id, {
+    type: "ielts",
+    link: "/ielts",
+    titleFa: "آزمون ثبت شد — منتظر ورود نمرهٔ خودت",
+    titleEn: "Exam submitted — waiting for your score",
+    textFa:
+      "پاسخ‌نامهٔ رسمی برای این آزمون در دسترس نبود؛ نمرهٔ خام خودت را از پاسخ‌نامهٔ کتاب وارد کن.",
+    textEn:
+      "No official answer key was available; enter your raw score from the book's answer sheet.",
   });
 
   return ok({

@@ -458,6 +458,11 @@ describe("GET/POST /api/cron/streak-reminders — گیت امنیتی", () => {
   it("رمز درست + OneSignal → 200 + جمع‌بندی", async () => {
     process.env.CRON_SECRET = "top-secret";
     setKeys();
+    // v1.0.6.9 — تاریخِ نسبی «دیروز» (قبلاً ۲۰۲۶-۱۰-۱۳ هاردکد بود
+    // و بعد از آن روز، تستِ جاب خراب می‌شد — رفع بمب تاریخ)
+    const yesterdayActive = new Date();
+    yesterdayActive.setDate(yesterdayActive.getDate() - 1);
+    yesterdayActive.setHours(10, 0, 0, 0);
     // کاربر در-خطر
     mockDb.users.push({
       id: "u1",
@@ -474,7 +479,7 @@ describe("GET/POST /api/cron/streak-reminders — گیت امنیتی", () => {
       userId: "u1",
       current: 4,
       longest: 4,
-      lastActiveAt: new Date("2026-10-13T10:00:00"),
+      lastActiveAt: yesterdayActive,
     });
     mockDb.pushSubscriptions.push({
       id: "p1",

@@ -79,6 +79,21 @@ export type MockPushSubscriptionRow = {
   updatedAt: Date;
 };
 
+// v1.0.6.9 (English 1.0.1.12) — اعلان‌های واقعی کاربر
+export type MockNotificationRow = {
+  id: string;
+  userId: string;
+  type: string;
+  titleFa: string;
+  titleEn: string | null;
+  textFa: string;
+  textEn: string | null;
+  link: string | null;
+  isRead: boolean;
+  readAt: Date | null;
+  createdAt: Date;
+};
+
 export const mockDb = {
   users: [] as MockUserRow[],
   streaks: [] as MockStreakRow[],
@@ -87,6 +102,7 @@ export const mockDb = {
   listeningProgress: [] as MockListeningProgressRow[],
   passwordResetTokens: [] as MockPasswordResetTokenRow[],
   pushSubscriptions: [] as MockPushSubscriptionRow[],
+  notifications: [] as MockNotificationRow[],
 };
 
 let autoId = 0;
@@ -101,6 +117,7 @@ export function resetMockDb() {
   mockDb.listeningProgress = [];
   mockDb.passwordResetTokens = [];
   mockDb.pushSubscriptions = [];
+  mockDb.notifications = [];
   autoId = 0;
 }
 
@@ -115,6 +132,31 @@ function findUser(where: Record<string, unknown>): MockUserRow | null {
     return mockDb.users.find((u) => u.email === where.email) ?? null;
   }
   return null;
+}
+
+// v1.0.6.9 — فیلتر مشترک اعلان‌ها برای count/findMany/updateMany/deleteMany
+// where پشتیبانی‌شده: { userId?, isRead?, id? , id: { in: [...] } }
+function matchNotifications(
+  where: Record<string, unknown>,
+): MockNotificationRow[] {
+  let rows = mockDb.notifications.slice();
+  if (typeof where.userId === "string") {
+    rows = rows.filter((n) => n.userId === where.userId);
+  }
+  if (typeof where.isRead === "boolean") {
+    rows = rows.filter((n) => n.isRead === where.isRead);
+  }
+  if (typeof where.id === "string") {
+    rows = rows.filter((n) => n.id === where.id);
+  } else if (
+    where.id &&
+    typeof where.id === "object" &&
+    Array.isArray((where.id as { in?: string[] }).in)
+  ) {
+    const ids = new Set((where.id as { in: string[] }).in);
+    rows = rows.filter((n) => ids.has(n.id));
+  }
+  return rows;
 }
 
 /** ایجاد کاربر با پشتیبانی از streak تودرتو (مثل register) */
@@ -434,6 +476,88 @@ export const prismaMock = {
             ),
         );
         return { count: before - mockDb.pushSubscriptions.length };
+      },
+    ),
+  },
+
+  // v1.0.6.9 (English 1.0.1.12) — اعلان‌های واقعی کاربر
+  notification: {
+    create: vi.fn(async (args: { data: Record<string, unknown> }) => {
+      const row: MockNotificationRow = {
+        id: nextId("notif"),
+        userId: args.data.userId as string,
+        type: (args.data.type as string) ?? "system",
+        titleFa: (args.data.titleFa as string) ?? "",
+        titleEn: (args.data.titleEn as string | null) ?? null,
+        textFa: (args.data.textFa as string) ?? "",
+        textEn: (args.data.textEn as string | null) ?? null,
+        link: (args.data.link as string | null) ?? null,
+        isRead: false,
+        readAt: null,
+        createdAt: now(),
+      };
+      mockDb.notifications.push(row);
+      return row;
+    }),
+    count: vi.fn(
+      async (args: {
+        where?: { userId?: string; isRead?: boolean };
+      }) => matchNotifications(args?.where ?? {}).length,
+    ),
+    findMany: vi.fn(
+      async (args: {
+        where?: Record<string, unknown>;
+        orderBy?: { createdAt?: "asc" | "desc" };
+        take?: number;
+        select?: Record<string, unknown>;
+      }) => {
+        let rows = matchNotifications(args?.where ?? {});
+        const order = args?.orderBy?.createdAt;
+        if (order === "asc") {
+          rows = rows.sort(
+            (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+          );
+        } else if (order === "desc") {
+          rows = rows.sort(
+            (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+          );
+        }
+        if (typeof args?.take === "number" && args.take >= 0) {
+          rows = rows.slice(0, args.take);
+        }
+        // select { id: true } → فقط شناسه‌ها (همان الگوی prisma)
+        if (
+          args?.select &&
+          typeof args.select === "object" &&
+          "id" in args.select &&
+          Object.keys(args.select).length === 1
+        ) {
+          return rows.map((n) => ({ id: n.id }));
+        }
+        return rows;
+      },
+    ),
+    updateMany: vi.fn(
+      async (args: {
+        where?: Record<string, unknown>;
+        data?: Record<string, unknown>;
+      }) => {
+        const rows = matchNotifications(args?.where ?? {});
+        for (const row of rows) Object.assign(row, args?.data ?? {});
+        return { count: rows.length };
+      },
+    ),
+    deleteMany: vi.fn(
+      async (args: {
+        where?: Record<string, unknown>;
+      }) => {
+        const rows = matchNotifications(args?.where ?? {});
+        const ids = new Set(rows.map((n) => n.id));
+        const before = mockDb.notifications.length;
+        mockDb.notifications = mockDb.notifications.filter(
+          (n) => !ids.has(n.id),
+        );
+        return { count: before - mockDb.notifications.length };
       },
     ),
   },

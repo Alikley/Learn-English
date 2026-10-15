@@ -4,6 +4,7 @@ import { vocabModelsGuard, vocabDbError } from "@/lib/vocab-db";
 import { lookupLocalTranslation } from "@/lib/local-dictionary";
 import { NextRequest } from "next/server";
 import { VOCAB_BOX_WORD_LIMIT, VOCAB_WORD_PATTERN } from "@/types/vocabulary";
+import { notifyUser, faDigits } from "@/lib/notify";
 
 // ========================================
 // افزودن کلمه به جعبه لغت‌نامه (نسخه 1.0.1.8)
@@ -66,6 +67,18 @@ export async function POST(
     const item = await prisma.wordBoxItem.create({
       data: { boxId: id, word, translation },
     });
+
+    // v1.0.6.9 — اعلان پر شدن جعبه (هرگز خطا نمی‌دهد)
+    if (box.words.length + 1 >= VOCAB_BOX_WORD_LIMIT) {
+      await notifyUser(userId, {
+        type: "vocab",
+        link: "/vocabulary",
+        titleFa: `📦 جعبهٔ «${box.name}» پر شد`,
+        titleEn: `📦 Box "${box.name}" is full`,
+        textFa: `این جعبه به ${faDigits(VOCAB_BOX_WORD_LIMIT)} کلمه رسید — وقت مرور کلمه‌هایش است تا در حافظهٔ بلندمدت بمانند.`,
+        textEn: `This box reached ${VOCAB_BOX_WORD_LIMIT} words — time to review them so they stick in long-term memory.`,
+      });
+    }
 
     return ok(
       {

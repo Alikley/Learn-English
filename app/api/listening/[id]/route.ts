@@ -3,6 +3,7 @@ import { prisma } from "@/prisma/Prisma client";
 import { NextRequest } from "next/server";
 import { updateStreak } from "@/lib/streak";
 import { reportError } from "@/lib/report-error";
+import { notifyUser, faDigits } from "@/lib/notify";
 
 export async function GET(
   _req: NextRequest,
@@ -72,7 +73,8 @@ export async function POST(
 
     const episode = await prisma.listeningEpisode.findUnique({
       where: { id },
-      select: { gaps: true, xp: true },
+      // v1.0.6.9 — title/titleFa/titleEn برای اعلان تمام‌شدن اولین بار
+      select: { gaps: true, xp: true, title: true, titleEn: true, titleFa: true },
     });
 
     if (!episode) return err("قسمت یافت نشد", 404);
@@ -103,6 +105,9 @@ export async function POST(
     const existing = await prisma.listeningProgress.findUnique({
       where: { userId_episodeId: { userId, episodeId: id } },
     });
+
+    // v1.0.6.9 — اعلان فقط برای اولین تمام‌شدن: ردیف نبود یا completedAt تنها طعناً نشده بود
+    const wasFirst = !existing || existing.completedAt == null;
 
     if (existing && existing.stars >= stars) {
       // نتیجه قبلی بهتر بوده
@@ -136,6 +141,20 @@ export async function POST(
 
     // ✅ آپدیت streak
     await updateStreak(userId);
+
+    // v1.0.6.9 — اعلان تمام اولین بار (هرگز خطا نمی‌دهد)
+    if (wasFirst) {
+      const title = episode.titleFa ?? episode.title;
+      const titleEn = episode.titleEn ?? episode.title;
+      await notifyUser(userId, {
+        type: "listening",
+        link: "/listening",
+        titleFa: `🎧 «${title}» تمام شد`,
+        titleEn: `🎧 "${titleEn}" completed`,
+        textFa: `اپیزود شنیداری را با ${faDigits(stars)} ستاره تمام کردی. اپیزود بعدی منتظرت است.`,
+        textEn: `You finished this listening episode with ${stars} star(s). The next episode is waiting.`,
+      });
+    }
 
     return ok({
       correct,

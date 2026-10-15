@@ -31,6 +31,7 @@ model user {
   passwordResetTokens PasswordResetToken[]
   pushSubscriptions  PushSubscription[]
   aiUsageCounters   AiUsageCounter[]
+  notifications     Notification[]
 }
 
 model course {
@@ -512,4 +513,39 @@ model PushSubscription {
 
   @@unique([userId, subscriptionId])
   @@index([userId])
+}
+
+// ========================================
+// اعلان‌های واقعی کاربر (v1.0.6.9 / English 1.0.1.12)
+//
+// هر ردیف یک اعلانِ per-user است که از رویدادهای واقعی
+// سایت ساخته می‌شود (ثبت‌نام، استریک، دوره، بازی، آیلتس،
+// لغت‌نامه، شنیداری، کتاب) — lib/notify.ts ردیف‌ها را
+// می‌سازد و هرگز خطا نمی‌دهد تا مسیر اصلی نشکند.
+//
+// متن دوزبانه ذخیره می‌شود (fa همیشه پر است، en اختیاری)
+// و کلاینت بر اساس زبان سایت یکی را برمی‌گزیند.
+// هر کاربر حداکثر MAX_PER_USER (۸۰) اعلان نگه می‌دارد —
+// بعد از هر create، اعلان‌های «خوانده‌شدهٔ» قدیمی حذف می‌شوند.
+// ========================================
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  /// نوع اعلان: streak | course | ielts | game | vocab | listening | book | welcome | system
+  type      String    @db.VarChar(32)
+  titleFa   String    @db.VarChar(160)
+  titleEn   String?   @db.VarChar(160)
+  textFa    String    @db.Text
+  textEn    String?   @db.Text
+  /// لینک داخلی سایت برای دکمهٔ «مشاهده»
+  link      String?   @db.VarChar(200)
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
 }

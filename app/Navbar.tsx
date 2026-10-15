@@ -28,7 +28,8 @@ export default function Navbar({
   toggleSidebar: () => void;
   isOpen: boolean;
 }) {
-  const { notifications, unreadCount } = useNotifications();
+  const { notifications, unreadCount, markAsRead, formatTimeAgo } =
+    useNotifications();
   const { user, logout } = useAuth();
   const { streak } = useStreak();
   const { tr, dir } = useLanguage();
@@ -150,9 +151,13 @@ export default function Navbar({
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {recentNotifications.length > 0 ? (
                   recentNotifications.map((notif) => (
-                    <div
+                    // v1.0.6.9 — کلیک = رفتن به مقصد اعلان (یا خود /notif)
+                    // + علامت‌گذاری خوانده‌شده
+                    <Link
                       key={notif.id}
-                      className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      href={notif.link || "/notif"}
+                      onClick={() => markAsRead(notif.id)}
+                      className="flex items-start gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                     >
                       <div className="mt-1 shrink-0">
                         {notif.isRead ? (
@@ -174,10 +179,10 @@ export default function Navbar({
                           {notif.title}
                         </p>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                          {notif.date}
+                          {formatTimeAgo(notif.createdAt)}
                         </span>
                       </div>
-                    </div>
+                    </Link>
                   ))
                 ) : (
                   <p className="text-center text-sm text-slate-500 dark:text-slate-400 py-2">

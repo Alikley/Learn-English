@@ -1,4 +1,5 @@
 import { prisma } from "@/prisma/Prisma client";
+import { notifyUser, faDigits, STREAK_MILESTONES } from "@/lib/notify";
 
 /**
  * آپدیت streak بعد از تکمیل درس
@@ -44,7 +45,7 @@ export async function updateStreak(userId: string) {
     // ---- دیروز — ادامه streak ----
     if (lastActiveDay.getTime() === yesterdayStart.getTime()) {
       const newCurrent = existing.current + 1;
-      return await prisma.streak.update({
+      const updated = await prisma.streak.update({
         where: { userId },
         data: {
           current: newCurrent,
@@ -52,6 +53,23 @@ export async function updateStreak(userId: string) {
           lastActiveAt: now,
         },
       });
+
+      // v1.0.6.9 — اعلان در روزهای قشنگ (۳/۷/۱۴/۳۰/۵۰/۱۰۰/۳۶۵)
+      // notifyUser هرگز throw نمی‌کند → streak بی‌خطر می‌ماند
+      if (STREAK_MILESTONES.includes(newCurrent)) {
+        const nextMilestone =
+          STREAK_MILESTONES.find((m) => m > newCurrent) ?? newCurrent * 2;
+        await notifyUser(userId, {
+          type: "streak",
+          link: "/dashboard",
+          titleFa: `🔥 ${faDigits(newCurrent)} روز متوالی!`,
+          titleEn: `🔥 ${newCurrent}-day streak!`,
+          textFa: `هر روز این ${faDigits(newCurrent)} روز فعالیتی ثبت شده. ادامه بده — رکورد بعدی ${faDigits(nextMilestone)} روز است.`,
+          textEn: `You've stayed active ${newCurrent} days in a row. Keep going — next milestone is ${nextMilestone} days.`,
+        });
+      }
+
+      return updated;
     }
 
     // ---- فاصله بیش از ۱ روز — شکست streak ----

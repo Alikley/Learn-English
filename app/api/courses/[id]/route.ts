@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/Prisma client";
 import { requireAuth } from "@/lib/api-helpers";
+import { notifyUser } from "@/lib/notify";
 
 export async function GET(
   req: NextRequest,
@@ -74,6 +75,12 @@ export async function PATCH(
       return NextResponse.json({ error: "courseId missing" }, { status: 400 });
     }
 
+    // v1.0.6.9 — فقط «شروع تازه» اعلان می‌گیرد (بازثبت‌نام نه)
+    const existingEnrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+      select: { id: true },
+    });
+
     await prisma.enrollment.upsert({
       where: {
         userId_courseId: {
@@ -87,6 +94,27 @@ export async function PATCH(
         courseId,
       },
     });
+
+    // v1.0.6.9 — اعلان شروع دوره (هرگز خطا نمی‌دهد)
+    if (!existingEnrollment) {
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { title: true, titleEn: true },
+      });
+      if (course) {
+        const titleEn = course.titleEn ?? course.title;
+        await notifyUser(userId, {
+          type: "course",
+          link: "/courses",
+          titleFa: `دورهٔ «${course.title}» شروع شد`,
+          titleEn: `Course "${titleEn}" started`,
+          textFa:
+            "موفق باشی! درس‌های این دوره را یکی‌یکی جلو برو — پیشرفتت در صفحهٔ دوره ثبت می‌شود.",
+          textEn:
+            "Good luck! Work through the lessons one by one — your progress is tracked on the course page.",
+        });
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e) {
@@ -174,6 +202,27 @@ export async function POST(
     // ✅ آپدیت streak بعد از تکمیل درس
     const { updateStreak } = await import("@/lib/streak");
     await updateStreak(userId);
+
+    // v1.0.6.9 — اعلان پایان دوره وقتی آخرین درس تمام شد (هرگز خطا نمی‌دهد)
+    if (progressPercent === 100) {
+      const course = await prisma.course.findUnique({
+        where: { id: courseId },
+        select: { title: true, titleEn: true },
+      });
+      if (course) {
+        const titleEn = course.titleEn ?? course.title;
+        await notifyUser(userId, {
+          type: "course",
+          link: "/courses",
+          titleFa: `🎓 دورهٔ «${course.title}» کامل شد!`,
+          titleEn: `🎓 Course "${titleEn}" completed!`,
+          textFa:
+            "تمام درس‌های این دوره را تمام کردی. یک دورهٔ جدید انتخاب کن تا یادگیری ادامه پیدا کند.",
+          textEn:
+            "You finished every lesson in this course. Pick a new course to keep the momentum going.",
+        });
+      }
+    }
 
     return NextResponse.json({
       ok: true,

@@ -3,8 +3,12 @@ import { prisma } from "@/prisma/Prisma client";
 import { NextRequest } from "next/server";
 import { updateStreak, getStreak } from "@/lib/streak";
 import { reportError } from "@/lib/report-error";
+import { notifyUser, faDigits } from "@/lib/notify";
 
 const GAME_KEY = "speedquiz";
+// v1.0.6.9 — نام بازی برای اعلان رکورد جدید
+const GAME_FA = "کوییز سرعتی";
+const GAME_EN = "Speed Quiz";
 
 // ========================================
 // GET /api/game/speedquiz/result
@@ -172,6 +176,20 @@ export async function POST(req: NextRequest) {
           },
         });
         isNewRecord = score > 0;
+      }
+
+      // v1.0.6.9 — اعلان رکورد جدید (هرگز خطا نمی‌دهد)
+      if (isNewRecord && score > 0) {
+        await notifyUser(userId, {
+          type: "game",
+          link: "/game",
+          titleFa: `🏆 رکورد جدید در ${GAME_FA} (${faDigits(score)} امتیاز)`,
+          titleEn: `🏆 New record in ${GAME_EN} (${score} pts)`,
+          textFa:
+            "بهترین امتیازت در این بازی بالاتر رفت. از خودت جلو زدی — یک دور دیگر امتحان کن!",
+          textEn:
+            "Your best score just went up. You beat yourself — try another round!",
+        });
       }
 
       return ok({

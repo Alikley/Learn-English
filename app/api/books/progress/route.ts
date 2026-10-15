@@ -1,6 +1,7 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { ensureUserRow } from "@/lib/ensure-user";
 import { prisma } from "@/prisma/Prisma client";
+import { notifyUser } from "@/lib/notify";
 
 // ========================================
 // پیشرفت مطالعهٔ کتاب‌ها — v1.0.3.3 (گام ۴)
@@ -70,13 +71,22 @@ export async function POST(req: Request) {
     return err("تعداد صفحه نامعتبر است");
 
   // کتاب باید واقعاً وجود داشته باشد (FK)
+  // v1.0.6.9 — title/titleFa برای اعلان تمام‌شدن کتاب
   const book = await prisma.book.findUnique({
     where: { id: bookId },
-    select: { id: true },
+    select: { id: true, title: true, titleFa: true },
   });
   if (!book) return err("کتاب یافت نشد", 404);
 
   await ensureUserRow(auth.session);
+
+  // v1.0.6.9 — وضعیت قبلی برای اعلان: اعلان فقط وقتی است که
+  // «تمام‌شدن» تازه رخ داده باشد (قبلاً finished نبوده)
+  const existingProgress = await prisma.bookProgress.findUnique({
+    where: { userId_bookId: { userId: auth.session.user.id, bookId } },
+    select: { finished: true },
+  });
+  const wasFinishedBefore = existingProgress?.finished === true;
 
   const row = await prisma.bookProgress.upsert({
     where: { userId_bookId: { userId: auth.session.user.id, bookId } },
@@ -96,6 +106,19 @@ export async function POST(req: Request) {
       updatedAt: true,
     },
   });
+
+  // v1.0.6.9 — اعلان تمام‌شدن کتاب (هرگز خطا نمی‌دهد)
+  if (finished && !wasFinishedBefore) {
+    const title = book.titleFa ?? book.title;
+    await notifyUser(auth.session.user.id, {
+      type: "book",
+      link: "/library",
+      titleFa: `📖 کتاب «${title}» تمام شد`,
+      titleEn: `📖 Book "${book.title}" finished`,
+      textFa: "کل کتاب را خواندی! کتاب بعدی را از کتابخانه انتخاب کن.",
+      textEn: "You read the whole book! Pick your next one from the library.",
+    });
+  }
 
   return ok(row);
 }

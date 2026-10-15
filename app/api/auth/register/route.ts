@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/prisma/Prisma client";
 import { reportError } from "@/lib/report-error";
+import { notifyUser } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,6 +47,18 @@ export async function POST(req: NextRequest) {
         name: true,
         email: true,
       },
+    });
+
+    // v1.0.6.9 — اعلان خوش‌آمد (هرگز خطا نمی‌دهد)
+    await notifyUser(user.id, {
+      type: "welcome",
+      link: "/courses",
+      titleFa: "به Flex English خوش آمدی 👋",
+      titleEn: "Welcome to Flex English 👋",
+      textFa:
+        "سفر یادگیری‌ات شروع شد! هر روز حداقل یک فعالیت را کامل کن (درس، بازی یا آزمون) تا استریک روزهای متوالی‌ات روشن بماند. از «دوره‌های من» شروع کن.",
+      textEn:
+        'Your learning journey starts now! Complete at least one activity each day (lesson, game or exam) to keep your streak alive. Start from "My Courses".',
     });
 
     return NextResponse.json({ user }, { status: 201 });
