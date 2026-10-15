@@ -9,17 +9,27 @@ import {
   type OutboundResult,
 } from "@/lib/outbound-proxy";
 import { isSendgridConfigured } from "@/lib/sendgrid";
+import {
+  getEmailRelayUrl,
+  probeEmailRelay,
+  type EmailRelayProbe,
+} from "@/lib/email-relay";
 import { isOneSignalConfigured, onesignalAuthHeader } from "@/lib/onesignal";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // ========================================
-// GET /api/notify/diagnose (v1.0.6.7 / English 1.0.1.10)
+// GET /api/notify/diagnose (v1.0.6.8 / English 1.0.1.11)
 //
 // «تشخیص خودکار» مشکلات ایمیل (SendGrid) و پوش (OneSignal):
 //  - هیچ ایمیلی و هیچ پوشی ارسال نمی‌شود (فقط GET)
 //  - هیچ مقدار کلیدی در پاسخ لو نمی‌رود (فقط وضعیت)
+//
+// v1.0.6.8 — چک‌های «رلهٔ Cloudflare» اضافه شد:
+//   5) EMAIL_RELAY_URL تنظیم شده؟ Worker زنده است (/health)؟
+//      کلید رله درست است (/verify = 200 یا 401)؟ SendGrid داخل
+//      Worker تنظیم شده؟ — هر علتِ احتمالیِ رله با پیام دقیق
 //
 // v1.0.6.7 — سه اصلاح مهم بر پایهٔ گزارش واقعی ۱.۰.1.9:
 //  1) «مستقیم» این‌بار واقعاً مستقیم است (forceDirect) — قبلاً
@@ -33,6 +43,10 @@ export const runtime = "nodejs";
 //     می‌شود (قبلاً بی‌دلیل از پروکسی می‌گذشت).
 //
 // بررسی‌ها:
+//  رلهٔ Cloudflare (جدید):
+//   5) GET /health بدون کلید → زنده‌بودن Worker + تنظیم‌بودن
+//      SendGrid داخلش · GET /verify با کلید → 401 = کلید رله
+//      غلط · 200 = درست
 //  SendGrid:
 //   1) کلید → GET api.sendgrid.com/v3/scopes (مستقیمِ واقعی + از
 //      مسیر پیش‌فرض = پروکسی اگر زنده باشد)
@@ -241,15 +255,19 @@ async function handle(req: NextRequest) {
     // ── همهٔ چک‌ها موازی (v1.0.6.7 — تأخیر ~۱۱ ثانیه‌ای حذف شد) ──
     const sendgridOn = Boolean(process.env.SENDGRID_API_KEY);
     const onesignalOn = isOneSignalConfigured();
+    // v1.0.6.8 — رلهٔ Cloudflare (EMAIL_RELAY_URL)
+    const relayOn = Boolean(getEmailRelayUrl());
 
     const [
       probe,
+      relayProbe,
       sendgridKey,
       sendgridSender,
       onesignalApp,
       worker,
     ] = await Promise.all([
       proxyUrl ? probeOutboundProxy() : Promise.resolve(null),
+      relayOn ? probeEmailRelay() : Promise.resolve(null),
       sendgridOn
         ? checkSendgridKey()
         : Promise.resolve<KeyCheck>({ direct: { tested: false, brief: "" }, viaProxy: { tested: false, brief: "" } }),
@@ -307,21 +325,72 @@ async function handle(req: NextRequest) {
       }
     }
 
+    // ── رلهٔ ایمیل Cloudflare (v1.0.6.8) ──
+    const relayHealthy = Boolean(
+      relayOn &&
+        relayProbe &&
+        relayProbe.keyConfigured &&
+        relayProbe.health.ok &&
+        relayProbe.health.workerSendgridConfigured !== false &&
+        relayProbe.verify.ok,
+    );
+    if (relayOn && relayProbe) {
+      if (!relayProbe.keyConfigured) {
+        verdicts.push({
+          level: "error",
+          fa: `رلهٔ Cloudflare تنظیم شده (${relayProbe.host}) ولی EMAIL_RELAY_KEY خالی است — همان مقدار RELAY_KEY که در Worker ذخیره کردید را در .env بگذارید و سرور را ری‌استارت کنید`,
+          en: `Cloudflare relay is configured (${relayProbe.host}) but EMAIL_RELAY_KEY is empty — set it to the same RELAY_KEY you saved in the Worker and restart the server`,
+        });
+      } else if (!relayProbe.health.tested || !relayProbe.health.ok) {
+        verdicts.push({
+          level: "error",
+          fa: `Worker رله (${relayProbe.host}) در دسترس نیست (${relayProbe.health.brief}) — آدرس EMAIL_RELAY_URL را چک کنید؛ اگر workers.dev از سرور شما فیلتر است، به Worker یک Custom Domain ببندید (Workers → Settings → Domains & Routes) و همان را در EMAIL_RELAY_URL بگذارید`,
+          en: `Relay Worker (${relayProbe.host}) is unreachable (${relayProbe.health.brief}) — check EMAIL_RELAY_URL; if workers.dev is filtered from your server, attach a Custom Domain to the Worker (Workers → Settings → Domains & Routes) and use it instead`,
+        });
+      } else if (relayProbe.health.workerSendgridConfigured === false) {
+        verdicts.push({
+          level: "error",
+          fa: `Worker رله زنده است ولی SendGrid داخلش تنظیم نشده — در داشبورد Worker: Settings → Variables and Secrets → SENDGRID_API_KEY و SENDGRID_FROM_EMAIL (به‌صورت Secret) اضافه کنید`,
+          en: `Relay Worker is alive but SendGrid is not configured inside it — Worker dashboard → Settings → Variables and Secrets → add SENDGRID_API_KEY and SENDGRID_FROM_EMAIL (as Secrets)`,
+        });
+      } else if (relayProbe.verify.status === 401) {
+        verdicts.push({
+          level: "error",
+          fa: `کلید رله از سمت Worker پذیرفته نشد (HTTP 401) — مقدار EMAIL_RELAY_KEY باید عیناً با RELAY_KEY داخل Worker یکی باشد (کپی دوباره کنید؛ بدون کوتیشن/فاصله)`,
+          en: `Relay key rejected by the Worker (HTTP 401) — EMAIL_RELAY_KEY must exactly match the RELAY_KEY stored in the Worker (copy it again; no quotes/spaces)`,
+        });
+      } else if (relayProbe.verify.ok) {
+        verdicts.push({
+          level: "ok",
+          fa: `رلهٔ ایمیل Cloudflare فعال و سالم است (${relayProbe.host} — ${relayProbe.health.brief}) ✔ — ایمیل‌ها از IP سالم Cloudflare به SendGrid می‌روند؛ نه VPN لازم است نه IP سرور (مناسب سرور داخل ایران / دامنهٔ .ir بدون فیلترشکن)`,
+          en: `Cloudflare email relay is active and healthy (${relayProbe.host} — ${relayProbe.health.brief}) ✔ — emails go to SendGrid from a clean Cloudflare IP; no VPN and no specific server IP needed (works from servers inside Iran / .ir domains)`,
+        });
+      } else {
+        verdicts.push({
+          level: "warn",
+          fa: `وضعیت کلید رله نامشخص است (${relayProbe.verify.brief})`,
+          en: `Relay key status unclear (${relayProbe.verify.brief})`,
+        });
+      }
+    }
+
     // SendGrid
-    if (!isSendgridConfigured()) {
+    if (!relayOn && !isSendgridConfigured()) {
       verdicts.push({
         level: "info",
         fa: "SendGrid تنظیم نشده (حالت توسعه) — لینک بازیابی فقط در کنسول سرور چاپ می‌شود",
         en: "SendGrid not configured (dev mode) — reset link is only logged on the server",
       });
-    } else {
+    } else if (sendgridOn) {
       const st = sendgridKey.direct.status;
       if (st === 200) {
         verdicts.push({
           level: "ok",
-          fa: proxy.configured
-            ? "کلید SendGrid از IP این سرور پذیرفته شد (سالم) — می‌توانید OUTBOUND_PROXY_URL را خالی بگذارید"
-            : "کلید SendGrid از این IP پذیرفته شد (سالم)",
+          fa: relayHealthy
+            ? "کلید SendGrid از IP این سرور پذیرفته شد (سالم) — ایمیل‌ها از رلهٔ Cloudflare می‌روند"
+            : proxy.configured
+              ? "کلید SendGrid از IP این سرور پذیرفته شد (سالم) — می‌توانید OUTBOUND_PROXY_URL را خالی بگذارید"
+              : "کلید SendGrid از این IP پذیرفته شد (سالم)",
           en: "SendGrid key accepted from this IP (valid)",
         });
       } else if (st === 401 || st === 403) {
@@ -337,6 +406,12 @@ async function handle(req: NextRequest) {
             fa: "IP مبدا بلاک تحریمی است (451) ولی کلید از طریق پروکسی کار می‌کند ✔ — ایمیل‌ها با OUTBOUND_PROXY_URL ارسال می‌شوند",
             en: "Origin IP is sanctions-blocked (451) but the key works via proxy ✔ — emails will send through OUTBOUND_PROXY_URL",
           });
+        } else if (relayHealthy) {
+          verdicts.push({
+            level: "info",
+            fa: "IP مبدا بلاک تحریمی است (451) — ولی مشکلی نیست: رلهٔ Cloudflare سالم است و ایمیل‌ها از آن می‌روند",
+            en: "Origin IP is sanctions-blocked (451) — not a problem: the Cloudflare relay is healthy and emails go through it",
+          });
         } else {
           const proxyPart = proxy.configured
             ? proxy.probe && !proxy.probe.reachable
@@ -345,10 +420,13 @@ async function handle(req: NextRequest) {
                 ? ` — تست از پروکسی هم ناموفق بود (${sendgridKey.viaProxy.brief}؛ VPN را در حالت TUN/سیستمی بررسی کنید)`
                 : ""
             : "";
+          const relayPart = !relayOn
+            ? " راه‌حل قطعی و بدون VPN (برای سرور داخل ایران / .ir): رلهٔ Cloudflare — فایل workers/email-relay/worker.js را مستقر کنید (راهنمای ۵ دقیقه‌ای در DEPLOY.md) و EMAIL_RELAY_URL + EMAIL_RELAY_KEY را در .env تنظیم کنید."
+            : " — رلهٔ Cloudflare هم تنظیم شده ولی سالم نیست (verdict بالاتر علت را می‌گوید).";
           verdicts.push({
             level: "error",
-            fa: `IP مبدا بلاک تحریمی است (451 — کلید و فرستنده سالم‌اند). راه‌حل: VPN (v2rayN) را روشن کنید و در .env مقدار OUTBOUND_PROXY_URL را روی پروکسی آن بگذارید (مثلاً socks5://127.0.0.1:10808) و سرور را ری‌استارت کنید${proxyPart}`,
-            en: `Origin IP is sanctions-blocked (451 — key and sender are fine). Fix: turn on your VPN, set OUTBOUND_PROXY_URL in .env (e.g. socks5://127.0.0.1:10808) and restart the server`,
+            fa: `IP مبدا بلاک تحریمی است (451 — کلید و فرستنده سالم‌اند). راه‌حل: VPN (v2rayN) را روشن کنید و در .env مقدار OUTBOUND_PROXY_URL را روی پروکسی آن بگذارید (مثلاً socks5://127.0.0.1:10808) و سرور را ری‌استارت کنید${proxyPart}.${relayPart}`,
+            en: `Origin IP is sanctions-blocked (451 — key and sender are fine). Fix: turn on your VPN, set OUTBOUND_PROXY_URL in .env (e.g. socks5://127.0.0.1:10808) and restart the server — or deploy the free Cloudflare email relay (workers/email-relay/worker.js) and set EMAIL_RELAY_URL + EMAIL_RELAY_KEY`,
           });
         }
       } else if (!st) {
@@ -432,6 +510,14 @@ async function handle(req: NextRequest) {
       elapsedMs: Date.now() - startedAt,
       siteOrigin,
       proxy,
+      relay: {
+        configured: relayOn,
+        host: relayProbe?.host ?? "",
+        keyConfigured: relayProbe?.keyConfigured ?? Boolean(process.env.EMAIL_RELAY_KEY),
+        health: relayProbe?.health ?? { tested: false, ok: false, brief: "" },
+        verify: relayProbe?.verify ?? { tested: false, ok: false, brief: "" },
+        healthy: relayHealthy,
+      },
       sendgrid: {
         configured: isSendgridConfigured(),
         keyCheck: sendgridKey,

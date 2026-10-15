@@ -1,0 +1,45 @@
+# ============================================================
+# Flex English — Email Relay Worker
+# wrangler.toml فقط برای استقرار با CLI لازم است.
+#
+# راه ساده‌تر (پیشنهادی — بدون نصب چیزی):
+#   داشبورد Cloudflare → Workers & Pages → Create Worker
+#   → «Edit code» → محتوای worker.js را جای‌گذاری → Deploy
+#   → Secrets را از Settings → Variables and Secrets اضافه کنید
+#   (راهنمای گام‌به‌گام: DEPLOY.md بخش ۱.۰.1.11 و کامنت‌های .env)
+#
+# استقرار با CLI (اختیاری):
+#   npm install -g wrangler
+#   wrangler login
+#   در همین پوشه:
+#     wrangler secret put RELAY_KEY           # openssl rand -hex 16
+#     wrangler secret put SENDGRID_API_KEY    # همان SG.xxx خودتان
+#     wrangler secret put SENDGRID_FROM_EMAIL # فرستندهٔ Verified
+#     wrangler deploy
+#   بعد از deploy، آدرس https://flex-english-email-relay.<subdomain>.workers.dev
+#   را در EMAIL_RELAY_URL اپ بگذارید.
+#
+# تست سریع بعد از استقرار:
+#   curl https://…workers.dev/health
+#   curl -H "X-Relay-Key: <همان RELAY_KEY>" https://…workers.dev/verify
+#
+# اگر workers.dev از سرور شما در دسترس نبود (فیلتر)، به Worker
+# یک Custom Domain ببندید:
+#   Workers & Pages → این Worker → Settings → Domains & Routes
+#   → Add → Custom domain (مثلاً mail.example.com)
+# و همان دامنه را در EMAIL_RELAY_URL بگذارید.
+# ============================================================
+
+name = "flex-english-email-relay"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# Secrets با «wrangler secret put» یا داشبورد تنظیم می‌شوند
+# (این‌جا عمداً خالی است — کلید داخل فایل کانفیگ جایی ندارد):
+#   RELAY_KEY · SENDGRID_API_KEY · SENDGRID_FROM_EMAIL
+# متغیرهای اختیاری:
+#   SENDGRID_FROM_NAME  = "Flex English"
+#   SENDGRID_API_URL    = فقط برای تست داخلی (پیش‌فرض: https://api.sendgrid.com/v3/mail/send)
+
+[observability]
+enabled = true
