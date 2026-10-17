@@ -92,7 +92,7 @@ export async function validateJson<S extends z.ZodTypeAny>(
 
 /** شمارهٔ کتاب ۱..۲۱ (از query/param — رشتهٔ عددی) */
 export const bookIdParam = z.coerce
-  .number({ invalid_type_error: `کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})` })
+  .number({ error: `کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})` })
   .int(`کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})`)
   .min(1, `کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})`)
   .refine((n) => n <= IELTS_BOOK_COUNT, {
@@ -102,7 +102,7 @@ export const bookIdParam = z.coerce
 /** شمارهٔ کتاب در مسیر /api/ielts/books/[bookId] — پیام همان روت (۴۰۴) */
 export const bookIdPathParam = z.coerce
   .number({
-    invalid_type_error: `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`,
+    error: `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`,
   })
   .int(`شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`)
   .min(1, `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`)
@@ -112,7 +112,7 @@ export const bookIdPathParam = z.coerce
 
 /** شمارهٔ تست ۱..۴ */
 export const testIdParam = z.coerce
-  .number({ invalid_type_error: "تست نامعتبر است (۱..۴)" })
+  .number({ error: "تست نامعتبر است (۱..۴)" })
   .int("تست نامعتبر است (۱..۴)")
   .min(1, "تست نامعتبر است (۱..۴)")
   .max(4, "تست نامعتبر است (۱..۴)");
@@ -127,7 +127,7 @@ export const skillParam = z
 /** شمارهٔ کتاب در بدنهٔ POST /api/ielts/attempts */
 export const bookIdBody = z.coerce
   .number({
-    invalid_type_error: `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`,
+    error: `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`,
   })
   .int(`شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`)
   .min(1, `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`)
@@ -137,21 +137,21 @@ export const bookIdBody = z.coerce
 
 /** شمارهٔ تست در بدنهٔ POST /api/ielts/attempts */
 export const testIdBody = z.coerce
-  .number({ invalid_type_error: "شناسهٔ تست نامعتبر است (۱ تا ۴)" })
+  .number({ error: "شناسهٔ تست نامعتبر است (۱ تا ۴)" })
   .int("شناسهٔ تست نامعتبر است (۱ تا ۴)")
   .min(1, "شناسهٔ تست نامعتبر است (۱ تا ۴)")
   .max(4, "شناسهٔ تست نامعتبر است (۱ تا ۴)");
 
 /** مهارت در بدنهٔ POST /api/ielts/attempts */
 export const skillBody = z
-  .string({ invalid_type_error: "مهارت نامعتبر است" })
+  .string({ error: "مهارت نامعتبر است" })
   .refine((v) => v === "reading" || v === "listening" || v === "writing", {
     message: "مهارت نامعتبر است",
   });
 
 /** حالت تمرین/آزمون در بدنهٔ POST /api/ielts/attempts */
 export const modeBody = z
-  .string({ invalid_type_error: "حالت نامعتبر است" })
+  .string({ error: "حالت نامعتبر است" })
   .refine((v) => v === "practice" || v === "exam", {
     message: "حالت نامعتبر است",
   });
@@ -185,7 +185,7 @@ export const attemptSubmitSchema = z.object({
 /** بدنهٔ خودتصحیحی: { rawScore } — عدد صحیح ≥ ۰ */
 export const selfScoreSchema = z.object({
   rawScore: z.coerce
-    .number({ invalid_type_error: "نمرهٔ خام نامعتبر است" })
+    .number({ error: "نمرهٔ خام نامعتبر است" })
     .int("نمرهٔ خام نامعتبر است")
     .min(0, "نمرهٔ خام نامعتبر است"),
 });
@@ -193,7 +193,7 @@ export const selfScoreSchema = z.object({
 /** بدنهٔ اصلاح رایتینگ: { text } — متن دانشجو */
 export const writingCorrectSchema = z.object({
   text: z
-    .string({ invalid_type_error: "درخواست نامعتبر است" })
+    .string({ error: "درخواست نامعتبر است" })
     .optional()
     .default(""),
 });
@@ -201,7 +201,7 @@ export const writingCorrectSchema = z.object({
 /** بدنهٔ ترجمهٔ لغت: { word } — فقط یک کلمهٔ انگلیسی معتبر */
 export const translateWordSchema = z.object({
   word: z
-    .string({ invalid_type_error: "فقط یک کلمه انگلیسی معتبر بفرستید" })
+    .string({ error: "فقط یک کلمه انگلیسی معتبر بفرستید" })
     .optional()
     .default("")
     .refine((v) => v.trim() !== "" && VOCAB_WORD_PATTERN.test(v.trim()), {
