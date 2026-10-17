@@ -61,7 +61,7 @@ export default function ExamTopBar({
     }, 1000);
     return () => clearInterval(id);
     // وابسته به isExam فقط — تایمر یک‌بار راه می‌افتد
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const danger = isExam && count <= 300 && count > 0;

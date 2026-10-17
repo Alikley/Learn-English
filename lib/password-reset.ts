@@ -18,7 +18,7 @@
 // ========================================
 
 import crypto from "crypto";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 
 /** عمر توکن — ۳۰ دقیقه */
 export const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;

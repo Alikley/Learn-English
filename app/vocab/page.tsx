@@ -6,7 +6,7 @@ import PageLoading from "@/app/components/PageLoading";
 import { useState } from "react";
 import { motion } from "motion/react";
 import { FolderPlus, Loader2, LogIn, X, AlertTriangle } from "lucide-react";
-import { useVocabularyBoxes } from "@/app/hook/useVocabularyBoxes";
+import { useVocabularyBoxes } from "@/app/hooks/useVocabularyBoxes";
 import { BoxCard, EmptyBoxesHint } from "@/app/components/vocabulary/BoxCard";
 
 // ========================================

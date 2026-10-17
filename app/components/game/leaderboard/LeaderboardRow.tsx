@@ -3,7 +3,7 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import { motion } from "motion/react";
 import type { LucideIcon } from "lucide-react";
-import type { LeaderRow } from "@/app/hook/game/useLeaderboard";
+import type { LeaderRow } from "@/app/hooks/game/useLeaderboard";
 
 // ========================================
 // یک ردیف جدول برترین‌ها

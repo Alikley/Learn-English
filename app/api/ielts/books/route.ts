@@ -3,7 +3,7 @@ import { scanCambridge } from "@/lib/b2-cambridge";
 import { IELTS_BOOKS } from "@/lib/ielts/real-tests";
 import { toAttemptSummary, ATTEMPT_SELECT } from "@/lib/ielts/attempt-view";
 import { hasLocalPdf } from "@/lib/ielts/pdf-text";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import type { IeltsBookSummary, IeltsScanInfo } from "@/types/ielts";
 
 // ========================================

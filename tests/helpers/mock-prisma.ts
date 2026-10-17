@@ -188,6 +188,9 @@ function createUser(data: Record<string, unknown>): MockUserRow {
 }
 
 export const prismaMock = {
+  // v1.0.7.0 (English 1.0.1.13) — چک سلامت دیتابیس (/api/uptime/health)
+  $queryRaw: vi.fn(async () => [{ 1: 1 }]),
+
   user: {
     findUnique: vi.fn(
       async (args: { where: Record<string, unknown> }) =>

@@ -4,7 +4,7 @@ import { useLanguage } from "@/app/context/LanguageContext";
 import { motion, AnimatePresence } from "motion/react";
 import { BookOpen, TextQuote, Lightbulb } from "lucide-react";
 import type { SpeedQuizQuestion } from "@/types/game";
-import type { SpeedQuizFeedback } from "@/app/hook/game/useSpeedQuizGame";
+import type { SpeedQuizFeedback } from "@/app/hooks/game/useSpeedQuizGame";
 import { SPEEDQUIZ_CATEGORY_LABELS } from "@/data/speedquiz/questions";
 import QuizResultBanner from "./QuizResultBanner";
 import QuizBadges from "./QuizBadges";

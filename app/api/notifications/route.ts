@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { reportError } from "@/lib/report-error";
 

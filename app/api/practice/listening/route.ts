@@ -1,5 +1,5 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { PODCASTS } from "@/data/training/podcasts";
 import type { ListeningItem } from "@/types/training";
 

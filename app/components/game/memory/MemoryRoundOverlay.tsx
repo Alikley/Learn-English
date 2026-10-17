@@ -3,7 +3,7 @@ import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { ArrowLeft, Zap, PartyPopper, CheckCircle2 } from "lucide-react";
-import type { MemoryRoundInfo } from "@/app/hook/game/useMemoryGame";
+import type { MemoryRoundInfo } from "@/app/hooks/game/useMemoryGame";
 import { MEMORY_CONFIG } from "@/types/game";
 
 // ========================================

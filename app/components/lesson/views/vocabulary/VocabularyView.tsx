@@ -73,7 +73,7 @@ export default function VocabularyView({
       stopped = true;
       stop();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [cardIndex, step]);
 
   const playWord = () => {

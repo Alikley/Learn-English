@@ -6,7 +6,7 @@ import CourseCard from "@/app/components/course/CourseCard";
 import EmptyState from "@/app/components/course/EmptyState";
 import GirlCharacter from "@/app/components/course/GirlCharacter";
 import { TOPIC_GROUPS } from "@/types/course";
-import { useCourses } from "../hook/course/useCourses";
+import { useCourses } from "../hooks/course/useCourses";
 import { BookOpen, Sparkles, TrendingUp, GraduationCap } from "lucide-react";
 
 // ========================================

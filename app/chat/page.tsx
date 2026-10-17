@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { MessageCircle, Loader2, MessagesSquare, AlertCircle, X } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
-import { useChat } from "@/app/hook/chat/useChat";
+import { useChat } from "@/app/hooks/chat/useChat";
 import ChatComposer from "@/app/components/chat/ChatComposer";
 import ChatMessageCard from "@/app/components/chat/ChatMessageCard";
 import ChatPagination from "@/app/components/chat/ChatPagination";

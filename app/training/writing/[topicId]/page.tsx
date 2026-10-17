@@ -10,7 +10,7 @@ import type { WritingFeedback, WritingTopic } from "@/types/training";
 import { Stars } from "@/app/components/practice/PracticeBits";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
-import { recordStreakActivity } from "@/app/hook/ui/useStreak";
+import { recordStreakActivity } from "@/app/hooks/ui/useStreak";
 import PromptCard from "./_components/PromptCard";
 import EditorToolbar from "./_components/EditorToolbar";
 import WritingFeedbackView, { starsOfScore } from "./_components/WritingFeedbackView";

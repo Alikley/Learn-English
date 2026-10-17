@@ -1,4 +1,4 @@
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 
 // ========================================
 // سقف مصرف روزانهٔ هوش مصنوعی (v1.0.5.0 / English 1.0.1.0)

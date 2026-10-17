@@ -16,7 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 //    پروبِ پروکسی در پاسخ + verdict دقیق «VPN روشن نیست»
 // ========================================
 
-vi.mock("@/prisma/Prisma client", async () => {
+vi.mock("@/prisma/prisma-client", async () => {
   const { prismaMock } = await import("./helpers/mock-prisma");
   return { prisma: prismaMock };
 });

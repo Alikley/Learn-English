@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // ۱.۰.1.1 (کوکی سرگردان → نشست بدون کاربر؛ fail-open روی خطای DB)
 // ========================================
 
-vi.mock("@/prisma/Prisma client", async () => {
+vi.mock("@/prisma/prisma-client", async () => {
   const { prismaMock } = await import("./helpers/mock-prisma");
   return { prisma: prismaMock };
 });

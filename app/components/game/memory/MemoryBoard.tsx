@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import MemoryCard from "./MemoryCard";
-import type { MemoryCardItem } from "@/app/hook/game/useMemoryGame";
+import type { MemoryCardItem } from "@/app/hooks/game/useMemoryGame";
 
 // ========================================
 // تخته بازی حافظه — شبکه کارت‌ها

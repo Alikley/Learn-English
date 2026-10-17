@@ -1,7 +1,7 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { parseTestSlug, getTestById } from "@/lib/ielts/real-tests";
 import { rawToBand } from "@/lib/ielts/grade";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 // v1.0.6.9 — اعلان ثبت نمرهٔ خودتصحیحی
 import { notifyUser, faDigits } from "@/lib/notify";
 // v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنهٔ خودتصحیحی

@@ -1,5 +1,5 @@
 import { requireAuth, ok } from "@/lib/api-helpers";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 
 const CATEGORIES = [
   {

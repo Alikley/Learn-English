@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { Check, X } from "lucide-react";
 import type { SpeedQuizQuestion } from "@/types/game";
-import type { SpeedQuizFeedback } from "@/app/hook/game/useSpeedQuizGame";
+import type { SpeedQuizFeedback } from "@/app/hooks/game/useSpeedQuizGame";
 
 // ========================================
 // گزینه‌های چهارگانه کوییز سرعتی — با انیمیشن:

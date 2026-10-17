@@ -1,4 +1,4 @@
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 
 // ========================================
 // سازندهٔ اعلان‌های واقعی کاربر (v1.0.6.9 / English 1.0.1.12)

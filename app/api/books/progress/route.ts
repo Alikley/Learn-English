@@ -1,6 +1,6 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { ensureUserRow } from "@/lib/ensure-user";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { notifyUser } from "@/lib/notify";
 
 // ========================================

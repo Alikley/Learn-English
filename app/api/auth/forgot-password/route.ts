@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { reportError } from "@/lib/report-error";
 import { sendEmail, isSendgridConfigured } from "@/lib/sendgrid";
 import {

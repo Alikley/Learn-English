@@ -10,7 +10,7 @@ import { getListeningLevel } from "@/types/listening";
 import type { PodcastEpisode } from "@/types/training";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
 import { mediaUrl } from "@/lib/media";
-import { recordStreakActivity } from "@/app/hook/ui/useStreak";
+import { recordStreakActivity } from "@/app/hooks/ui/useStreak";
 import SpeechPlayer from "./_components/SpeechPlayer";
 import FileAudioPlayer from "./_components/FileAudioPlayer";
 import LineTranscript from "./_components/LineTranscript";

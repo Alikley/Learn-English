@@ -4,7 +4,7 @@ import { getAnswerKey } from "@/lib/ielts/keys";
 import { getPdfAnswerKey } from "@/lib/ielts/answer-keys";
 import { getAiAnswerKey } from "@/lib/ielts/ai-paper";
 import { isAnswerCorrect, rawToBand, countWords } from "@/lib/ielts/grade";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 // v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنهٔ تحویل
 import { attemptSubmitSchema, answersToMap } from "@/lib/validation";
 // v1.0.6.9 — اعلان ثبت آزمون برای کاربر

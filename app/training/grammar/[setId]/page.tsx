@@ -12,7 +12,7 @@ import {
   GRAMMAR_LEVEL_COLOR,
 } from "@/types/training";
 import { getProgress, saveProgress } from "@/lib/practice-progress";
-import { recordStreakActivity } from "@/app/hook/ui/useStreak";
+import { recordStreakActivity } from "@/app/hooks/ui/useStreak";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";
 import GrammarQuizCard from "./_components/GrammarQuizCard";
 import GrammarResultPanel from "./_components/GrammarResultPanel";

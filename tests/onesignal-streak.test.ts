@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 // شخصی، جمع‌بندی خطاها) + روت cron (رمز + 503های روشن)
 // ========================================
 
-vi.mock("@/prisma/Prisma client", async () => {
+vi.mock("@/prisma/prisma-client", async () => {
   const { prismaMock } = await import("./helpers/mock-prisma");
   return { prisma: prismaMock };
 });

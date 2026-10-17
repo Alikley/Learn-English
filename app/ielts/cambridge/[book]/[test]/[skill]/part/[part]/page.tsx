@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle, Send, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
-import { useStructuredPartSession } from "@/app/hook/ielts/useStructuredPartSession";
+import { useStructuredPartSession } from "@/app/hooks/ielts/useStructuredPartSession";
 import ExamTopBar from "@/app/components/ielts/ExamTopBar";
 import PageLoading from "@/app/components/PageLoading";
 import { getStructuredExam } from "@/lib/ielts/structured-tests";

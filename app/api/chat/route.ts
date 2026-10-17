@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { requireAuth, ok, err } from "@/lib/api-helpers";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { ensureUserRow } from "@/lib/ensure-user";
 import type { ChatListResult, ChatReplyView, ChatReactionType } from "@/types/chat";
 import { CHAT_MAX_CONTENT } from "@/types/chat";

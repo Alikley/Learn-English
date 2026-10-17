@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 //  - notifyUser: ردیف ساخته می‌شود؛ خطای DB هرگز throw نمی‌کند
 // ========================================
 
-vi.mock("@/prisma/Prisma client", async () => {
+vi.mock("@/prisma/prisma-client", async () => {
   const { prismaMock } = await import("./helpers/mock-prisma");
   return { prisma: prismaMock };
 });

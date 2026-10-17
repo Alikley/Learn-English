@@ -15,9 +15,9 @@ import LevelSelect from "@/app/components/game/LevelSelect";
 import LeaderboardBox from "@/app/components/game/leaderboard/LeaderboardBox";
 import GameHeader from "@/app/components/game/shared/GameHeader";
 import { GameLoading, GameError, GameScoringGuide } from "@/app/components/game/shared/GameStates";
-import { useHangmanGame } from "@/app/hook/game/useHangmanGame";
-import { useGameStats } from "@/app/hook/game/useGameStats";
-import { recordStreakActivity } from "@/app/hook/ui/useStreak";
+import { useHangmanGame } from "@/app/hooks/game/useHangmanGame";
+import { useGameStats } from "@/app/hooks/game/useGameStats";
+import { recordStreakActivity } from "@/app/hooks/ui/useStreak";
 import {
   GAME_CONFIG,
   HANGMAN_TIMER_SECONDS,

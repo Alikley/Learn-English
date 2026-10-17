@@ -29,7 +29,7 @@
 // ========================================
 
 import { spawn } from "node:child_process";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { getBookPages } from "@/lib/ielts/pdf-text";
 import { locateTests } from "@/lib/ielts/paper-parser";
 import type { IeltsExamPaper, IeltsSkill } from "@/types/ielts";

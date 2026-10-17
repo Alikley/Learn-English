@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { Trophy } from "lucide-react";
-import { useLeaderboard } from "@/app/hook/game/useLeaderboard";
+import { useLeaderboard } from "@/app/hooks/game/useLeaderboard";
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 import { gameMeta, MEDAL_STYLES, MEDAL_ICONS } from "./leaderboardMeta";

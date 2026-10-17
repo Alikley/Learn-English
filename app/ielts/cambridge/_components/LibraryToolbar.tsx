@@ -2,7 +2,7 @@
 
 import { Search, ArrowUpDown } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
-import type { SortKey } from "@/app/hook/ielts/useCambridgeLibrary";
+import type { SortKey } from "@/app/hooks/ielts/useCambridgeLibrary";
 
 // ========================================
 // نوار جستجو + مرتب‌سازی کتابخانه (v1.0.4.2)

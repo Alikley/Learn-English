@@ -13,7 +13,7 @@ import {
 import { motion } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import type { IeltsBookSummary } from "@/types/ielts";
-import type { BookStats } from "@/app/hook/ielts/useCambridgeLibrary";
+import type { BookStats } from "@/app/hooks/ielts/useCambridgeLibrary";
 
 // ========================================
 // کارت یک کتاب کمبریج (v1.0.4.2)

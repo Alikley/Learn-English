@@ -1,4 +1,4 @@
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { notifyUser, faDigits, STREAK_MILESTONES } from "@/lib/notify";
 
 /**

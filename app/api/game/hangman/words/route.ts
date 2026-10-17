@@ -1,5 +1,5 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { NextRequest } from "next/server";
 import { HANGMAN_WORDS } from "@/data/hangman/words";
 import type { CefrLevel, GameLevel } from "@/types/game";

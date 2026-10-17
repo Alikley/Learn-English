@@ -2,7 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import type { Session } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 
 // ========================================
 // v1.0.5.1 (English 1.0.1.1) — رفع باگ

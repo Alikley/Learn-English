@@ -10,7 +10,7 @@ import {
   ListeningEpisode,
   ListeningGap,
 } from "@/types/listening";
-import { recordStreakActivity } from "@/app/hook/ui/useStreak";
+import { recordStreakActivity } from "@/app/hooks/ui/useStreak";
 import AudioPlayer from "./_components/AudioPlayer";
 import GapTranscript, { type TranscriptSegment } from "./_components/GapTranscript";
 import ResultCard, { type EpisodeResult } from "./_components/ResultCard";

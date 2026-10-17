@@ -3,7 +3,7 @@ import { useLanguage } from "@/app/context/LanguageContext";
 
 import { motion } from "motion/react";
 import { HelpCircle, Check } from "lucide-react";
-import type { MemoryCardItem } from "@/app/hook/game/useMemoryGame";
+import type { MemoryCardItem } from "@/app/hooks/game/useMemoryGame";
 
 // ========================================
 // یک کارت حافظه — فلیپ سه‌بعدی

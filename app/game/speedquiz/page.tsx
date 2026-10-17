@@ -13,9 +13,9 @@ import SpeedQuizQuestionCard from "@/app/components/game/speedquiz/SpeedQuizQues
 import SpeedQuizOptions from "@/app/components/game/speedquiz/SpeedQuizOptions";
 import GameHeader from "@/app/components/game/shared/GameHeader";
 import { GameLoading, GameError, GameScoringGuide } from "@/app/components/game/shared/GameStates";
-import { useSpeedQuizGame } from "@/app/hook/game/useSpeedQuizGame";
-import { useSpeedQuizStats } from "@/app/hook/game/useSpeedQuizStats";
-import { recordStreakActivity } from "@/app/hook/ui/useStreak";
+import { useSpeedQuizGame } from "@/app/hooks/game/useSpeedQuizGame";
+import { useSpeedQuizStats } from "@/app/hooks/game/useSpeedQuizStats";
+import { recordStreakActivity } from "@/app/hooks/ui/useStreak";
 import {
   SPEEDQUIZ_CONFIG,
   SPEEDQUIZ_LEVELS,

@@ -3,7 +3,7 @@ import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
 import Link from "next/link";
-import { useBooks } from "../hook/library/useBooks";
+import { useBooks } from "../hooks/library/useBooks";
 import { getLevelInfo } from "@/types/book";
 import { mediaUrl } from "@/lib/media";
 import { HoverableText } from "@/app/components/vocabulary/HoverableText";

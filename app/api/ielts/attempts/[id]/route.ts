@@ -3,7 +3,7 @@ import { parseTestSlug, getTestById } from "@/lib/ielts/real-tests";
 import { buildAttemptPayload, examRemainingSec, skillMinutes } from "@/lib/ielts/attempt-payload";
 import { countWords } from "@/lib/ielts/grade";
 import { getAnswerKey } from "@/lib/ielts/keys";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 // v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنهٔ ذخیرهٔ خودکار
 import { validateJson, answersSaveSchema, sanitizeAnswers } from "@/lib/validation";
 

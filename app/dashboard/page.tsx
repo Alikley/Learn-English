@@ -2,10 +2,10 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
 
-import { useDashboard } from "@/app/hook/useDashboard";
+import { useDashboard } from "@/app/hooks/useDashboard";
 import { useAuth } from "@/app/context/AuthContext";
-import ProfileBox from "../components/dashboarde/ProfileBox";
-import PerformanceBox from "../components/dashboarde/PerformanceBox";
+import ProfileBox from "@/app/components/dashboard/ProfileBox";
+import PerformanceBox from "@/app/components/dashboard/PerformanceBox";
 
 /* ========== صفحه اصلی داشبورد ========== */
 

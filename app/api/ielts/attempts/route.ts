@@ -4,7 +4,7 @@ import { ensureUserRow } from "@/lib/ensure-user";
 // real-tests.ts قدیمی (رفع خطای بیلد Vercel)
 import { getTestById } from "@/lib/ielts/real-tests";
 import { buildAttemptPayload, examRemainingSec, skillMinutes } from "@/lib/ielts/attempt-payload";
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 // v1.0.5.0 (English 1.0.1.0): ولیدیشن zod بدنه (سقف کتاب از
 // IELTS_BOOKS.length داخل lib/validation.ts — قاعدهٔ مقاوم v1.0.4.5)
 import { validateJson, attemptStartSchema } from "@/lib/validation";

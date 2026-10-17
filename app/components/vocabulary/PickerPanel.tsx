@@ -4,7 +4,7 @@ import { useLanguage } from "@/app/context/LanguageContext";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, Loader2, Inbox, LogIn } from "lucide-react";
-import { useVocabularyBoxes } from "@/app/hook/useVocabularyBoxes";
+import { useVocabularyBoxes } from "@/app/hooks/useVocabularyBoxes";
 import { VOCAB_BOX_WORD_LIMIT } from "@/types/vocabulary";
 
 // ========================================

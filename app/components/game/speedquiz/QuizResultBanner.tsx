@@ -3,7 +3,7 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import { motion } from "motion/react";
 import { CheckCircle2, XCircle, AlarmClock } from "lucide-react";
-import type { SpeedQuizFeedback } from "@/app/hook/game/useSpeedQuizGame";
+import type { SpeedQuizFeedback } from "@/app/hooks/game/useSpeedQuizGame";
 
 // ========================================
 // بنر نتیجه پاسخ (درست / وقت تمام / غلط)

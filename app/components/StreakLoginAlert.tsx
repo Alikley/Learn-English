@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Flame, X } from "lucide-react";
-import { useStreak } from "@/app/hook/ui/useStreak";
+import { useStreak } from "@/app/hooks/ui/useStreak";
 import { useLanguage } from "@/app/context/LanguageContext";
 
 export default function StreakLoginAlert() {

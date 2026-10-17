@@ -12,7 +12,7 @@
 // متغیر TZ=Asia/Tehran را در DEPLOY.md توضیح داده‌ایم.
 // ========================================
 
-import { prisma } from "@/prisma/Prisma client";
+import { prisma } from "@/prisma/prisma-client";
 import { sendPushToSubscriptions } from "@/lib/onesignal";
 import { appBaseUrl } from "@/lib/password-reset";
 

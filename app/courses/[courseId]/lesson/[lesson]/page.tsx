@@ -10,7 +10,7 @@ import { getCourseTheme } from "@/lib/course-theme";
 import { CEFR_LABEL, type Cefr } from "@/data/lessons/types";
 import DecorativeClouds from "./_components/DecorativeClouds";
 import LegacyLessonView, { type LegacyContent } from "./_components/LegacyLessonView";
-import { recordStreakActivity } from "@/app/hook/ui/useStreak";
+import { recordStreakActivity } from "@/app/hooks/ui/useStreak";
 
 // ========================================
 // صفحه درس — مسیر جدید (LessonRenderer) + مسیر قدیمی (fallback)
