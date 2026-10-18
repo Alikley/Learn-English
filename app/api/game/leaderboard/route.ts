@@ -1,6 +1,8 @@
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/prisma-client";
 import { NextRequest } from "next/server";
+// v1.0.7.1 (English 1.0.1.14) — پارس query با zod به‌جای دستی
+import { validateQuery, leaderboardGameSchema } from "@/lib/validation";
 
 // ========================================
 // GET /api/game/leaderboard?game=hangman|memory|speedquiz
@@ -10,19 +12,14 @@ import { NextRequest } from "next/server";
 // - برای آماده کردن سایت به حالت چندکاربره آنلاین
 // ========================================
 
-const VALID_GAMES = ["hangman", "memory", "speedquiz"] as const;
-type GameKey = (typeof VALID_GAMES)[number];
-
 export async function GET(req: NextRequest) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
   const userId = auth.session.user.id;
 
-  const game = req.nextUrl.searchParams.get("game") as GameKey | null;
-
-  if (!game || !VALID_GAMES.includes(game)) {
-    return err("بازی نامعتبر است", 400);
-  }
+  const qp = validateQuery(req, leaderboardGameSchema);
+  if (!qp.ok) return qp.response;
+  const game = qp.data.game;
 
   try {
     // ۵ رکورددار برتر

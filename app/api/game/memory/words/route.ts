@@ -3,6 +3,8 @@ import { prisma } from "@/prisma/prisma-client";
 import { NextRequest } from "next/server";
 import { MEMORY_WORDS } from "@/data/memory/words";
 import type { CefrLevel, GameLevel } from "@/types/game";
+// v1.0.7.1 (English 1.0.1.14) — پارس query با zod به‌جای دستی
+import { validateQuery, gameWordsQuerySchema } from "@/lib/validation";
 
 // ========================================
 // GET /api/game/memory/words?count=12&level=EASY|MEDIUM|HARD
@@ -14,8 +16,6 @@ import type { CefrLevel, GameLevel } from "@/types/game";
 // لیست ثابت مرجع کانونی سطح هر کلمه است و ردیف‌های DB
 // با سطح CEFR کانونی بازتقییم می‌شوند).
 // ========================================
-
-const VALID_LEVELS = new Set(["EASY", "MEDIUM", "HARD"]);
 
 // نگاشت سطح‌های قدیمی → سطح استاندارد (برای کلمات ناشناخته در لیست)
 const LEGACY_LEVEL_MAP: Record<string, GameLevel> = {
@@ -68,20 +68,14 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const { searchParams } = new URL(req.url);
+    const qp = validateQuery(req, gameWordsQuerySchema(9));
+    if (!qp.ok) return qp.response;
 
-    // ---- تعداد جفت کلمات ----
-    const countParam = Number(searchParams.get("count"));
-    const count = Number.isFinite(countParam) && countParam > 0
-      ? Math.min(Math.max(Math.trunc(countParam), 1), 30)
-      : 9;
+    // ---- تعداد جفت کلمات (آسان‌گیر — همان قدیم) ----
+    const count = qp.data.count;
 
     // ---- سطح بازی (اختیاری) ----
-    const levelParam = searchParams.get("level");
-    if (levelParam && !VALID_LEVELS.has(levelParam)) {
-      return err("سطح بازی نامعتبر است", 400);
-    }
-    const level = levelParam as GameLevel | null;
+    const level = (qp.data.level ?? null) as GameLevel | null;
 
     // ---- ۱. دریافت همه جفت‌های فعال از دیتابیس ----
     // (فیلتر سطح در کد انجام می‌شود تا مقادیر قدیمی هم پوشش داده شوند)

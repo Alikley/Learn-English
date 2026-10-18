@@ -3,8 +3,15 @@ import { prisma } from "@/prisma/prisma-client";
 import { vocabModelsGuard, vocabDbError } from "@/lib/vocab-db";
 import { lookupLocalTranslation } from "@/lib/local-dictionary";
 import { NextRequest } from "next/server";
-import { VOCAB_BOX_WORD_LIMIT, VOCAB_WORD_PATTERN } from "@/types/vocabulary";
+import { VOCAB_BOX_WORD_LIMIT } from "@/types/vocabulary";
 import { notifyUser, faDigits } from "@/lib/notify";
+// v1.0.7.1 (English 1.0.1.14) — پارام و بدنه با zod به‌جای دستی
+import {
+  validateObject,
+  validateJson,
+  boxIdParamSchema,
+  vocabBoxWordSchema,
+} from "@/lib/validation";
 
 // ========================================
 // افزودن کلمه به جعبه لغت‌نامه (نسخه 1.0.1.8)
@@ -26,27 +33,16 @@ export async function POST(
   if (guard) return guard;
 
   const { boxId } = await params;
-  const id = Number(boxId);
-  if (!Number.isInteger(id) || id <= 0) return err("شناسه جعبه نامعتبر است");
+  const paramParsed = validateObject(boxIdParamSchema, { boxId });
+  if (!paramParsed.ok) return paramParsed.response;
+  const id = paramParsed.data;
 
-  let body: { word?: unknown; translation?: unknown } | null = null;
-  try {
-    body = (await req.json()) as { word?: unknown; translation?: unknown };
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
-
-  const word =
-    typeof body?.word === "string" ? body.word.trim().toLowerCase() : "";
-  if (!word) return err("کلمه را بنویسید");
-  if (!VOCAB_WORD_PATTERN.test(word))
-    return err("فقط کلمه انگلیسی (حروف انگلیسی) قابل افزودن است");
+  const parsed = await validateJson(req, vocabBoxWordSchema);
+  if (!parsed.ok) return parsed.response;
+  const { word, translation: bodyTranslation } = parsed.data;
 
   // معنی: اول از بدنه، بعد از لغت‌نامه محلی
-  let translation =
-    typeof body?.translation === "string" && body.translation.trim()
-      ? body.translation.trim().slice(0, 160)
-      : null;
+  let translation = bodyTranslation;
   if (!translation) translation = lookupLocalTranslation(word);
 
   try {

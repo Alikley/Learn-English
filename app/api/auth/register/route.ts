@@ -3,17 +3,14 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/prisma/prisma-client";
 import { reportError } from "@/lib/report-error";
 import { notifyUser } from "@/lib/notify";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateJson, registerSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json();
-
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: "همه فیلدها الزامی هستند" },
-        { status: 400 },
-      );
-    }
+    const parsed = await validateJson(req, registerSchema);
+    if (!parsed.ok) return parsed.response;
+    const { name, email, password } = parsed.data;
 
     const existing = await prisma.user.findUnique({
       where: { email },

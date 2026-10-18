@@ -4,6 +4,8 @@ import { NextRequest } from "next/server";
 import { updateStreak } from "@/lib/streak";
 import { reportError } from "@/lib/report-error";
 import { notifyUser, faDigits } from "@/lib/notify";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateJson, listeningAnswersSchema } from "@/lib/validation";
 
 export async function GET(
   _req: NextRequest,
@@ -68,8 +70,9 @@ export async function POST(
 
   try {
     const { id } = await params;
-    const body = await req.json();
-    const { answers } = body as { answers: Record<number, string> };
+    const parsed = await validateJson(req, listeningAnswersSchema);
+    if (!parsed.ok) return parsed.response;
+    const answers = parsed.data.answers;
 
     const episode = await prisma.listeningEpisode.findUnique({
       where: { id },

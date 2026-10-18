@@ -13,7 +13,21 @@ import Providers from "./Providers";
 // فونت سیستمیِ امن استفاده می‌شود — بدون هیچ دانلود/فچ گوگل موقع
 // dev/build (که در شبکهٔ ایران می‌توانست کند یا خطا بدهد).
 
+// v1.0.7.1 — metadataBase: مبنا برای URLهای نسبی (OG، canonical،
+// sitemap) — بدون آن Next.js موقع build هشدار می‌داد. همان
+// زنجیرهٔ sitemap.ts: NEXTAUTH_URL → VERCEL_URL → لوکال.
+function metadataBaseUrl(): string {
+  const fromNextAuth = process.env.NEXTAUTH_URL?.trim();
+  if (fromNextAuth) return fromNextAuth.replace(/\/+$/, "");
+
+  const fromVercel = process.env.VERCEL_URL?.trim();
+  if (fromVercel) return `https://${fromVercel.replace(/^\/+|\/+$/g, "")}`;
+
+  return "http://localhost:3000";
+}
+
 export const metadata: Metadata = {
+  metadataBase: new URL(metadataBaseUrl()),
   title: "Flex English",
   description: "یادگیری زبان انگلیسی به ساده‌ترین شکل",
 };

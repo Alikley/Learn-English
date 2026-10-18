@@ -2,6 +2,8 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/prisma-client";
 import { vocabModelsGuard, vocabDbError } from "@/lib/vocab-db";
 import { NextRequest } from "next/server";
+// v1.0.7.1 (English 1.0.1.14) — پارام boxId با zod به‌جای دستی
+import { validateObject, boxIdParamSchema } from "@/lib/validation";
 
 // ========================================
 // حذف یک جعبه لغت‌نامه (نسخه 1.0.1.8)
@@ -21,8 +23,9 @@ export async function DELETE(
   if (guard) return guard;
 
   const { boxId } = await params;
-  const id = Number(boxId);
-  if (!Number.isInteger(id) || id <= 0) return err("شناسه جعبه نامعتبر است");
+  const parsed = validateObject(boxIdParamSchema, { boxId });
+  if (!parsed.ok) return parsed.response;
+  const id = parsed.data;
 
   try {
     // مالکیت را چک کن — جعبه دیگری حذف نشود

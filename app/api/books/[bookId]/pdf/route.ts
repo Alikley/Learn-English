@@ -9,6 +9,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { isMediaConfigured, signedMediaUrl } from "@/lib/b2-media";
+// v1.0.7.1 (English 1.0.1.14) — پارام bookId با zod (نامعتبر → همان ۴۰۴ قدیمی)
+import { validateObject, bookPdfParamSchema } from "@/lib/validation";
 
 // مسیر فایل در باکت B2 — کلید = شناسه کتاب در دیتابیس
 const PDF_FILES: Record<number, string> = {
@@ -21,7 +23,9 @@ export async function GET(
   { params }: { params: Promise<{ bookId: string }> },
 ) {
   const { bookId } = await params;
-  const file = PDF_FILES[Number(bookId)];
+  const parsed = validateObject(bookPdfParamSchema, { bookId }, 404);
+  if (!parsed.ok) return parsed.response;
+  const file = PDF_FILES[parsed.data];
 
   if (!file) {
     return NextResponse.json({ error: "Book not found" }, { status: 404 });

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma-client";
 import { requireAuth } from "@/lib/api-helpers";
 import { notifyUser } from "@/lib/notify";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateJson, lessonCompleteSchema } from "@/lib/validation";
 
 export async function GET(
   req: NextRequest,
@@ -140,15 +142,9 @@ export async function POST(
       return NextResponse.json({ error: "courseId missing" }, { status: 400 });
     }
 
-    const body = await req.json();
-    const { lessonId, score } = body;
-
-    if (!lessonId) {
-      return NextResponse.json(
-        { error: "lessonId is required" },
-        { status: 400 },
-      );
-    }
+    const parsed = await validateJson(req, lessonCompleteSchema);
+    if (!parsed.ok) return parsed.response;
+    const { lessonId, score } = parsed.data;
 
     const enrollment = await prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },

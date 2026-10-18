@@ -3,6 +3,8 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/prisma-client";
 import { ensureUserRow } from "@/lib/ensure-user";
 import type { ChatReactionType } from "@/types/chat";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateJson, chatReactionSchema } from "@/lib/validation";
 
 // ========================================
 // واکنش به پیام چت — لایک / دیسلایک / حذف واکنش
@@ -34,16 +36,9 @@ export async function POST(
   const uid = auth.session.user.id;
   const { messageId } = await params;
 
-  let body: { type?: unknown } | null = null;
-  try {
-    body = (await req.json()) as { type?: unknown };
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
-
-  const type = body?.type;
-  if (type !== 1 && type !== -1 && type !== 0)
-    return err("واکنش نامعتبر است");
+  const parsed = await validateJson(req, chatReactionSchema);
+  if (!parsed.ok) return parsed.response;
+  const type = parsed.data.type;
 
   const message = await prisma.chatMessage.findUnique({
     where: { id: messageId },

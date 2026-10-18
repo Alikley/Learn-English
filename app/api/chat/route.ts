@@ -3,7 +3,13 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/prisma-client";
 import { ensureUserRow } from "@/lib/ensure-user";
 import type { ChatListResult, ChatReplyView, ChatReactionType } from "@/types/chat";
-import { CHAT_MAX_CONTENT } from "@/types/chat";
+// v1.0.7.1 (English 1.0.1.14) — پارس query/بدنه با zod به‌جای دستی
+import {
+  validateQuery,
+  validateJson,
+  chatPageQuerySchema,
+  chatPostSchema,
+} from "@/lib/validation";
 
 // ========================================
 // چت کاربران (v1.0.3.0 — گام ۴ و ۵ / v1.0.3.1 — رفع باگ FK)
@@ -50,8 +56,9 @@ export async function GET(req: NextRequest) {
   if (guard) return guard;
 
   const uid = auth.session.user.id;
-  const pageParam = Number(req.nextUrl.searchParams.get("page") ?? "1");
-  const requestedPage = Number.isFinite(pageParam) && pageParam >= 1 ? Math.floor(pageParam) : 1;
+  const qp = validateQuery(req, chatPageQuerySchema);
+  if (!qp.ok) return qp.response;
+  const requestedPage = qp.data.page;
 
   const total = await prisma.chatMessage.count({ where: { parentId: null } });
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -139,23 +146,15 @@ export async function POST(req: NextRequest) {
 
   const uid = auth.session.user.id;
 
-  let body: { content?: unknown; parentId?: unknown } | null = null;
-  try {
-    body = (await req.json()) as { content?: unknown; parentId?: unknown };
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
-
-  const content = typeof body?.content === "string" ? body.content.trim() : "";
-  if (!content) return err("متن پیام را بنویس");
-  if (content.length > CHAT_MAX_CONTENT)
-    return err(`پیام حداکثر ${CHAT_MAX_CONTENT} کاراکتر می‌تواند باشد`);
+  const parsed = await validateJson(req, chatPostSchema);
+  if (!parsed.ok) return parsed.response;
+  const content = parsed.data.content;
 
   // parentId فقط به پیام ریشه وصل می‌شود (پاسخِ پاسخ → زیر همان باکس)
   let parentId: string | null = null;
-  if (typeof body?.parentId === "string" && body.parentId) {
+  if (parsed.data.parentId) {
     const target = await prisma.chatMessage.findUnique({
-      where: { id: body.parentId },
+      where: { id: parsed.data.parentId },
       select: { id: true, parentId: true },
     });
     if (!target) return err("پیام مورد نظر پیدا نشد", 404);

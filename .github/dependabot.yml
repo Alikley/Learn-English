@@ -1,0 +1,101 @@
+# ========================================
+# Dependabot — به‌روزرسانی خودکار وابستگی‌ها (v1.0.7.0 / English 1.0.1.13)
+#
+# 🎯 چیست؟ ربات رسمی گیت‌هاب که هر روز وابستگی‌های پروژه را
+#    چک می‌کند و هر وقت نسخهٔ جدید (مخصوصاً نسخهٔ «امنیتی») بیاید،
+#    خودش یک Pull Request با تغییرِ package.json می‌سازد؛ CI همان
+#    PR را می‌سازد و اجرا می‌کند (lint + typecheck + تست + بیلد) —
+#    فقط PR سبز را مرج کن.
+#
+# 🧩 پوشش «دیتابیس» (درخواست کاربر): لایهٔ دیتابیس این پروژه
+#    Prisma است و در قالب پکیج‌های npm (prisma + @prisma/client)
+#    نصب می‌شود — همان اکوسیستم npm این فایل آنها را پوشش می‌دهد
+#    و حتی گروهِ اختصاصی «prisma» دارد تا هر دو همیشه با هم
+#    در یک PR آپدیت شوند (schema.prisma و engine همیشه هم‌نسخه).
+#
+# ⚙️ نکتهٔ مهم: این فایل فقط «نسخه‌های جدید» را دنبال می‌کند.
+#    برای «هشدار/رفع امنیتی خودکار» یک بار در گیت‌هاب فعال کن:
+#    Settings → Code security and analysis →
+#      Dependabot alerts → Enable
+#      Dependabot security updates → Enable
+#    (راهنمای کامل با عکس مرحله‌به‌مرحله: docs/DEPENDABOT.md)
+#
+# 📅 زمان‌بندی: هر روز ۶ صبح به وقت تهران؛ PRهای امنیتی
+#    گروهی (یک PR برای همه) و minor/patchهای غیرامنیتی هم
+#    گروهی — کمترین شلوغی ممکن.
+# ========================================
+version: 2
+
+updates:
+  # ── npm — وابستگی‌های اصلی (شامل لایهٔ دیتابیس Prisma) ──
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+      timezone: "Asia/Tehran"
+    # حداکثر ۸ PR بازِ همزمان (پر شود قدیمی‌ترین‌ها خودکار می‌بندند)
+    open-pull-requests-limit: 8
+    target-branch: "main"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "deps"
+      prefix-development: "deps-dev"
+    groups:
+      # ۱) همهٔ رفع‌های امنیتی در «یک» PR — امنیت سریع و یکجا
+      security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
+      # ۲) آپدیت‌های کوچک غیرامنیتی (minor/patch) گروهی
+      minor-and-patch:
+        applies-to: "version-updates"
+        update-types:
+          - "minor"
+          - "patch"
+      # ۳) لایهٔ دیتابیس — prisma و @prisma/* همیشه با هم
+      #    (تا هرگز نسخه‌های ناهماهنگ merge نشوند)
+      database-layer:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+    # این‌ها آپدیت نشوند: نسخهٔ Next قفل‌شده است (قواعد پروژه)
+    ignore:
+      # next فقط با مینورِ خودش (16.x) بالا برود — نه پرش 17
+      - dependency-name: "next"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      # React/React-DOM با خود Next هماهنگ می‌شوند — پرش ماژور نه
+      - dependency-name: "react"
+        update-types:
+          - "version-update:semver-major"
+      - dependency-name: "react-dom"
+        update-types:
+          - "version-update:semver-major"
+      # eslint-config-next باید با نسخهٔ Next هم‌رده بماند
+      - dependency-name: "eslint-config-next"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+
+  # ── GitHub Actions — نسخه‌های اکشن‌های CI ──
+  # (checkout/setup-node هر از گاهی tag امنیتی جدید می‌دهند)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      timezone: "Asia/Tehran"
+    open-pull-requests-limit: 4
+    target-branch: "main"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"

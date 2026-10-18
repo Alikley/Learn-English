@@ -2,6 +2,13 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { ensureUserRow } from "@/lib/ensure-user";
 import { prisma } from "@/prisma/prisma-client";
 import { notifyUser } from "@/lib/notify";
+// v1.0.7.1 (English 1.0.1.14) — پارس query/بدنه با zod به‌جای دستی
+import {
+  validateQuery,
+  validateJson,
+  bookProgressQuerySchema,
+  bookProgressPostSchema,
+} from "@/lib/validation";
 
 // ========================================
 // پیشرفت مطالعهٔ کتاب‌ها — v1.0.3.3 (گام ۴)
@@ -20,12 +27,12 @@ export async function GET(req: Request) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
 
-  const url = new URL(req.url);
-  const bookIdParam = url.searchParams.get("bookId");
-  const bookId = bookIdParam ? Number(bookIdParam) : null;
+  const qp = validateQuery(req, bookProgressQuerySchema);
+  if (!qp.ok) return qp.response;
+  const bookId = qp.data.bookId ?? null;
 
   const where =
-    bookId !== null && Number.isInteger(bookId) && bookId > 0
+    bookId !== null
       ? { userId: auth.session.user.id, bookId }
       : { userId: auth.session.user.id };
 
@@ -48,27 +55,9 @@ export async function POST(req: Request) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
 
-  let body: {
-    bookId?: unknown;
-    page?: unknown;
-    totalPages?: unknown;
-    finished?: unknown;
-  };
-  try {
-    body = await req.json();
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
-
-  const bookId = Number(body.bookId);
-  const page = Number(body.page);
-  const totalPages = Number(body.totalPages);
-  const finished = body.finished === true;
-
-  if (!Number.isInteger(bookId) || bookId <= 0) return err("شناسهٔ کتاب نامعتبر است");
-  if (!Number.isInteger(page) || page < 0 || page > 100000) return err("شمارهٔ صفحه نامعتبر است");
-  if (!Number.isInteger(totalPages) || totalPages < 0 || totalPages > 100000)
-    return err("تعداد صفحه نامعتبر است");
+  const parsed = await validateJson(req, bookProgressPostSchema);
+  if (!parsed.ok) return parsed.response;
+  const { bookId, page, totalPages, finished } = parsed.data;
 
   // کتاب باید واقعاً وجود داشته باشد (FK)
   // v1.0.6.9 — title/titleFa برای اعلان تمام‌شدن کتاب

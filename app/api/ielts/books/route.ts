@@ -5,6 +5,8 @@ import { toAttemptSummary, ATTEMPT_SELECT } from "@/lib/ielts/attempt-view";
 import { hasLocalPdf } from "@/lib/ielts/pdf-text";
 import { prisma } from "@/prisma/prisma-client";
 import type { IeltsBookSummary, IeltsScanInfo } from "@/types/ielts";
+// v1.0.7.1 (English 1.0.1.14) — پارس query با zod به‌جای دستی
+import { validateQuery, ieltsBooksQuerySchema } from "@/lib/validation";
 
 // ========================================
 // GET /api/ielts/books — فهرست ۲۱ کتاب کمبریج (v1.0.4.4)
@@ -29,9 +31,9 @@ export async function GET(req: Request) {
   const auth = await requireAuth();
   if (auth.error) return auth.error;
 
-  const url = new URL(req.url);
-  const refresh = url.searchParams.get("refresh") === "1";
-  const scan = await scanCambridge(refresh);
+  const qp = validateQuery(req, ieltsBooksQuerySchema);
+  if (!qp.ok) return qp.response;
+  const scan = await scanCambridge(qp.data.refresh);
 
   const books: IeltsBookSummary[] = IELTS_BOOKS.map((book) => {
     const files = scan.books[book.id];

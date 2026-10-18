@@ -5,6 +5,8 @@ import {
   clearUptimeCache,
 } from "@/lib/uptime-robot";
 import { reportError } from "@/lib/report-error";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateObject, uptimeMonitorSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -75,29 +77,13 @@ export async function POST(req: NextRequest) {
   if (denied) return denied;
 
   try {
-    let body: { url?: unknown; name?: unknown; interval?: unknown };
-    try {
-      body = (await req.json()) as typeof body;
-    } catch {
-      return NextResponse.json(
-        { error: "درخواست نامعتبر است — بدنهٔ JSON لازم است" },
-        { status: 400 },
-      );
-    }
-
-    const url = typeof body.url === "string" ? body.url.trim() : "";
-    const name = typeof body.name === "string" ? body.name.trim() : "";
-    const interval =
-      typeof body.interval === "number" && Number.isFinite(body.interval)
-        ? Math.max(300, Math.round(body.interval))
-        : 300;
-
-    if (!url) {
-      return NextResponse.json(
-        { error: "آدرس مانیتور (url) لازم است" },
-        { status: 400 },
-      );
-    }
+    // بدنهٔ خراب همان پیام قدیمی را می‌دهد؛ بدنهٔ JSON ولی غایب → همان پیام url
+    const body = await req.json().catch(() => ({}));
+    const parsed = validateObject(uptimeMonitorSchema, body);
+    if (!parsed.ok) return parsed.response;
+    const url = parsed.data.url;
+    const name = parsed.data.name;
+    const interval = parsed.data.interval;
 
     const res = await createMonitor({ url, name, intervalSecs: interval });
     if (!res.ok) {

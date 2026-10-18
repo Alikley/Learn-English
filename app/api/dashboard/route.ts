@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/prisma-client";
 import { getStreak } from "@/lib/streak";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateJson, profileUpdateSchema } from "@/lib/validation";
 
 // ========================================
 // GET — دریافت تمام اطلاعات داشبورد
@@ -207,8 +209,9 @@ export async function PUT(req: NextRequest) {
   const userId = auth.session.user.id;
 
   try {
-    const body = await req.json();
-    const { nickname, phone } = body;
+    const parsed = await validateJson(req, profileUpdateSchema);
+    if (!parsed.ok) return parsed.response;
+    const { nickname, phone } = parsed.data;
 
     const updated = await prisma.user.update({
       where: { id: userId },

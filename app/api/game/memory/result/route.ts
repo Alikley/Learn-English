@@ -4,6 +4,13 @@ import { NextRequest } from "next/server";
 import { updateStreak, getStreak } from "@/lib/streak";
 import { reportError } from "@/lib/report-error";
 import { notifyUser, faDigits } from "@/lib/notify";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import {
+  readJsonBody,
+  validateObject,
+  gameActionSchema,
+  memorySessionSchema,
+} from "@/lib/validation";
 
 const GAME_KEY = "memory";
 // v1.0.6.9 — نام بازی برای اعلان رکورد جدید
@@ -78,11 +85,16 @@ export async function POST(req: NextRequest) {
   const userId = auth.session.user.id;
 
   try {
-    const body = await req.json();
-    const action = body?.action;
+    // بدنهٔ خام را نگه می‌داریم: z.object مرحلهٔ اول کلیدهای دیگر را
+    // strip می‌کند و اسکیمای هر action باید کلیدهای خودش را ببیند
+    const raw = await readJsonBody(req);
+    if (!raw.ok) return raw.response;
+    const base = validateObject(gameActionSchema, raw.data);
+    if (!base.ok) return base.response;
+    const body: { action: string } = base.data;
 
     // ---- شروع دور جدید: دفعات بازی +۱ (گام ۱) ----
-    if (action === "start") {
+    if (body.action === "start") {
       const existing = await prisma.gameScore.findUnique({
         where: { userId_game: { userId, game: GAME_KEY } },
       });
@@ -103,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ---- ثبت یک جفت درست + آپدیت استریک ----
-    if (action === "match") {
+    if (body.action === "match") {
       const existing = await prisma.gameScore.findUnique({
         where: { userId_game: { userId, game: GAME_KEY } },
       });
@@ -135,17 +147,11 @@ export async function POST(req: NextRequest) {
     }
 
     // ---- پایان دور و ثبت بهترین امتیاز ----
-    if (action === "session") {
-      const score = Number(body?.score);
-      const mistakesParam = Number(body?.mistakes);
-      const mistakes =
-        Number.isFinite(mistakesParam) && mistakesParam > 0
-          ? Math.min(Math.trunc(mistakesParam), 999)
-          : 0;
-
-      if (!Number.isFinite(score) || score < 0) {
-        return err("امتیاز نامعتبر است", 400);
-      }
+    if (body.action === "session") {
+      const s = validateObject(memorySessionSchema, raw.data);
+      if (!s.ok) return s.response;
+      const score = s.data.score;
+      const mistakes = s.data.mistakes;
 
       const existing = await prisma.gameScore.findUnique({
         where: { userId_game: { userId, game: GAME_KEY } },

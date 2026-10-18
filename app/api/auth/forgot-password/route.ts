@@ -7,6 +7,8 @@ import {
   buildResetEmail,
   appBaseUrl,
 } from "@/lib/password-reset";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateObject, forgotPasswordSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -44,15 +46,11 @@ function isLocalDevMode(): boolean {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
-    const email = typeof body?.email === "string" ? body.email.trim() : "";
-
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      return NextResponse.json(
-        { error: "ایمیل معتبر وارد کنید" },
-        { status: 400 },
-      );
-    }
+    // بدنهٔ خراب هم مثل قدیم به «ایمیل معتبر وارد کنید» می‌رسد ({} → فیلد غایب)
+    const body = await req.json().catch(() => ({}));
+    const parsed = validateObject(forgotPasswordSchema, body);
+    if (!parsed.ok) return parsed.response;
+    const email = parsed.data.email;
 
     const user = await prisma.user.findUnique({ where: { email } });
 

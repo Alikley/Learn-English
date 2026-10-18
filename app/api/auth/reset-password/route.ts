@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/prisma/prisma-client";
 import { reportError } from "@/lib/report-error";
 import { findValidResetToken } from "@/lib/password-reset";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateObject, resetPasswordSchema } from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -22,31 +24,17 @@ export const runtime = "nodejs";
 // مستند در DEPLOY.md؛ کاربر باید در مرورگرهای دیگر logout بزند.
 // ========================================
 
+/** توکنِ پیدا‌نشده/منقضی — همان پیام که اسکیما هم برای غایب بودن می‌دهد */
 const INVALID_TOKEN_MSG =
   "لینک بازیابی نامعتبر است یا منقضی شده — دوباره از «فراموشی رمز» شروع کنید";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
-    const token = typeof body?.token === "string" ? body.token.trim() : "";
-    const password = typeof body?.password === "string" ? body.password : "";
-
-    if (!token) {
-      return NextResponse.json({ error: INVALID_TOKEN_MSG }, { status: 400 });
-    }
-
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "رمز عبور باید حداقل ۶ کاراکتر باشد" },
-        { status: 400 },
-      );
-    }
-    if (password.length > 100) {
-      return NextResponse.json(
-        { error: "رمز عبور حداکثر ۱۰۰ کاراکتر باشد" },
-        { status: 400 },
-      );
-    }
+    // بدنهٔ خراب هم مثل قدیم همان پیام فرم را می‌دهد ({} → توکن غایب)
+    const body = await req.json().catch(() => ({}));
+    const parsed = validateObject(resetPasswordSchema, body);
+    if (!parsed.ok) return parsed.response;
+    const { token, password } = parsed.data;
 
     const row = await findValidResetToken(token);
     if (!row) {

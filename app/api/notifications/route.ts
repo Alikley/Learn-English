@@ -2,6 +2,12 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/prisma/prisma-client";
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { reportError } from "@/lib/report-error";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import {
+  validateJson,
+  notificationPatchSchema,
+  notificationDeleteSchema,
+} from "@/lib/validation";
 
 // ========================================
 // اعلان‌های واقعی کاربر (v1.0.6.9 / English 1.0.1.12)
@@ -44,9 +50,10 @@ export async function PATCH(req: NextRequest) {
   const userId = auth.session.user.id;
 
   try {
-    const body = await req.json().catch(() => null);
-    const id = typeof body?.id === "string" ? body.id : null;
-    const all = body?.all === true;
+    const parsed = await validateJson(req, notificationPatchSchema);
+    if (!parsed.ok) return parsed.response;
+    const id = parsed.data.id ?? null;
+    const all = parsed.data.all === true;
 
     if (all) {
       await prisma.notification.updateMany({
@@ -80,8 +87,9 @@ export async function DELETE(req: NextRequest) {
   const userId = auth.session.user.id;
 
   try {
-    const body = await req.json().catch(() => null);
-    const id = typeof body?.id === "string" ? body.id : null;
+    const parsed = await validateJson(req, notificationDeleteSchema);
+    if (!parsed.ok) return parsed.response;
+    const id = parsed.data.id ?? null;
 
     if (!id) {
       return err("شناسهٔ اعلان لازم است", 400);

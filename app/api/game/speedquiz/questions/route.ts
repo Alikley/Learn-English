@@ -8,6 +8,8 @@ import {
   getSpeedQuizSentencesByLevel,
 } from "@/data/speedquiz/questions";
 import type { CefrLevel, GameLevel, SpeedQuizQuestion } from "@/types/game";
+// v1.0.7.1 (English 1.0.1.14) — پارس query با zod به‌جای دستی
+import { validateQuery, gameWordsQuerySchema } from "@/lib/validation";
 
 // ========================================
 // GET /api/game/speedquiz/questions?count=10&level=EASY|MEDIUM|HARD
@@ -20,8 +22,6 @@ import type { CefrLevel, GameLevel, SpeedQuizQuestion } from "@/types/game";
 // با سطح CEFR کانونی بازتقییم می‌شوند).
 // گزینه‌های هر سوال سمت سرور شافل می‌شوند + correctIndex برمی‌گردد.
 // ========================================
-
-const VALID_LEVELS = new Set(["EASY", "MEDIUM", "HARD"]);
 
 // نگاشت سطح‌های قدیمی → سطح استاندارد (برای سوال‌های ناشناخته در لیست)
 const LEGACY_LEVEL_MAP: Record<string, GameLevel> = {
@@ -128,21 +128,14 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const { searchParams } = new URL(req.url);
+    const qp = validateQuery(req, gameWordsQuerySchema(10));
+    if (!qp.ok) return qp.response;
 
-    // ---- تعداد سوال‌ها ----
-    const countParam = Number(searchParams.get("count"));
-    const count =
-      Number.isFinite(countParam) && countParam > 0
-        ? Math.min(Math.max(Math.trunc(countParam), 1), 30)
-        : 10;
+    // ---- تعداد سوال‌ها (آسان‌گیر — همان قدیم) ----
+    const count = qp.data.count;
 
     // ---- سطح بازی (اختیاری) ----
-    const levelParam = searchParams.get("level");
-    if (levelParam && !VALID_LEVELS.has(levelParam)) {
-      return err("سطح بازی نامعتبر است", 400);
-    }
-    const level = levelParam as GameLevel | null;
+    const level = (qp.data.level ?? null) as GameLevel | null;
 
     // ---- ۱. دریافت همه سوال‌های فعال از دیتابیس ----
     // (فیلتر سطح در کد انجام می‌شود تا مقادیر قدیمی هم پوشش داده شوند)

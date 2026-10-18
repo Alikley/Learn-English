@@ -3,6 +3,8 @@ import { prisma } from "@/prisma/prisma-client";
 import { NextRequest } from "next/server";
 import { HANGMAN_WORDS } from "@/data/hangman/words";
 import type { CefrLevel, GameLevel } from "@/types/game";
+// v1.0.7.1 (English 1.0.1.14) — پارس query با zod به‌جای دستی
+import { validateQuery, gameWordsQuerySchema } from "@/lib/validation";
 
 // ========================================
 // GET /api/game/hangman/words?count=10&level=EASY|MEDIUM|HARD
@@ -15,8 +17,6 @@ import type { CefrLevel, GameLevel } from "@/types/game";
 // هر ردیف DB که در لیست باشد با سطح CEFR کانونی بازتقییم می‌شود
 // تا بازی روی هر وضعیت DB (سطح‌بندی قدیمی/قدیمی‌تر) درست کار کند.
 // ========================================
-
-const VALID_LEVELS = new Set(["EASY", "MEDIUM", "HARD"]);
 
 // نگاشت سطح‌های قدیمی → سطح‌های سه‌گانه (برای کلمات ناشناخته در لیست)
 const LEGACY_LEVEL_MAP: Record<string, GameLevel> = {
@@ -66,20 +66,14 @@ export async function GET(req: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const { searchParams } = new URL(req.url);
+    const qp = validateQuery(req, gameWordsQuerySchema(10));
+    if (!qp.ok) return qp.response;
 
-    // ---- تعداد کلمات ----
-    const countParam = Number(searchParams.get("count"));
-    const count = Number.isFinite(countParam) && countParam > 0
-      ? Math.min(Math.max(Math.trunc(countParam), 1), 30)
-      : 10;
+    // ---- تعداد کلمات (آسان‌گیر — همان قدیم) ----
+    const count = qp.data.count;
 
     // ---- سطح بازی (اختیاری) ----
-    const levelParam = searchParams.get("level");
-    if (levelParam && !VALID_LEVELS.has(levelParam)) {
-      return err("سطح بازی نامعتبر است", 400);
-    }
-    const level = levelParam as GameLevel | null;
+    const level = (qp.data.level ?? null) as GameLevel | null;
 
     // ---- ۱. دریافت همه کلمات فعال از دیتابیس ----
     // (فیلتر سطح در کد انجام می‌شود تا سطح‌های قدیمی هم پوشش داده شوند)

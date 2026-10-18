@@ -4,10 +4,11 @@ import { vocabModelsGuard, vocabDbError } from "@/lib/vocab-db";
 import { NextRequest } from "next/server";
 import {
   DEFAULT_BOX_NAMES,
-  VOCAB_BOX_NAME_MAX,
   VOCAB_BOX_WORD_LIMIT,
   type VocabBox,
 } from "@/types/vocabulary";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import { validateJson, vocabBoxNameSchema } from "@/lib/validation";
 
 // ========================================
 // جعبه‌های لغت‌نامه (نسخه 1.0.1.8)
@@ -92,17 +93,9 @@ export async function POST(req: NextRequest) {
   const guard = vocabModelsGuard();
   if (guard) return guard;
 
-  let body: { name?: unknown } | null = null;
-  try {
-    body = (await req.json()) as { name?: unknown };
-  } catch {
-    return err("درخواست نامعتبر است");
-  }
-
-  const name = typeof body?.name === "string" ? body.name.trim() : "";
-  if (!name) return err("نام جعبه را بنویسید");
-  if (name.length > VOCAB_BOX_NAME_MAX)
-    return err(`نام جعبه نباید بیشتر از ${VOCAB_BOX_NAME_MAX} حرف باشد`);
+  const parsed = await validateJson(req, vocabBoxNameSchema);
+  if (!parsed.ok) return parsed.response;
+  const name = parsed.data.name;
 
   try {
     const box = await prisma.wordBox.create({

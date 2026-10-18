@@ -2,6 +2,8 @@ import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { prisma } from "@/prisma/prisma-client";
 import { vocabModelsGuard, vocabDbError } from "@/lib/vocab-db";
 import { NextRequest } from "next/server";
+// v1.0.7.1 (English 1.0.1.14) — پارام wordId با zod به‌جای دستی
+import { validateObject, wordIdParamSchema } from "@/lib/validation";
 
 // ========================================
 // حذف یک کلمه از جعبه لغت‌نامه (نسخه 1.0.1.8)
@@ -21,8 +23,9 @@ export async function DELETE(
   if (guard) return guard;
 
   const { wordId } = await params;
-  const id = Number(wordId);
-  if (!Number.isInteger(id) || id <= 0) return err("شناسه کلمه نامعتبر است");
+  const parsed = validateObject(wordIdParamSchema, { wordId });
+  if (!parsed.ok) return parsed.response;
+  const id = parsed.data;
 
   try {
     const item = await prisma.wordBoxItem.findUnique({

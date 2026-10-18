@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/prisma/prisma-client";
 import { requireAuth } from "@/lib/api-helpers";
 import { reportError } from "@/lib/report-error";
+// v1.0.7.1 (English 1.0.1.14) — پارس بدنه با zod به‌جای دستی
+import {
+  validateJson,
+  pushSubscribeSchema,
+  pushUnsubscribeSchema,
+} from "@/lib/validation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -20,16 +26,9 @@ export async function POST(req: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const body = await req.json().catch(() => null);
-    const subscriptionId =
-      typeof body?.subscriptionId === "string" ? body.subscriptionId.trim() : "";
-
-    if (!subscriptionId || subscriptionId.length < 8 || subscriptionId.length > 128) {
-      return NextResponse.json(
-        { error: "شناسهٔ اشتراک معتبر نیست" },
-        { status: 400 },
-      );
-    }
+    const parsed = await validateJson(req, pushSubscribeSchema);
+    if (!parsed.ok) return parsed.response;
+    const subscriptionId = parsed.data.subscriptionId;
 
     await prisma.pushSubscription.upsert({
       where: {
@@ -61,16 +60,9 @@ export async function DELETE(req: NextRequest) {
   if (auth.error) return auth.error;
 
   try {
-    const body = await req.json().catch(() => null);
-    const subscriptionId =
-      typeof body?.subscriptionId === "string" ? body.subscriptionId.trim() : "";
-
-    if (!subscriptionId) {
-      return NextResponse.json(
-        { error: "شناسهٔ اشتراک لازم است" },
-        { status: 400 },
-      );
-    }
+    const parsed = await validateJson(req, pushUnsubscribeSchema);
+    if (!parsed.ok) return parsed.response;
+    const subscriptionId = parsed.data.subscriptionId;
 
     await prisma.pushSubscription.deleteMany({
       where: {
