@@ -19,7 +19,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.17.0",
-    "motion": "^12.40.0",
+    "motion": "^14.2.0",
     "next": "16.2.6",
     "next-auth": "^4.24.14",
     "prisma": "^6.16.2",
