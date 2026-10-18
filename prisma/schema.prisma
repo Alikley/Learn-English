@@ -32,6 +32,9 @@ model user {
   pushSubscriptions  PushSubscription[]
   aiUsageCounters   AiUsageCounter[]
   notifications     Notification[]
+
+  // v1.0.8.0 (English 1.0.2.0) — نتایج تست تعیین سطح (مدل Laya)
+  placementResults  PlacementResult[]
 }
 
 model course {
@@ -528,6 +531,30 @@ model PushSubscription {
 // هر کاربر حداکثر MAX_PER_USER (۸۰) اعلان نگه می‌دارد —
 // بعد از هر create، اعلان‌های «خوانده‌شدهٔ» قدیمی حذف می‌شوند.
 // ========================================
+
+model PlacementResult {
+  id        String   @id @default(cuid())
+  userId    String
+  /// سطح نهایی CEFR: A1..C1
+  cefr      String
+  /// روش تعیین: \"mc+laya-writing\" یا \"mc\"
+  method    String
+  /// نمرهٔ ۸ سوال تشخیصی (۰..۸)
+  mcScore   Int
+  /// جواب‌های کاربر (id سوال → ایندکس انتخاب)
+  answers   Json
+  /// متن نوشتاری اختیاری که Laya طبقه‌بندی کرد
+  writing   String? @db.Text
+  /// سطحی که Laya به متن نوشتاری داد (اگر استفاده شد)
+  layaLevel String?
+  /// اطمینان Laya (۰..۱) — null یعنی استفاده نشد
+  layaConfidence Float?
+  createdAt DateTime @default(now())
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
 
 model Notification {
   id        String    @id @default(cuid())

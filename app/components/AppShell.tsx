@@ -3,6 +3,8 @@
 import Navbar from "@/app/Navbar";
 import Sidebar from "@/app/components/Sidebar";
 import StreakLoginAlert from "@/app/components/StreakLoginAlert";
+// v1.0.8.0 (English 1.0.2.0) — پشتیبان چت هوشمند (گوشهٔ سایت)
+import SupportChat from "@/app/components/SupportChat";
 import { NotificationProvider } from "@/app/context/NotificationContext";
 import { useIsPublicPath } from "@/app/components/AuthGuard";
 import { useSidebar } from "../hooks/ui/useSidebar";
@@ -56,6 +58,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 overflow-y-auto h-full">{children}</main>
       </div>
+
+      {/* v1.0.8.0 — پشتیبان چت هوشمند: دکمهٔ شناور + پنل انیمیشنی.
+          قطعی سرور AI = پاسخ عمومی — همیشه فعال است. */}
+      <SupportChat />
     </NotificationProvider>
   );
 }

@@ -187,6 +187,27 @@ function createUser(data: Record<string, unknown>): MockUserRow {
   return row;
 }
 
+// v1.0.8.0 (English 1.0.2.0) — نتیجهٔ تعیین سطح (جدول PlacementResult)
+export type MockPlacementRow = {
+  id: string;
+  userId: string;
+  cefr: string;
+  method: string;
+  mcScore: number;
+  answers: unknown;
+  writing: string | null;
+  layaLevel: string | null;
+  layaConfidence: number | null;
+  createdAt: Date;
+};
+
+let placementRows: MockPlacementRow[] = [];
+
+/** ریست فروش تعیین سطح — بین تست‌ها */
+export function resetPlacementRows(): void {
+  placementRows = [];
+}
+
 export const prismaMock = {
   // v1.0.7.0 (English 1.0.1.13) — چک سلامت دیتابیس (/api/uptime/health)
   $queryRaw: vi.fn(async () => [{ 1: 1 }]),
@@ -561,6 +582,35 @@ export const prismaMock = {
           (n) => !ids.has(n.id),
         );
         return { count: before - mockDb.notifications.length };
+      },
+    ),
+  },
+
+  // v1.0.8.0 (English 1.0.2.0) — نتایج تعیین سطح
+  placementResult: {
+    findFirst: vi.fn(
+      async (args: { where?: Record<string, unknown> }) => {
+        const uid = args?.where?.userId as string | undefined;
+        const rows = uid ? placementRows.filter((r) => r.userId === uid) : placementRows;
+        return rows.length > 0 ? rows[rows.length - 1] : null;
+      },
+    ),
+    create: vi.fn(
+      async (args: { data: Record<string, unknown> }) => {
+        const row: MockPlacementRow = {
+          id: nextId("placement"),
+          userId: (args.data.userId as string) ?? "",
+          cefr: (args.data.cefr as string) ?? "A1",
+          method: (args.data.method as string) ?? "mc",
+          mcScore: (args.data.mcScore as number) ?? 0,
+          answers: args.data.answers ?? {},
+          writing: (args.data.writing as string | null) ?? null,
+          layaLevel: (args.data.layaLevel as string | null) ?? null,
+          layaConfidence: (args.data.layaConfidence as number | null) ?? null,
+          createdAt: now(),
+        };
+        placementRows.push(row);
+        return row;
       },
     ),
   },

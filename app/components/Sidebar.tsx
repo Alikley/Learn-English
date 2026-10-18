@@ -17,6 +17,7 @@ import {
   Moon,
   Globe,
   X,
+  Gauge,
 } from "lucide-react";
 import { useStreak } from "@/app/hooks/ui/useStreak";
 import { useTheme } from "@/app/context/ThemeContext";
@@ -32,6 +33,8 @@ import { useLanguage } from "@/app/context/LanguageContext";
 
 const menuItems = [
   { labelFa: "داشبورد", labelEn: "Dashboard", icon: Home, href: "/dashboard" },
+  // v1.0.8.0 (English 1.0.2.0) — تعیین سطح با هوش مصنوعی Laya
+  { labelFa: "تعیین سطح", labelEn: "Level Assessment", icon: Gauge, href: "/placement" },
   { labelFa: "تمرین‌ها", labelEn: "Practice", icon: Pencil, href: "/training" },
   { labelFa: "بازی‌ها", labelEn: "Games", icon: Gamepad2, href: "/game" },
   { labelFa: "کتابخانه", labelEn: "Library", icon: LibraryBig, href: "/library" },
@@ -54,6 +57,7 @@ const iconAnimations: Record<
   }
 > = {
   "/dashboard": { rotate: [0, -15, 15, -10, 0], transition: { duration: 0.5 } },
+  "/placement": { rotate: [0, -20, 20, 0], transition: { duration: 0.6 } },
   "/my-course": { rotateY: [0, 180, 360], transition: { duration: 0.6 } },
   "/training": { x: [0, -3, 3, -2, 0], transition: { duration: 0.4 } },
   "/game": { scale: [1, 1.3, 0.9, 1.15, 1], transition: { duration: 0.5 } },

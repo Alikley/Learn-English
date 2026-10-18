@@ -14,8 +14,11 @@
 //      به کاربر نمی‌رسد و نیازی به راه‌اندازی Redis نیست.
 //
 // 🔌 متغیرهای محیطی:
-//    REDIS_URL       — مثل redis://default:pass@host:6379
+//    REDIS_URL       — مثل redis://default:pass@host:6379 یا
+//                      rediss://:pass@host:443 (اتصال TLS)
 //    REDIS_PREFIX    — پیشوند کلیدها (پیش‌فرض: eng:v1:)
+//    REDIS_TLS_REJECT_UNAUTHORIZED — 0 یعنی گواهی self-signed سرور
+//                      قبول می‌شود (لازم برای redis عمومی TCP-passthrough)
 //
 // ⚠️ فقط سمت سرور — هیچ کامپوننت کلایتی نباید این ماژول را
 //    import کند (ioredis در مرورگر اجرا نمی‌شود).
@@ -24,6 +27,14 @@
 import Redis from "ioredis";
 
 const KEY_PREFIX = process.env.REDIS_PREFIX ?? "eng:v1:";
+
+/**
+ * REDIS_TLS_REJECT_UNAUTHORIZED=0 → گواهی self-signed قبول می‌شود
+ * (برای redis عمومی از نوع TCP-passthrough با گواهی خودامضای سرور)
+ */
+const REDIS_TLS_INSECURE = ["0", "false", "no", "off"].includes(
+  (process.env.REDIS_TLS_REJECT_UNAUTHORIZED ?? "").trim().toLowerCase(),
+);
 
 /** سقف مدخل‌های L1 (حافظه) — بعد از آن قدیمی‌ترین‌ها می‌افتند */
 const L1_MAX_ENTRIES = 1000;
@@ -56,6 +67,12 @@ function getRedis(): Redis | null {
 
   try {
     const client = new Redis(url, {
+      // v1.0.8.2 (English 1.0.2.1) — rediss:// → اتصال TLS؛ برای
+      // ingress عمومی TCP-passthrough که گواهی سرور self-signed است
+      // با REDIS_TLS_REJECT_UNAUTHORIZED=0 پذیرش گواهی آزاد می‌شود.
+      ...(url.startsWith("rediss://")
+        ? { tls: { rejectUnauthorized: !REDIS_TLS_INSECURE } }
+        : {}),
       // اگر Redis در دسترس نبود، بی‌درنگ خطا بده و به L1 برگردیم —
       // هیچ درخواستی قفل نماند (default: صف آفلاین تا ۱۰ ثانیه)
       enableOfflineQueue: false,
