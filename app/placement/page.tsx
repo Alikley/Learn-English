@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
+// v1.0.2.3 — <Link> به‌جای <a> خام (رفع خطای CI: no-html-link-for-pages)
+import Link from "next/link";
 // v1.0.2.2 — رنگ‌های مشترک بج سطح (همان پالت نوبار/چت) + اعلام سطح
 // جدید به کل سایت (نوبار/گیت) بعد از ثبت نتیجه
 import { CEFR_COLOR } from "@/lib/cefr-colors";
@@ -562,13 +564,13 @@ function ResultView({
             </div>
           ))}
         </div>
-        <a
+        <Link
           href="/courses"
           className="mt-4 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors"
         >
           <BookOpen size={14} />
           {tr("برو به دوره‌های من", "Go to My Courses")}
-        </a>
+        </Link>
       </div>
 
       {/* کتاب‌های کمبریج */}

@@ -2,6 +2,8 @@
 import { localizeMessage } from "@/lib/message-i18n";
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
+// v1.0.2.3 — <Link> به‌جای <a> خام (رفع خطای CI: no-html-link-for-pages)
+import Link from "next/link";
 
 import { useState } from "react";
 import { motion } from "motion/react";
@@ -121,12 +123,12 @@ export default function VocabPage() {
           <p className="text-sm font-bold">
             {tr("برای دیدن لغت‌نامه، وارد شوید", "Log in to view your vocabulary")}
           </p>
-          <a
+          <Link
             href="/login"
             className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-5 py-2 text-sm font-bold transition-colors"
           >
             {tr("ورود", "Log In")}
-          </a>
+          </Link>
         </div>
       ) : error && boxes.length === 0 ? (
         <div className="bg-amber-50 border border-amber-100 rounded-2xl px-5 py-6 flex flex-col items-center gap-3 text-center">
