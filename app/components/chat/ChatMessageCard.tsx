@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { ThumbsUp, ThumbsDown, MessageSquareReply } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import ChatComposer from "./ChatComposer";
+// v1.0.2.2 — بج رنگی سطح نویسنده (گام ۲) — همان پالت صفحهٔ تعیین سطح
+import CefrBadge from "@/app/components/CefrBadge";
 import type { ChatMessageView, ChatReactionType, ChatReplyView } from "@/types/chat";
 
 // ========================================
@@ -134,6 +136,14 @@ function ReplyRow({
         <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
           {reply.authorName}
         </span>
+        {/* v1.0.2.2 — سطح نویسندهٔ پاسخ (گام ۲) */}
+        {reply.authorLevel && (
+          <CefrBadge
+            cefr={reply.authorLevel}
+            size="sm"
+            title={tr("سطح زبان این کاربر", "This user's English level")}
+          />
+        )}
         <span className="text-[10px] text-slate-400 dark:text-slate-500 shrink-0">
           {timeAgo(reply.createdAt, tr)}
         </span>
@@ -213,6 +223,14 @@ export default function ChatMessageCard({
             <span className="font-bold text-sm text-slate-800 dark:text-slate-100">
               {message.authorName}
             </span>
+            {/* v1.0.2.2 — بج رنگی سطح نویسنده کنار اسم (گام ۲) */}
+            {message.authorLevel && (
+              <CefrBadge
+                cefr={message.authorLevel}
+                size="sm"
+                title={tr("سطح زبان این کاربر", "This user's English level")}
+              />
+            )}
             <span className="text-[11px] text-slate-400 dark:text-slate-500">
               {timeAgo(message.createdAt, tr)}
             </span>

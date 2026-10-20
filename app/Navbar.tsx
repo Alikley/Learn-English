@@ -12,10 +12,14 @@ import {
   AlertCircle,
   Menu,
   Flame,
+  Gauge,
 } from "lucide-react";
 import Link from "next/link";
 import { useNotifications } from "@/app/context/NotificationContext";
 import { useAuth } from "@/app/context/AuthContext";
+// v1.0.2.2 — بج سطح کاربر در نوبار (گام ۲)
+import { usePlacementStatus } from "@/app/hooks/ui/usePlacementStatus";
+import CefrBadge from "@/app/components/CefrBadge";
 import { useStreak } from "@/app/hooks/ui/useStreak";
 import { ThemeToggle } from "@/app/components/ThemeToggle";
 import { LanguageToggle } from "@/app/components/LanguageToggle";
@@ -31,6 +35,9 @@ export default function Navbar({
   const { notifications, unreadCount, markAsRead, formatTimeAgo } =
     useNotifications();
   const { user, logout } = useAuth();
+  // v1.0.2.2 — سطح CEFR کاربر (کش رویدادمحور — یک درخواست سبک)
+  const placement = usePlacementStatus(user?.id ?? null);
+  const level = placement.cefr;
   const { streak } = useStreak();
   const { tr, dir } = useLanguage();
   const recentNotifications = notifications.slice(0, 3);
@@ -71,6 +78,16 @@ export default function Navbar({
               <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
                 {user?.name ?? tr("کاربر", "User")}
               </span>
+              {/* v1.0.2.2 — بج رنگی سطح (گام ۲): با کلیک → صفحهٔ تعیین سطح */}
+              {level && (
+                <Link
+                  href="/placement"
+                  title={tr("سطح زبان من — تعیین سطح", "My level — assessment")}
+                  className="shrink-0"
+                >
+                  <CefrBadge cefr={level} size="md" />
+                </Link>
+              )}
               <ChevronDown className="h-4 w-4 text-slate-500 dark:text-slate-400 transition-transform group-hover:rotate-180" />
             </div>
 
@@ -82,6 +99,23 @@ export default function Navbar({
                 dir === "rtl" ? "right-0" : "left-0"
               }`}
             >
+              {/* v1.0.2.2 — ردیف «سطح من» بالای منوی پروفایل (گام ۲) */}
+              <Link
+                href="/placement"
+                className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 p-3 rounded-lg mb-3 transition-colors"
+              >
+                <span className="flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-200">
+                  <Gauge size={14} className="text-slate-500 dark:text-slate-400" />
+                  {tr("سطح زبان من", "My English level")}
+                </span>
+                {level ? (
+                  <CefrBadge cefr={level} size="md" />
+                ) : (
+                  <span className="text-[11px] font-bold text-blue-600 dark:text-blue-300">
+                    {tr("تست تعیین سطح", "Take the test")}
+                  </span>
+                )}
+              </Link>
               <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-lg mb-3">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300 text-xs font-medium mb-1">
                   <Calendar size={14} />
@@ -113,12 +147,19 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* آیکون پروفایل موبایل */}
+          {/* آیکون پروفایل موبایل + بج سطح (v1.0.2.2 — گام ۲) */}
           <div className="block sm:hidden">
-            <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-              <span className="text-blue-600 dark:text-blue-300 font-bold text-xs">
-                {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
-              </span>
+            <div className="flex items-center gap-1.5">
+              <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
+                <span className="text-blue-600 dark:text-blue-300 font-bold text-xs">
+                  {user?.name?.charAt(0)?.toUpperCase() ?? "U"}
+                </span>
+              </div>
+              {level && (
+                <Link href="/placement" className="shrink-0">
+                  <CefrBadge cefr={level} size="sm" />
+                </Link>
+              )}
             </div>
           </div>
 

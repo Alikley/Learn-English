@@ -71,8 +71,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     if (signInRes?.error) return { error: "ثبت نام موفق بود، لطفاً وارد شوید" };
 
-    // v1.0.5.0 — بعد از ثبت‌نام مستقیم به پنل اصلی
-    router.push("/home");
+    // v1.0.2.2 — گام ۱: بعد از ثبت‌نام مستقیم به تعیین سطح؛ کاربر
+    // جدید بعد از تست وارد سایت می‌شود (دکمهٔ «ورود به سایت» در نتیجه).
+    // پرچم welcome=1 بنر «حسابت ساخته شد 🎉» را در صفحهٔ تست روشن می‌کند.
+    router.push("/placement?welcome=1");
     return {};
   };
 

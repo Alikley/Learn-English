@@ -81,6 +81,27 @@ export async function GET(req: NextRequest) {
       })
     : [];
 
+  // v1.0.2.2 (English 1.0.2.2) — سطح CEFR نویسنده‌های این صفحه:
+  // آخرین نتیجهٔ تعیین سطح هر کاربر → بج رنگی کنار اسم (گام ۲).
+  // خطا (مثلاً جدول تعیین سطح هنوز نیست) → همه null → بج مخفی —
+  // چت هرگز به خاطر سطح‌ها نمی‌شکند.
+  const levelByUser = new Map<string, string>();
+  try {
+    const authorIds = [...new Set([...roots, ...replies].map((m) => m.userId))];
+    if (authorIds.length) {
+      const placements = await prisma.placementResult.findMany({
+        where: { userId: { in: authorIds } },
+        orderBy: { createdAt: "desc" },
+        select: { userId: true, cefr: true },
+      });
+      for (const p of placements) {
+        if (!levelByUser.has(p.userId)) levelByUser.set(p.userId, p.cefr);
+      }
+    }
+  } catch {
+    /* سطح‌ها خالی می‌مانند */
+  }
+
   // واکنش‌های همهٔ پیام‌های این صفحه → شمارش لایک/دیسلایک + واکنش خودم
   const allIds = [...rootIds, ...replies.map((m) => m.id)];
   const reactions = allIds.length
@@ -110,6 +131,7 @@ export async function GET(req: NextRequest) {
       createdAt: m.createdAt.toISOString(),
       userId: m.userId,
       authorName: displayName(m.user),
+      authorLevel: levelByUser.get(m.userId) ?? null,
       likes: agg.likes,
       dislikes: agg.dislikes,
       myReaction: agg.mine,
@@ -181,6 +203,19 @@ export async function POST(req: NextRequest) {
     include: { user: { select: { name: true, nickname: true } } },
   });
 
+  // v1.0.2.2 — سطح خود کاربر برای بج کنار اسم پیام تازه (گام ۲)
+  let authorLevel: string | null = null;
+  try {
+    const mine = await prisma.placementResult.findFirst({
+      where: { userId: uid },
+      orderBy: { createdAt: "desc" },
+      select: { cefr: true },
+    });
+    authorLevel = mine?.cefr ?? null;
+  } catch {
+    /* بدون بج */
+  }
+
   return ok(
     {
       id: created.id,
@@ -188,6 +223,7 @@ export async function POST(req: NextRequest) {
       createdAt: created.createdAt.toISOString(),
       userId: created.userId,
       authorName: displayName(created.user),
+      authorLevel,
       likes: 0,
       dislikes: 0,
       myReaction: 0,

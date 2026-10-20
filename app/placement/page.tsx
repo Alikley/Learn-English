@@ -15,9 +15,15 @@ import {
   PenLine,
   Brain,
   ListChecks,
+  LogIn,
 } from "lucide-react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import PageLoading from "@/app/components/PageLoading";
+// v1.0.2.2 — رنگ‌های مشترک بج سطح (همان پالت نوبار/چت) + اعلام سطح
+// جدید به کل سایت (نوبار/گیت) بعد از ثبت نتیجه
+import { CEFR_COLOR } from "@/lib/cefr-colors";
+import { announcePlacement } from "@/app/hooks/ui/usePlacementStatus";
+import { useRouter } from "next/navigation";
 
 // ========================================
 // صفحهٔ تعیین سطح (v1.0.8.0 / English 1.0.2.0)
@@ -73,19 +79,17 @@ type Result = {
   recommendations: Recommendation;
 };
 
-const CEFR_COLOR: Record<string, string> = {
-  A1: "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300",
-  A2: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
-  B1: "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300",
-  B2: "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300",
-  C1: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300",
-};
+// v1.0.2.2 — رنگ بج سطح‌ها به lib/cefr-colors.ts منتقل شد تا نوبار
+// و چت هم دقیقاً همین پالت را نشان بدهند (A1 سبز → C1 قرمز)
 
 export default function PlacementPage() {
   const { tr, dir } = useLanguage();
   const en = dir === "ltr";
+  const router = useRouter();
 
   const [questions, setQuestions] = useState<Question[]>([]);
+  // v1.0.2.2 — پرچم «خوش‌آمد» — بعد از ثبت‌نام (?welcome=1)
+  const [isWelcome, setIsWelcome] = useState(false);
   const [lastResult, setLastResult] = useState<{ cefr: string; createdAt: string; recommendations: Recommendation } | null>(null);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<Result | null>(null);
@@ -95,6 +99,22 @@ export default function PlacementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // v1.0.2.2 — پرچم welcome=1 فقط سمت کلاینت خوانده می‌شود
+    // (بدون useSearchParams تا Suspense لازم نشود) + الگوی تاخیری
+    // سایت برای سازگاری با React Compiler
+    const t = setTimeout(() => {
+      try {
+        setIsWelcome(
+          new URLSearchParams(window.location.search).get("welcome") === "1",
+        );
+      } catch {
+        /* noop */
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -141,6 +161,9 @@ export default function PlacementPage() {
       const data = await res.json();
       setResult(data);
       setLastResult(null);
+      // v1.0.2.2 — سطح جدید را به کل سایت اعلام کن: بج نوبار فوراً
+      // روشن می‌شود و گیت AuthGuard برداشته می‌شود (بدون رفرش)
+      if (typeof data.cefr === "string") announcePlacement(data.cefr);
       topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch {
       setError("ارتباط برقرار نشد — اتصال اینترنت را چک کن");
@@ -185,6 +208,40 @@ export default function PlacementPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 md:px-6 py-6 space-y-5">
+        {/* v1.0.2.2 — بنر خوش‌آمد/قدم‌اول (قبل از دیدن نتیجه) — گام ۱ */}
+        {!result && !lastResult && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`rounded-2xl border p-5 ${
+              isWelcome
+                ? "border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10"
+                : "border-blue-100 dark:border-blue-500/20 bg-blue-50/60 dark:bg-blue-500/5"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <span className="text-2xl shrink-0">{isWelcome ? "🎉" : "🧭"}</span>
+              <div>
+                <p className="font-black text-slate-900 dark:text-slate-100">
+                  {isWelcome
+                    ? tr("حساب کاربری‌ات ساخته شد — خوش آمدی!", "Your account is ready — welcome!")
+                    : tr("قدم اول: سطحت را پیدا کنیم", "First step: let's find your level")}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1 leading-6">
+                  {isWelcome
+                    ? tr(
+                        "قبل از ورود به سایت، یک تست کوتاه ۸ سوالی بده تا مسیر یادگیری دقیق برایت باز شود — چند دقیقه بیشتر طول نمی‌کشد.",
+                        "Before entering the site, take a quick 8-question test so the right learning path opens for you — just a few minutes.",
+                      )
+                    : tr(
+                        "هنوز سطحی برایت ثبت نشده — ۸ سوال جواب بده تا مسیر یادگیری‌ات باز شود.",
+                        "No level recorded yet — answer 8 questions to unlock your learning path.",
+                      )}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
         {/* ================= نتیجهٔ قبلی ================= */}
         {lastResult && !result && (
           <motion.div
@@ -212,7 +269,7 @@ export default function PlacementPage() {
         )}
 
         {/* ================= نتیجه ================= */}
-        {result && <ResultView result={result} en={en} onRestart={restart} tr={tr} />}
+        {result && <ResultView result={result} en={en} onRestart={restart} tr={tr} onEnter={() => router.push("/home")} />}
 
         {/* ================= تست ================= */}
         {!result && !lastResult && questions.length > 0 && (
@@ -383,11 +440,14 @@ function ResultView({
   result,
   en,
   onRestart,
+  onEnter,
   tr,
 }: {
   result: Result;
   en: boolean;
   onRestart: () => void;
+  /** v1.0.2.2 — دکمهٔ «ورود به سایت» بعد از ثبت نتیجه */
+  onEnter: () => void;
   tr: (fa: string, en: string) => string;
 }) {
   const rec = result.recommendations;
@@ -408,6 +468,16 @@ function ResultView({
           </div>
           <p className="mt-2 text-sm text-blue-50/90">{en ? rec.sublineEn : rec.subline}</p>
         </div>
+
+        {/* v1.0.2.2 — دکمهٔ ورود به سایت (گام ۱): بعد از ثبت نتیجه،
+            دکمهٔ اصلی مسیر کاربر تازه‌وارد/تازه‌تست‌داده است */}
+        <button
+          onClick={onEnter}
+          className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-gradient-to-l from-blue-600 to-teal-500 hover:from-blue-700 hover:to-teal-600 text-white text-sm font-black transition-colors"
+        >
+          <LogIn size={18} />
+          {tr("ورود به سایت", "Enter the site")}
+        </button>
         <div className="bg-white dark:bg-slate-900 p-5 grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-3 text-center">
             <p className="text-xl font-black text-blue-600 dark:text-blue-300">

@@ -3,6 +3,8 @@
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
+// v1.0.2.2 — گیت تعیین سطح (گام ۱)
+import { usePlacementStatus } from "@/app/hooks/ui/usePlacementStatus";
 
 // صفحات عمومی — ورود و ثبت‌نام
 // v1.0.6.5 — /forgot-password و /reset-password هم عمومی شدند
@@ -24,6 +26,11 @@ const LANDING_PATH = "/";
 // (هدایت خودکار صفحهٔ / روی سرور هم انجام می‌شود — app/page.tsx)
 const AUTH_HOME_PATH = "/home";
 
+// v1.0.2.2 (English 1.0.2.2) — صفحهٔ تعیین سطح: از گیت معاف است
+// (وگرنه کاربر توی حلقهٔ ریدایرکت می‌افتد)؛ بعد از ثبت نتیجه،
+// خود صفحه با دکمهٔ «ورود به سایت» او را به /home می‌برد.
+const PLACEMENT_PATH = "/placement";
+
 export function useIsPublicPath() {
   const pathname = usePathname();
   // ریشه — دقیقاً "/" (نه startsWith، وگرنه همهٔ مسیرها عمومی می‌شدند!)
@@ -40,6 +47,8 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const isPublic = useIsPublicPath();
+  // v1.0.2.2 — سطح کاربر (کش رویدادمحور؛ فقط یک درخواست در طول سشن)
+  const placement = usePlacementStatus(user?.id ?? null);
 
   useEffect(() => {
     // ⚠️ مهم: تا وقتی وضعیت نشست معلوم نشده ریدایرکت نکن
@@ -53,7 +62,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     // کسی که اکانت دارد. قبلاً مهمانِ رسیده به /home (مثلاً با باز-
     // گرداندن تبِ مرورگر بعد از ری‌استارت سرور) مستقیم به /login
     // پرتاب می‌شد و تجربهٔ «سایت از لاگین شروع می‌شود» می‌ساخت.
-    if (!user && !isPublic) router.replace(LANDING_PATH);
+    if (!user && !isPublic) {
+      router.replace(LANDING_PATH);
+      return;
+    }
     // v1.0.5.2 — کاربرِ واردشده روی هر مسیر عمومی (لندینگ، ورود، ثبت‌نام)
     // فقط به /home می‌رود — مقصد واحد، بدون مسابقه با push در AuthContext.
     // (صفحهٔ خواندن کتاب عمومی می‌ماند — خواندن بدون داشبورد مجاز است)
@@ -64,9 +76,26 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       const isResetPassword = pathname.startsWith("/reset-password");
       if (!isBookRead && !isResetPassword) {
         router.replace(AUTH_HOME_PATH);
+        return;
       }
     }
-  }, [user, isLoading, pathname, router, isPublic]);
+
+    // v1.0.2.2 — placement gate (Step 1):
+    // a signed-in user with NO placement result is sent to /placement
+    // until they finish the assessment — /placement itself is exempt,
+    // and the gate stays off unless the status says the system is
+    // available (fail-open on DB errors / missing migration).
+    if (
+      user &&
+      !isPublic &&
+      pathname !== PLACEMENT_PATH &&
+      placement.loaded &&
+      placement.available &&
+      placement.cefr == null
+    ) {
+      router.replace(PLACEMENT_PATH);
+    }
+  }, [user, isLoading, pathname, router, isPublic, placement]);
 
   return <>{children}</>;
 }
