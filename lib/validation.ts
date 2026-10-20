@@ -106,7 +106,7 @@ export async function readJsonBody(
 
 /** شمارهٔ کتاب ۱..۲۱ (از query/param — رشتهٔ عددی) */
 export const bookIdParam = z.coerce
-  .number({ invalid_type_error: `کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})` })
+  .number({ error: `کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})` })
   .int(`کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})`)
   .min(1, `کتاب نامعتبر است (۱..${IELTS_BOOK_COUNT})`)
   .refine((n) => n <= IELTS_BOOK_COUNT, {
@@ -116,7 +116,7 @@ export const bookIdParam = z.coerce
 /** شمارهٔ کتاب در مسیر /api/ielts/books/[bookId] — پیام همان روت (۴۰۴) */
 export const bookIdPathParam = z.coerce
   .number({
-    invalid_type_error: `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`,
+    error: `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`,
   })
   .int(`شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`)
   .min(1, `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`)
@@ -126,7 +126,7 @@ export const bookIdPathParam = z.coerce
 
 /** شمارهٔ تست ۱..۴ */
 export const testIdParam = z.coerce
-  .number({ invalid_type_error: "تست نامعتبر است (۱..۴)" })
+  .number({ error: "تست نامعتبر است (۱..۴)" })
   .int("تست نامعتبر است (۱..۴)")
   .min(1, "تست نامعتبر است (۱..۴)")
   .max(4, "تست نامعتبر است (۱..۴)");
@@ -141,7 +141,7 @@ export const skillParam = z
 /** شمارهٔ کتاب در بدنهٔ POST /api/ielts/attempts */
 export const bookIdBody = z.coerce
   .number({
-    invalid_type_error: `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`,
+    error: `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`,
   })
   .int(`شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`)
   .min(1, `شناسهٔ کتاب نامعتبر است (۱ تا ${IELTS_BOOK_COUNT})`)
@@ -151,21 +151,21 @@ export const bookIdBody = z.coerce
 
 /** شمارهٔ تست در بدنهٔ POST /api/ielts/attempts */
 export const testIdBody = z.coerce
-  .number({ invalid_type_error: "شناسهٔ تست نامعتبر است (۱ تا ۴)" })
+  .number({ error: "شناسهٔ تست نامعتبر است (۱ تا ۴)" })
   .int("شناسهٔ تست نامعتبر است (۱ تا ۴)")
   .min(1, "شناسهٔ تست نامعتبر است (۱ تا ۴)")
   .max(4, "شناسهٔ تست نامعتبر است (۱ تا ۴)");
 
 /** مهارت در بدنهٔ POST /api/ielts/attempts */
 export const skillBody = z
-  .string({ invalid_type_error: "مهارت نامعتبر است" })
+  .string({ error: "مهارت نامعتبر است" })
   .refine((v) => v === "reading" || v === "listening" || v === "writing", {
     message: "مهارت نامعتبر است",
   });
 
 /** حالت تمرین/آزمون در بدنهٔ POST /api/ielts/attempts */
 export const modeBody = z
-  .string({ invalid_type_error: "حالت نامعتبر است" })
+  .string({ error: "حالت نامعتبر است" })
   .refine((v) => v === "practice" || v === "exam", {
     message: "حالت نامعتبر است",
   });
@@ -199,7 +199,7 @@ export const attemptSubmitSchema = z.object({
 /** بدنهٔ خودتصحیحی: { rawScore } — عدد صحیح ≥ ۰ */
 export const selfScoreSchema = z.object({
   rawScore: z.coerce
-    .number({ invalid_type_error: "نمرهٔ خام نامعتبر است" })
+    .number({ error: "نمرهٔ خام نامعتبر است" })
     .int("نمرهٔ خام نامعتبر است")
     .min(0, "نمرهٔ خام نامعتبر است"),
 });
@@ -207,7 +207,7 @@ export const selfScoreSchema = z.object({
 /** بدنهٔ اصلاح رایتینگ: { text } — متن دانشجو */
 export const writingCorrectSchema = z.object({
   text: z
-    .string({ invalid_type_error: "درخواست نامعتبر است" })
+    .string({ error: "درخواست نامعتبر است" })
     .optional()
     .default(""),
 });
@@ -215,7 +215,7 @@ export const writingCorrectSchema = z.object({
 /** بدنهٔ ترجمهٔ لغت: { word } — فقط یک کلمهٔ انگلیسی معتبر */
 export const translateWordSchema = z.object({
   word: z
-    .string({ invalid_type_error: "فقط یک کلمه انگلیسی معتبر بفرستید" })
+    .string({ error: "فقط یک کلمه انگلیسی معتبر بفرستید" })
     .optional()
     .default("")
     .refine((v) => v.trim() !== "" && VOCAB_WORD_PATTERN.test(v.trim()), {
@@ -280,20 +280,17 @@ function strictTrue() {
 export const registerSchema = z.object({
   name: z
     .string({
-      required_error: "همه فیلدها الزامی هستند",
-      invalid_type_error: "همه فیلدها الزامی هستند",
+      error: "همه فیلدها الزامی هستند",
     })
     .min(1, "همه فیلدها الزامی هستند"),
   email: z
     .string({
-      required_error: "همه فیلدها الزامی هستند",
-      invalid_type_error: "همه فیلدها الزامی هستند",
+      error: "همه فیلدها الزامی هستند",
     })
     .min(1, "همه فیلدها الزامی هستند"),
   password: z
     .string({
-      required_error: "همه فیلدها الزامی هستند",
-      invalid_type_error: "همه فیلدها الزامی هستند",
+      error: "همه فیلدها الزامی هستند",
     })
     .min(1, "همه فیلدها الزامی هستند"),
 });
@@ -302,8 +299,7 @@ export const registerSchema = z.object({
 export const forgotPasswordSchema = z.object({
   email: z
     .string({
-      required_error: "ایمیل معتبر وارد کنید",
-      invalid_type_error: "ایمیل معتبر وارد کنید",
+      error: "ایمیل معتبر وارد کنید",
     })
     .trim()
     .min(1, "ایمیل معتبر وارد کنید")
@@ -317,15 +313,13 @@ const RESET_TOKEN_MSG =
 export const resetPasswordSchema = z.object({
   token: z
     .string({
-      required_error: RESET_TOKEN_MSG,
-      invalid_type_error: RESET_TOKEN_MSG,
+      error: RESET_TOKEN_MSG,
     })
     .trim()
     .min(1, RESET_TOKEN_MSG),
   password: z
     .string({
-      required_error: "رمز عبور باید حداقل ۶ کاراکتر باشد",
-      invalid_type_error: "رمز عبور باید حداقل ۶ کاراکتر باشد",
+      error: "رمز عبور باید حداقل ۶ کاراکتر باشد",
     })
     .min(6, "رمز عبور باید حداقل ۶ کاراکتر باشد")
     .max(100, "رمز عبور حداکثر ۱۰۰ کاراکتر باشد"),
@@ -349,8 +343,8 @@ export const chatPageQuerySchema = z.object({
 export const chatPostSchema = z.object({
   content: z
     .string({
-      required_error: "متن پیام را بنویس",
-      invalid_type_error: "درخواست نامعتبر است",
+      error: (issue) =>
+        issue.input === undefined ? "متن پیام را بنویس" : "درخواست نامعتبر است",
     })
     .trim()
     .min(1, "متن پیام را بنویس")
@@ -365,7 +359,7 @@ export const chatPostSchema = z.object({
 /** POST /api/chat/[messageId]/reaction — { type: 1 | -1 | 0 } */
 export const chatReactionSchema = z.object({
   type: z.union([z.literal(1), z.literal(0), z.literal(-1)], {
-    errorMap: () => ({ message: "واکنش نامعتبر است" }),
+    error: "واکنش نامعتبر است",
   }),
 });
 
@@ -386,16 +380,16 @@ export const bookProgressQuerySchema = z.object({
 /** POST /api/books/progress — { bookId, page, totalPages, finished? } */
 export const bookProgressPostSchema = z.object({
   bookId: z.coerce
-    .number({ invalid_type_error: "شناسهٔ کتاب نامعتبر است" })
+    .number({ error: "شناسهٔ کتاب نامعتبر است" })
     .int("شناسهٔ کتاب نامعتبر است")
     .min(1, "شناسهٔ کتاب نامعتبر است"),
   page: z.coerce
-    .number({ invalid_type_error: "شمارهٔ صفحه نامعتبر است" })
+    .number({ error: "شمارهٔ صفحه نامعتبر است" })
     .int("شمارهٔ صفحه نامعتبر است")
     .min(0, "شمارهٔ صفحه نامعتبر است")
     .max(100000, "شمارهٔ صفحه نامعتبر است"),
   totalPages: z.coerce
-    .number({ invalid_type_error: "تعداد صفحه نامعتبر است" })
+    .number({ error: "تعداد صفحه نامعتبر است" })
     .int("تعداد صفحه نامعتبر است")
     .min(0, "تعداد صفحه نامعتبر است")
     .max(100000, "تعداد صفحه نامعتبر است"),
@@ -405,7 +399,7 @@ export const bookProgressPostSchema = z.object({
 
 /** پارامتر bookId در /api/books/[bookId]/pdf — نامعتبر → همان ۴۰۴ قدیمی */
 export const bookPdfParamSchema = z.coerce
-  .number({ invalid_type_error: "Book not found" })
+  .number({ error: "Book not found" })
   .int("Book not found")
   .positive("Book not found");
 
@@ -415,8 +409,7 @@ export const bookPdfParamSchema = z.coerce
 export const courseEnrollSchema = z.object({
   courseId: z
     .string({
-      required_error: "courseId missing",
-      invalid_type_error: "courseId missing",
+      error: "courseId missing",
     })
     .min(1, "courseId missing"),
 });
@@ -425,11 +418,10 @@ export const courseEnrollSchema = z.object({
 export const lessonCompleteSchema = z.object({
   lessonId: z
     .string({
-      required_error: "lessonId is required",
-      invalid_type_error: "lessonId is required",
+      error: "lessonId is required",
     })
     .min(1, "lessonId is required"),
-  score: z.number({ invalid_type_error: "server error" }).optional(),
+  score: z.number({ error: "server error" }).optional(),
 });
 
 // ---------- بازی‌ها ----------
@@ -437,8 +429,7 @@ export const lessonCompleteSchema = z.object({
 /** مرحلهٔ اول پارس نتیجهٔ بازی — خودِ action بعداً در switch چک می‌شود */
 export const gameActionSchema = z.object({
   action: z.string({
-    required_error: "action نامعتبر است",
-    invalid_type_error: "action نامعتبر است",
+    error: "action نامعتبر است",
   }),
 });
 
@@ -447,7 +438,7 @@ export const gameWonSchema = z.object({ won: strictTrue() });
 
 /** امتیاز پایانی — عدد ≥ ۰ (همان پیام قدیم) */
 const gameScoreField = z.coerce
-  .number({ invalid_type_error: "امتیاز نامعتبر است" })
+  .number({ error: "امتیاز نامعتبر است" })
   .min(0, "امتیاز نامعتبر است");
 
 /** body: { action: "session", score } (hangman) */
@@ -479,7 +470,7 @@ export const speedquizSessionSchema = z.object({
 /** GET /api/game/leaderboard?game=… */
 export const leaderboardGameSchema = z.object({
   game: z.enum(["hangman", "memory", "speedquiz"], {
-    errorMap: () => ({ message: "بازی نامعتبر است" }),
+    error: "بازی نامعتبر است",
   }),
 });
 
@@ -503,7 +494,7 @@ export function gameWordsQuerySchema(defaultCount: number, maxCount = 30) {
       (v) => (v === "" || v === null || v === undefined ? undefined : v),
       z
         .enum(["EASY", "MEDIUM", "HARD"], {
-          errorMap: () => ({ message: "سطح بازی نامعتبر است" }),
+          error: "سطح بازی نامعتبر است",
         })
         .optional(),
     ),
@@ -546,8 +537,7 @@ export const notificationDeleteSchema = z.object({
 export const pushSubscribeSchema = z.object({
   subscriptionId: z
     .string({
-      required_error: "شناسهٔ اشتراک معتبر نیست",
-      invalid_type_error: "شناسهٔ اشتراک معتبر نیست",
+      error: "شناسهٔ اشتراک معتبر نیست",
     })
     .trim()
     .min(8, "شناسهٔ اشتراک معتبر نیست")
@@ -558,8 +548,7 @@ export const pushSubscribeSchema = z.object({
 export const pushUnsubscribeSchema = z.object({
   subscriptionId: z
     .string({
-      required_error: "شناسهٔ اشتراک لازم است",
-      invalid_type_error: "شناسهٔ اشتراک لازم است",
+      error: "شناسهٔ اشتراک لازم است",
     })
     .trim()
     .min(1, "شناسهٔ اشتراک لازم است"),
@@ -571,8 +560,7 @@ export const pushUnsubscribeSchema = z.object({
 export const vocabBoxNameSchema = z.object({
   name: z
     .string({
-      required_error: "نام جعبه را بنویسید",
-      invalid_type_error: "نام جعبه را بنویسید",
+      error: "نام جعبه را بنویسید",
     })
     .trim()
     .min(1, "نام جعبه را بنویسید")
@@ -586,8 +574,7 @@ export const vocabBoxNameSchema = z.object({
 export const vocabBoxWordSchema = z.object({
   word: z
     .string({
-      required_error: "کلمه را بنویسید",
-      invalid_type_error: "کلمه را بنویسید",
+      error: "کلمه را بنویسید",
     })
     .trim()
     .toLowerCase()
@@ -609,13 +596,13 @@ export const vocabBoxWordSchema = z.object({
 
 /** پارامتر [boxId] — عدد صحیح مثبت */
 export const boxIdParamSchema = z.coerce
-  .number({ invalid_type_error: "شناسه جعبه نامعتبر است" })
+  .number({ error: "شناسه جعبه نامعتبر است" })
   .int("شناسه جعبه نامعتبر است")
   .positive("شناسه جعبه نامعتبر است");
 
 /** پاراممتر [wordId] — عدد صحیح مثبت */
 export const wordIdParamSchema = z.coerce
-  .number({ invalid_type_error: "شناسه کلمه نامعتبر است" })
+  .number({ error: "شناسه کلمه نامعتبر است" })
   .int("شناسه کلمه نامعتبر است")
   .positive("شناسه کلمه نامعتبر است");
 
@@ -628,15 +615,13 @@ export const wordIdParamSchema = z.coerce
 export const profileUpdateSchema = z.object({
   nickname: z
     .string({
-      required_error: "خطا در آپدیت پروفایل",
-      invalid_type_error: "خطا در آپدیت پروفایل",
+      error: "خطا در آپدیت پروفایل",
     })
     .max(200, "خطا در آپدیت پروفایل")
     .optional(),
   phone: z
     .string({
-      required_error: "خطا در آپدیت پروفایل",
-      invalid_type_error: "خطا در آپدیت پروفایل",
+      error: "خطا در آپدیت پروفایل",
     })
     .max(30, "خطا در آپدیت پروفایل")
     .optional(),
@@ -655,8 +640,7 @@ export const ieltsBooksQuerySchema = z.object({
 export const uptimeMonitorSchema = z.object({
   url: z
     .string({
-      required_error: "آدرس مانیتور (url) لازم است",
-      invalid_type_error: "آدرس مانیتور (url) لازم است",
+      error: "آدرس مانیتور (url) لازم است",
     })
     .trim()
     .min(1, "آدرس مانیتور (url) لازم است"),

@@ -13,6 +13,7 @@ export type ChatReplyView = {
   createdAt: string;
   userId: string;
   authorName: string;
+  authorLevel: string | null;
   likes: number;
   dislikes: number;
   myReaction: ChatReactionType;
