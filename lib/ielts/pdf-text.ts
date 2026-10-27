@@ -146,6 +146,60 @@ export type PagesResult =
   | { ok: true; pages: string[]; source: "b2" | "local" }
   | { ok: false; error: string };
 
+// v1.0.8.6 (English 1.0.2.5) — فیلتر موضعی هشدار فونت pdf.js
+//
+// کتاب‌های Cambridge از فونت‌های استانداردِ embed نشده (Helvetica و…)
+// استفاده می‌کنند. pdf.js داخل unpdf برای این فونت‌ها دادهٔ استاندارد را
+// لازم دارد و چون بیلد serverless آن نمی‌تواند فایل محلی (file://) بخواند،
+// این هشدار در ترمینال چاپ می‌شود:
+//   Warning: UnknownErrorException: Ensure that the `standardFontDataUrl`
+//   API parameter is provided.
+//
+// 🎯 این هشدار «بی‌آسیب» است: استخراج متن کامل و موفق انجام می‌شود
+// (کتاب ۱: ۱۶۲ صفحه / ۲۴۹ هزار کاراکتر) و فقط نگاشت تقریبی حروف فونت
+// استاندارد را در پی دارد — همان رفتاری که همیشه بوده. ولی چون در ترمینال
+// شبیه خطای اصلی می‌شود و کاربر را سردرگم می‌کند، فقط همین الگوی هشدارِ
+// فونتِ مشخص، در بازهٔ استخراج بی‌صدا می‌شود. هر پیام دیگری از کنسول
+// عبور می‌کند و استخراج هم‌زمان (سازگار با چند extract موازی) پشتیبانی
+// می‌شود.
+
+const FONT_WARN_RE = /standardFontDataUrl|Unable to load font data|cMapUrl/i;
+
+type ConsoleMethods = {
+  log: (typeof console)["log"];
+  warn: (typeof console)["warn"];
+  error: (typeof console)["error"];
+};
+
+let savedConsole: ConsoleMethods | null = null;
+let fontSilenceDepth = 0;
+
+function silenceFontWarnings(): void {
+  if (fontSilenceDepth++ > 0) return; // extract موازی دیگر فیلتر را گذاشته
+  const orig: ConsoleMethods = {
+    log: console.log.bind(console),
+    warn: console.warn.bind(console),
+    error: console.error.bind(console),
+  };
+  savedConsole = orig;
+  const isFontWarning = (args: unknown[]) =>
+    args.some((a) => typeof a === "string" && FONT_WARN_RE.test(a));
+  console.log = (...a: unknown[]) => void (isFontWarning(a) || orig.log(...a));
+  console.warn = (...a: unknown[]) => void (isFontWarning(a) || orig.warn(...a));
+  console.error = (...a: unknown[]) => void (isFontWarning(a) || orig.error(...a));
+}
+
+function restoreConsole(): void {
+  if (fontSilenceDepth > 0) fontSilenceDepth -= 1;
+  if (fontSilenceDepth > 0) return; // extract موازی هنوز در جریان است
+  if (savedConsole) {
+    console.log = savedConsole.log;
+    console.warn = savedConsole.warn;
+    console.error = savedConsole.error;
+    savedConsole = null;
+  }
+}
+
 /** متن هر صفحهٔ PDF یک کتاب (کش ۳۰ دقیقه) */
 export async function getBookPages(bookNumber: number, force = false): Promise<PagesResult> {
   if (!force) {
@@ -161,6 +215,7 @@ export async function getBookPages(bookNumber: number, force = false): Promise<P
   const pdf = await getBookPdf(bookNumber);
   if (!pdf.ok) return { ok: false, error: pdf.error };
 
+  silenceFontWarnings();
   try {
     const uint8 = new Uint8Array(pdf.buffer);
     const doc = await getDocumentProxy(uint8);
@@ -170,13 +225,16 @@ export async function getBookPages(bookNumber: number, force = false): Promise<P
     );
     // v1.0.4.6: ذخیره در کش دو سطحی (L1 + Redis)
     await cacheSet(`pdf:pages:${bookNumber}`, pages, PAGES_TTL_S);
+    restoreConsole();
     return { ok: true, pages, source: pdf.source };
   } catch (error) {
+    restoreConsole();
     return {
       ok: false,
       error: `خواندن متن PDF ناموفق بود: ${error instanceof Error ? error.message : "خطای ناشناخته"}`,
     };
   }
+
 }
 
 /** شکستن کش (بعد از آپلود فایل جدید) */

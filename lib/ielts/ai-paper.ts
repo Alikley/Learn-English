@@ -36,10 +36,24 @@ import type { IeltsExamPaper, IeltsSkill } from "@/types/ielts";
 
 // ---------- تنظیمات سرویس (env) ----------
 
-const CC_API_KEY = (process.env.CODECRAFT_API_KEY ?? "").trim();
-const CC_BASE_URL = (process.env.CODECRAFT_BASE_URL ?? "https://codecraftapi.com/v1").replace(/\/+$/, "");
-const CC_MODEL = process.env.CODECRAFT_MODEL ?? "claude-opus-4.8";
-const CC_MAX_TOKENS = Number(process.env.CODECRAFT_MAX_TOKENS ?? 24000);
+// v1.0.8.6 (English 1.0.2.5): هر سرویسِ سازگار با OpenAI (chat/completions)
+// پشتیبانی می‌شود — نه فقط CodeCraft. نام‌های عمومی AI_* اولویت دارند
+// و CODECRAFT_* قدیمی برای سازگاری همچنان کار می‌کند:
+//   AI_API_KEY / AI_BASE_URL / AI_MODEL / AI_MAX_TOKENS
+// مثال تعویض سرویس در .env:
+//   AI_BASE_URL="https://api.example.com/v1"
+//   AI_API_KEY="sk-..."
+//   AI_MODEL="gpt-4o"
+// (فقط همین سه خط — بدون هیچ تغییر کدی)
+
+const CC_API_KEY = (process.env.AI_API_KEY ?? process.env.CODECRAFT_API_KEY ?? "").trim();
+const CC_BASE_URL = (
+  process.env.AI_BASE_URL ??
+  process.env.CODECRAFT_BASE_URL ??
+  "https://codecraftapi.com/v1"
+).replace(/\/+$/, "");
+const CC_MODEL = process.env.AI_MODEL ?? process.env.CODECRAFT_MODEL ?? "claude-opus-4.8";
+const CC_MAX_TOKENS = Number(process.env.AI_MAX_TOKENS ?? process.env.CODECRAFT_MAX_TOKENS ?? 24000);
 
 /**
  * UA سفارشی (اختیاری):
@@ -59,6 +73,26 @@ const MAX_INPUT_CHARS = 150_000;
 /** برای curl — fetch خود Node با UA مرورگر توسط Cloudflare چالش می‌گیرد */
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+// ---------- ردیابی پیشرفت ساخت (v1.0.6.1 / English 1.0.2.4) ----------
+// درصد پیشرفت «واقعی» هر ساختِ در جریان — برای نمایش درصدی در
+// صفحهٔ «در حال آماده‌سازی امتحان». درون‌حافظه‌ای است (بدون DB):
+// در سرورهای serverless ممکن است poll به اینسنس دیگری برسد؛
+// در آن حالت progress برابر null می‌ماند و کلاینت با تخمین
+// زمانی خودش درصد را ادامه می‌دهد — رفتار همیشه نرم و صعودی.
+
+const progressRegistry = new Map<string, { pct: number; at: number }>();
+
+function reportProgress(slug: string, pct: number): void {
+  progressRegistry.set(slug, { pct, at: Date.now() });
+}
+
+/** آخرین درصد پیشرفت ساختِ در جریان — null = این پروسه چیزی ثبت نکرده */
+export function getAiPaperProgress(
+  slug: string,
+): { pct: number; at: number } | null {
+  return progressRegistry.get(slug) ?? null;
+}
 
 // ---------- انواع خام پاسخ AI ----------
 
@@ -564,8 +598,9 @@ function chatViaCurl(
 export async function callCodeCraft(
   messages: ChatMessage[],
   maxTokens = CC_MAX_TOKENS,
+  timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<CodeCraftResult> {
-  if (!CC_API_KEY) throw new Error("کلید سرویس AI (CODECRAFT_API_KEY) تنظیم نشده است");
+  if (!CC_API_KEY) throw new Error("کلید سرویس AI تنظیم نشده است — AI_API_KEY (یا CODECRAFT_API_KEY) را در .env قرار دهید");
 
   const url = `${CC_BASE_URL}/chat/completions`;
   const payload: Record<string, unknown> = {
@@ -582,21 +617,21 @@ export async function callCodeCraft(
 
   const attempts: (() => Promise<ChatHttpResult>)[] = [];
   if (CC_CUSTOM_UA === undefined) {
-    attempts.push(() => chatViaFetch(url, { ...baseHeaders }, payload, REQUEST_TIMEOUT_MS));
+    attempts.push(() => chatViaFetch(url, { ...baseHeaders }, payload, timeoutMs));
     attempts.push(() =>
-      chatViaFetch(url, { ...baseHeaders, "User-Agent": BROWSER_UA }, payload, REQUEST_TIMEOUT_MS),
+      chatViaFetch(url, { ...baseHeaders, "User-Agent": BROWSER_UA }, payload, timeoutMs),
     );
     attempts.push(() =>
-      chatViaCurl(url, { ...baseHeaders, "User-Agent": BROWSER_UA }, payload, REQUEST_TIMEOUT_MS),
+      chatViaCurl(url, { ...baseHeaders, "User-Agent": BROWSER_UA }, payload, timeoutMs),
     );
   } else if (CC_CUSTOM_UA === "") {
-    attempts.push(() => chatViaFetch(url, { ...baseHeaders }, payload, REQUEST_TIMEOUT_MS));
+    attempts.push(() => chatViaFetch(url, { ...baseHeaders }, payload, timeoutMs));
   } else {
     attempts.push(() =>
-      chatViaFetch(url, { ...baseHeaders, "User-Agent": CC_CUSTOM_UA }, payload, REQUEST_TIMEOUT_MS),
+      chatViaFetch(url, { ...baseHeaders, "User-Agent": CC_CUSTOM_UA }, payload, timeoutMs),
     );
     attempts.push(() =>
-      chatViaCurl(url, { ...baseHeaders, "User-Agent": CC_CUSTOM_UA }, payload, REQUEST_TIMEOUT_MS),
+      chatViaCurl(url, { ...baseHeaders, "User-Agent": CC_CUSTOM_UA }, payload, timeoutMs),
     );
   }
 
@@ -615,18 +650,38 @@ export async function callCodeCraft(
     if (r.ok) {
       return { content: r.content, finishReason: r.finishReason };
     }
+    // v1.0.8.6 — خطاهای رایج با پیام دقیق + نام واقعی سرویس:
+    // پاسخ HTTP سرورِ خودشان را می‌گویند تا «مشکل از اتصال یا کد؟»
+    // از خودِ پیام معلوم شود (تست واقعی: CodeCraft با اعتبار تمام‌شده
+    // دقیقاً همین ۴۰۲ را می‌دهد: "Billing verification failed").
+    const label = aiProviderLabel();
+    const bodyHint = (b: string) => {
+      const s = b.trim();
+      if (!s || isCloudflareChallenge(s)) return "";
+      return s.startsWith("{") ? ` — ${s.slice(0, 160)}` : "";
+    };
     if (r.status === 401) {
-      throw new Error("کلید سرویس CodeCraft معتبر نیست — CODECRAFT_API_KEY را بررسی کنید");
+      throw new Error(`کلید سرویس ${label} رد شد (401) — کلید API را در .env بررسی کنید`);
+    }
+    if (r.status === 402) {
+      throw new Error(
+        `اعتبار سرویس ${label} تمام شده است (402 — صورتحساب/شارژ حساب)${bodyHint(r.body)} — حساب را شارژ کنید یا با AI_API_KEY/AI_BASE_URL/AI_MODEL سرویس دیگری تنظیم کنید`,
+      );
     }
     if (r.status === 403) {
       if (isCloudflareChallenge(r.body)) {
         sawChallenge = true;
         continue; // چالش Cloudflare → استراتژی بعدی
       }
-      throw new Error("دسترسی به سرویس CodeCraft ممنوع شد (403)");
+      throw new Error(`دسترسی به سرویس ${label} ممنوع شد (403)${bodyHint(r.body)}`);
+    }
+    if (r.status === 404) {
+      throw new Error(
+        `آدرس یا مدل پیدا نشد (404 از ${label}) — AI_BASE_URL و AI_MODEL را بررسی کنید${bodyHint(r.body)}`,
+      );
     }
     if (r.status === 429) {
-      throw new Error("سرویس CodeCraft شلوغ است — کمی بعد دوباره تلاش کنید");
+      throw new Error(`سرویس ${label} شلوغ/محدود شده است (429) — کمی بعد دوباره تلاش کنید`);
     }
     if (r.status === 524) {
       throw new Error(
@@ -636,16 +691,16 @@ export async function callCodeCraft(
     if (r.status === 200) {
       continue; // بدنهٔ 200 غیرقابل تفسیر → استراتژی بعدی
     }
-    throw new Error(`سرویس CodeCraft پاسخ ${r.status} داد`);
+    throw new Error(`سرویس ${label} پاسخ ${r.status} داد${bodyHint(r.body)}`);
   }
 
   if (sawChallenge) {
     throw new Error(
-      "دسترسی به سرویس CodeCraft توسط Cloudflare بلاک شد — CODECRAFT_USER_AGENT را در .env تنظیم کنید (یا شبکهٔ سرور را بررسی کنید)",
+      `دسترسی به سرویس ${aiProviderLabel()} توسط Cloudflare بلاک شد — CODECRAFT_USER_AGENT را در .env تنظیم کنید (یا شبکهٔ سرور را بررسی کنید)`,
     );
   }
   throw new Error(
-    `ارتباط با سرویس CodeCraft برقرار نشد${lastNetworkError ? ` — ${lastNetworkError.slice(0, 200)}` : ""}`,
+    `ارتباط با سرویس ${aiProviderLabel()} برقرار نشد${lastNetworkError ? ` — ${lastNetworkError.slice(0, 200)}` : ""}`,
   );
 }
 
@@ -966,6 +1021,8 @@ export type GenerateParams = {
   skill: IeltsSkill;
   testText: string;
   keyText: string;
+  /** v1.0.6.1 — گزارش درصد پیشرفت درون تولید (اختیاری) */
+  onProgress?: (pct: number) => void;
 };
 
 /**
@@ -975,7 +1032,7 @@ export type GenerateParams = {
  *  ۳) اگر کلید ناقص بود → تماس تعمیر کوچک
  */
 export async function generateAiPaper(params: GenerateParams): Promise<NormalizedAiPaper> {
-  const { bookNumber, testNumber, skill, testText, keyText } = params;
+  const { bookNumber, testNumber, skill, testText, keyText, onProgress } = params;
   const messages: ChatMessage[] = [
     { role: "system", content: systemPrompt(skill) },
     {
@@ -985,6 +1042,7 @@ export async function generateAiPaper(params: GenerateParams): Promise<Normalize
   ];
 
   // ---- تلاش ۱ ----
+  onProgress?.(50); // درخواست به AI فرستاده شد
   const first = await callCodeCraft(messages);
   if (first.finishReason === "length") {
     throw new Error(
@@ -998,6 +1056,7 @@ export async function generateAiPaper(params: GenerateParams): Promise<Normalize
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : "the JSON did not match the contract";
     // ---- تلاش ۲: اصلاح همان مکالمه ----
+    onProgress?.(82); // پاسخ اول رسید ولی ناقص بود → اصلاح
     const second = await callCodeCraft([
       ...messages,
       { role: "assistant", content: first.content.slice(0, 4000) },
@@ -1028,6 +1087,7 @@ export async function generateAiPaper(params: GenerateParams): Promise<Normalize
     keyText
   ) {
     try {
+      onProgress?.(90); // برگه معتبر شد → تعمیر کوچک کلید
       const repaired = await repairAnswerKey(
         bookNumber,
         testNumber,
@@ -1056,6 +1116,7 @@ export async function generateAiPaper(params: GenerateParams): Promise<Normalize
     if (filled < 30) normalized.key = null;
   }
 
+  onProgress?.(94); // اعتبارسنجی کامل شد — فقط ذخیره مانده
   return normalized;
 }
 
@@ -1067,9 +1128,57 @@ export type AiPaperState =
   | { status: "FAILED"; error: string }
   | { status: "STARTED"; run: () => Promise<void> };
 
+/**
+ * برچسب خوانای سرویس AI فعلی — host بدون www، برای پیام‌های خطا
+ * (v1.0.8.6): با تعویض سرویس، نام درستِ همان سرویس در خطاها می‌آید
+ * و دیگر پیام «CodeCraft» برای سرویس دیگری گمراه‌کننده نیست.
+ */
+export function aiProviderLabel(): string {
+  try {
+    return new URL(CC_BASE_URL).host.replace(/^www\./, "");
+  } catch {
+    return "سرویس AI";
+  }
+}
+
 /** آیا سرویس AI پیکربندی شده است؟ */
 export function isAiExamConfigured(): boolean {
   return CC_API_KEY.length > 0;
+}
+
+/** وضعیت کانفیگ سرویس AI برگه‌ها — بدون هیچ مقدار محرمانه (برای /api/ai-status) */
+export function aiExamStatus(): {
+  configured: boolean;
+  provider: string;
+  model: string | null;
+  maxTokens: number | null;
+} {
+  return {
+    configured: isAiExamConfigured(),
+    provider: aiProviderLabel(),
+    model: CC_MODEL || null,
+    maxTokens: Number.isFinite(CC_MAX_TOKENS) && CC_MAX_TOKENS > 0 ? CC_MAX_TOKENS : null,
+  };
+}
+
+/**
+ * تست زندهٔ سرویس AI (v1.0.8.6 — برای /api/ai-status?probe=1):
+ * یک تماس خیلی کوچک (حداکثر ۵ توکن، تایم‌اوت ۲۰ ثانیه). پاسخ واقعی
+ * سرویس را برمی‌گرداند تا معلوم شود مشکل از اتصال است، از کلید/اعتبار
+ * (۴۰۱/۴۰۲)، از مدل/آدرس (۴۰۴) یا از محدودیت نرخ (۴۲۹).
+ */
+export async function probeAiExam(): Promise<{
+  ok: boolean;
+  error: string | null;
+  latencyMs: number;
+}> {
+  const t0 = Date.now();
+  try {
+    await callCodeCraft([{ role: "user", content: "ping" }], 5, 20_000);
+    return { ok: true, error: null, latencyMs: Date.now() - t0 };
+  } catch (e) {
+    return { ok: false, error: (e instanceof Error ? e.message : String(e)).slice(0, 300), latencyMs: Date.now() - t0 };
+  }
 }
 
 /** قفل درون‌پردازشی — جلوگیری از تولید موازی همان slug */
@@ -1094,7 +1203,10 @@ export async function acquireAiPaper(
   force = false,
 ): Promise<AiPaperState> {
   if (!isAiExamConfigured()) {
-    return { status: "FAILED", error: "سرویس AI پیکربندی نشده است (CODECRAFT_API_KEY)" };
+    return {
+      status: "FAILED",
+      error: "سرویس AI پیکربندی نشده است — AI_API_KEY (یا CODECRAFT_API_KEY) را در .env تنظیم کنید",
+    };
   }
   const slug = aiPaperSlug(bookNumber, testNumber, skill);
 
@@ -1197,15 +1309,30 @@ async function runGeneration(
 
   const job = (async () => {
     try {
+      reportProgress(slug, 5); // ساخت آغاز شد
       // ۱) متن PDF کتاب (B2 یا پوشهٔ محلی — با کش خودش)
       const pagesResult = await getBookPages(bookNumber);
       if (!pagesResult.ok) throw new Error(pagesResult.error);
+      reportProgress(slug, 25); // PDF خوانده شد
+
+      // v1.0.8.6 (English 1.0.2.5): کتاب‌های اسکن تصویری هیچ لایهٔ متنی
+      // ندارند (تست واقعی کتاب ۱۰: ۱۸۰ صفحه / صفر کاراکتر). ساخت برگه با
+      // AI برایشان محال است — شکست سریع با پیام شفاف، به‌جای خطای مبهم
+      // «موقعیت تست شناسایی نشد» که به چشم مشکلِ موقتی دیده می‌شد و
+      // کاربر بی‌پایان «تلاش دوباره» می‌زد.
+      const totalChars = pagesResult.pages.reduce((a, p) => a + p.trim().length, 0);
+      if (totalChars < 200) {
+        throw new Error(
+          `PDF کتاب ${bookNumber} لایهٔ متنی ندارد (نسخهٔ اسکن تصویری است — ${pagesResult.pages.length} صفحه بدون متن قابل استخراج). ساخت برگهٔ هوش مصنوعی برای این کتاب ممکن نیست؛ با آپلود نسخهٔ متنی همین کتاب در باکت، این آزمون هم فعال می‌شود`,
+        );
+      }
 
       // ۲) برش صفحات همین تست + پاسخ‌نامه
       const slice = sliceTestPages(pagesResult.pages, testNumber);
       if (!slice || !slice.testText) {
         throw new Error(`موقعیت Test ${testNumber} در PDF کتاب ${bookNumber} شناسایی نشد`);
       }
+      reportProgress(slug, 40); // متن تست بریده شد
 
       // ۳) تولید با AI
       const normalized = await generateAiPaper({
@@ -1214,9 +1341,11 @@ async function runGeneration(
         skill,
         testText: slice.testText,
         keyText: slice.keyText,
+        onProgress: (pct) => reportProgress(slug, pct),
       });
 
       // ۴) ذخیرهٔ دائمی
+      reportProgress(slug, 98); // در حال ذخیره
       await prisma.ieltsAiPaper.update({
         where: { slug },
         data: {
@@ -1239,6 +1368,8 @@ async function runGeneration(
     }
   })().finally(() => {
     running.delete(slug);
+    // پیشرفت فقط برای ساختِ در جریان معنا دارد — پس از پایان پاک می‌شود
+    progressRegistry.delete(slug);
   });
 
   running.set(slug, job);
