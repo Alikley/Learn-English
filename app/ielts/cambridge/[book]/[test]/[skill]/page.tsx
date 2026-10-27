@@ -32,7 +32,7 @@ import type { IeltsSkill, IeltsWritingPrompt } from "@/types/ielts";
 // در بالای صفحه (متن استخراج‌شده برای همهٔ کتاب‌ها) + بخش
 // اختیاری «مشاهدهٔ صفحهٔ کتاب» برای نمودار تسک ۱
 //
-// اگر برگه ساخته نشد → خود PDF + ورودی سریع (PaperFallback)
+// اگر برگه ساخته نشد → فقط کادر «تلاش دوباره» — بدون PDF (PaperFallback)
 // تصحیح: کلید دستی → AI → PDF → خودتصحیحی
 //
 // 🧹 کلین‌کد: منطق نشست → useSkillExamSession، رابط‌ها →
@@ -88,6 +88,15 @@ export default function SkillPlayerPage() {
     skillKey,
   );
 
+  // v1.0.8.5 (English 1.0.2.4) — شکست برگهٔ (ریدینگ/لیسنینگ) قبل از نشست
+  // محاسبه می‌شود تا تلاش تا «تلاش دوبارهٔ» موفق گیت شود (انصاف تایمر)؛
+  // رایتینگ جدا است (AI ندارد — همان جریان قبلی در WritingPanel)
+  const paperFailed =
+    skillKey !== "writing" &&
+    !paperLoading &&
+    !paperGenerating &&
+    (paperError != null || (paper != null && paper.ok === false));
+
   // نشست تلاش — شروع فقط بعد از آماده‌شدن برگه (انصاف تایمر)
   const session = useSkillExamSession({
     bookId,
@@ -95,6 +104,7 @@ export default function SkillPlayerPage() {
     skill: skillKey,
     paperLoading,
     paperGenerating,
+    paperFailed,
   });
 
   const exitHref = `/ielts/cambridge/${bookId}`;
@@ -130,6 +140,20 @@ export default function SkillPlayerPage() {
     );
   }
 
+  // v1.0.8.5 — برگه ساخته نشد → فقط کادر «تلاش دوباره» (بدون PDF کتاب)
+  if (paperFailed) {
+    return (
+      <PaperFallback
+        title={title}
+        skillLabel={tr(SKILL_LABEL[skillKey]?.fa ?? "", SKILL_LABEL[skillKey]?.en ?? "")}
+        exitHref={exitHref}
+        failReason={paperError ?? (paper?.ok === false ? paper.reason : null)}
+        aiError={paper?.ok === false ? paper.aiError : undefined}
+        onRetry={() => refetchPaper(true)}
+      />
+    );
+  }
+
   if (session.loading || !session.payload) {
     return (
       <div className="min-h-full bg-[#fbfbfb] dark:bg-[#0b1220]">
@@ -142,14 +166,15 @@ export default function SkillPlayerPage() {
   const isExam = payload.mode === "exam";
   const skillInfo = SKILL_LABEL[skillKey] ?? SKILL_LABEL.reading;
 
-  // وضعیت برگهٔ امتحان
+  // وضعیت برگهٔ امتحان (شکست در بالای صفحه هندل شده — اینجا فقط آماده/ساخت)
   const paperReady = !paperLoading && !paperGenerating && !paperError && paper?.ok === true;
-  const paperFailed =
-    !paperLoading && !paperGenerating && (paperError != null || (paper != null && paper.ok === false));
-  const paperFailReason = paperError ?? (paper?.ok === false ? paper.reason : null);
-  const paperAiError = paper?.ok === false ? paper.aiError : undefined;
   const paperAiGenerated = paper?.ok === true ? paper.aiGenerated === true : false;
-  const isAiRetryable = !!paperAiError;
+  // شکست رایتینگ — هشدار داخل خود WritingPanel (بدون AI؛ جریان قبلی)
+  const writingPaperFailed =
+    skillKey === "writing" &&
+    !paperLoading &&
+    !paperGenerating &&
+    (paperError != null || (paper != null && paper.ok === false));
   const writingPrompts: IeltsWritingPrompt[] =
     paper?.ok === true && skillKey === "writing" ? (paper.writing ?? []) : [];
   const writingQuestionPaper =
@@ -224,7 +249,7 @@ export default function SkillPlayerPage() {
                 questionPaper={writingQuestionPaper}
                 pdfUrl={payload.media.pdfUrl}
                 paperLoading={paperLoading}
-                paperFailed={paperFailed}
+                paperFailed={writingPaperFailed}
               />
             )}
 
@@ -247,22 +272,6 @@ export default function SkillPlayerPage() {
 
             {/* ریدینگ/لیسنینگ: در حال ساخت/خواندن برگه */}
             {skillKey !== "writing" && paperLoading && !paperGenerating && <PaperLoadingCard />}
-
-            {/* حالت جایگزین: برگه ساخته نشد → خود PDF + ورودی سریع */}
-            {skillKey !== "writing" && paperFailed && (
-              <PaperFallback
-                pdfUrl={payload.media.pdfUrl}
-                bookTitle={`Cambridge IELTS ${String(bookId).padStart(2, "0")} — Official Book PDF`}
-                failReason={paperFailReason}
-                aiError={paperAiError}
-                retryable={isAiRetryable}
-                onRetry={() => refetchPaper(true)}
-                answerIds={session.answerIds}
-                answeredCount={session.answeredCount}
-                savedAnswers={payload.savedAnswers}
-                onAnswer={session.setAnswer}
-              />
-            )}
 
             {/* دکمهٔ تحویل */}
             <button

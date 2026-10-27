@@ -56,6 +56,7 @@ export function useSkillExamSession({
   skill,
   paperLoading,
   paperGenerating,
+  paperFailed,
 }: {
   bookId: number;
   testId: number;
@@ -63,6 +64,9 @@ export function useSkillExamSession({
   /** برگهٔ AI هنوز در حال بارگذاری/ساخت است → تلاش شروع نمی‌شود */
   paperLoading: boolean;
   paperGenerating: boolean;
+  /** v1.0.8.5 (English 1.0.2.4): برگه ساخته نشد → تلاش شروع نمی‌شود
+   *  تا «تلاش دوباره» موفق شود — انصاف تایمر (رایتینگ false می‌ماند) */
+  paperFailed?: boolean;
 }): SkillExamSession {
   const { tr } = useLanguage();
 
@@ -94,8 +98,9 @@ export function useSkillExamSession({
         );
         return;
       }
-      // برگه هنوز در حال ساخت/بارگذاری است → صبر کنیم
-      if (paperLoading || paperGenerating) return;
+      // برگه هنوز در حال ساخت/بارگذاری است یا ساخته نشد → صبر کنیم
+      // (v1.0.8.5 — با شکستِ برگه، تلاش تا «تلاش دوبارهٔ» موفق شروع نمی‌شود)
+      if (paperLoading || paperGenerating || paperFailed) return;
       const modeParam: IeltsMode =
         new URLSearchParams(window.location.search).get("mode") === "exam" ? "exam" : "practice";
       elapsed0.current = Date.now();
@@ -118,7 +123,7 @@ export function useSkillExamSession({
     }, 0);
     return () => clearTimeout(t);
      
-  }, [bookId, testId, skill, paperLoading, paperGenerating, valid]);
+  }, [bookId, testId, skill, paperLoading, paperGenerating, paperFailed, valid]);
 
   const { payload, loading, error, saving, setAnswer, flush, submit } = useAttempt(attemptId);
 
