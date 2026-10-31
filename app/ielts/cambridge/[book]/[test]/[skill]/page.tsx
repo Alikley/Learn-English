@@ -20,7 +20,6 @@ import PaperFallback from "./_components/PaperFallback";
 import PdfDrawer from "./_components/PdfDrawer";
 import SubmitConfirmModal from "./_components/SubmitConfirmModal";
 import type { IeltsSkill, IeltsWritingPrompt } from "@/types/ielts";
-
 // ========================================
 // پلیر آزمون آیلتس — برگه از متن PDF (v1.0.4.4 / English 1.0.0.8)
 // /ielts/cambridge/[book]/[test]/[skill]?mode=practice|exam&full=1
@@ -32,7 +31,13 @@ import type { IeltsSkill, IeltsWritingPrompt } from "@/types/ielts";
 // در بالای صفحه (متن استخراج‌شده برای همهٔ کتاب‌ها) + بخش
 // اختیاری «مشاهدهٔ صفحهٔ کتاب» برای نمودار تسک ۱
 //
-// اگر برگه ساخته نشد → فقط کادر «تلاش دوباره» — بدون PDF (PaperFallback)
+// v1.0.6.1 (English 1.0.2.4) — خواستهٔ کاربر:
+//   گام ۱: حالت ساخت AI → فقط «در حال آماده‌سازی امتحان» +
+//          درصد پیشرفت + باکس سبز (AiBuildingScreen بازطراحی شد)
+//   گام ۲: شکست ساخت برگه → بدون PDF؛ فقط یک کادر بالای صفحه
+//          با دکمهٔ «تلاش دوباره» (PaperFallback بازطراحی شد —
+//          دکمهٔ تحویل/پلیر/کشوی PDF هم تا موفقیت دوباره پنهان)
+//
 // تصحیح: کلید دستی → AI → PDF → خودتصحیحی
 //
 // 🧹 کلین‌کد: منطق نشست → useSkillExamSession، رابط‌ها →
@@ -79,6 +84,8 @@ export default function SkillPlayerPage() {
     loading: paperLoading,
     generating: paperGenerating,
     error: paperError,
+    progress: paperProgress,
+    generatingSince,
     refetch: refetchPaper,
   } = useExamPaper(
     Number.isInteger(bookId) &&
@@ -88,15 +95,6 @@ export default function SkillPlayerPage() {
     skillKey,
   );
 
-  // v1.0.8.5 (English 1.0.2.4) — شکست برگهٔ (ریدینگ/لیسنینگ) قبل از نشست
-  // محاسبه می‌شود تا تلاش تا «تلاش دوبارهٔ» موفق گیت شود (انصاف تایمر)؛
-  // رایتینگ جدا است (AI ندارد — همان جریان قبلی در WritingPanel)
-  const paperFailed =
-    skillKey !== "writing" &&
-    !paperLoading &&
-    !paperGenerating &&
-    (paperError != null || (paper != null && paper.ok === false));
-
   // نشست تلاش — شروع فقط بعد از آماده‌شدن برگه (انصاف تایمر)
   const session = useSkillExamSession({
     bookId,
@@ -104,7 +102,6 @@ export default function SkillPlayerPage() {
     skill: skillKey,
     paperLoading,
     paperGenerating,
-    paperFailed,
   });
 
   const exitHref = `/ielts/cambridge/${bookId}`;
@@ -136,20 +133,8 @@ export default function SkillPlayerPage() {
         title={title}
         skillLabel={tr(SKILL_LABEL[skillKey]?.fa ?? "", SKILL_LABEL[skillKey]?.en ?? "")}
         exitHref={exitHref}
-      />
-    );
-  }
-
-  // v1.0.8.5 — برگه ساخته نشد → فقط کادر «تلاش دوباره» (بدون PDF کتاب)
-  if (paperFailed) {
-    return (
-      <PaperFallback
-        title={title}
-        skillLabel={tr(SKILL_LABEL[skillKey]?.fa ?? "", SKILL_LABEL[skillKey]?.en ?? "")}
-        exitHref={exitHref}
-        failReason={paperError ?? (paper?.ok === false ? paper.reason : null)}
-        aiError={paper?.ok === false ? paper.aiError : undefined}
-        onRetry={() => refetchPaper(true)}
+        progress={paperProgress}
+        generatingSince={generatingSince}
       />
     );
   }
@@ -166,15 +151,13 @@ export default function SkillPlayerPage() {
   const isExam = payload.mode === "exam";
   const skillInfo = SKILL_LABEL[skillKey] ?? SKILL_LABEL.reading;
 
-  // وضعیت برگهٔ امتحان (شکست در بالای صفحه هندل شده — اینجا فقط آماده/ساخت)
+  // وضعیت برگهٔ امتحان
   const paperReady = !paperLoading && !paperGenerating && !paperError && paper?.ok === true;
+  const paperFailed =
+    !paperLoading && !paperGenerating && (paperError != null || (paper != null && paper.ok === false));
+  const paperFailReason = paperError ?? (paper?.ok === false ? paper.reason : null);
+  const paperAiError = paper?.ok === false ? paper.aiError : undefined;
   const paperAiGenerated = paper?.ok === true ? paper.aiGenerated === true : false;
-  // شکست رایتینگ — هشدار داخل خود WritingPanel (بدون AI؛ جریان قبلی)
-  const writingPaperFailed =
-    skillKey === "writing" &&
-    !paperLoading &&
-    !paperGenerating &&
-    (paperError != null || (paper != null && paper.ok === false));
   const writingPrompts: IeltsWritingPrompt[] =
     paper?.ok === true && skillKey === "writing" ? (paper.writing ?? []) : [];
   const writingQuestionPaper =
@@ -227,8 +210,18 @@ export default function SkillPlayerPage() {
         {/* ================= نمای آزمون ================= */}
         {!showResult && (
           <div className="space-y-4">
+            {/* v1.0.6.1 — شکست ساخت برگه: فقط این کادر بالای صفحه +
+                دکمهٔ «تلاش دوباره» — بدون PDF و بدون بقیهٔ بخش‌ها */}
+            {paperFailed && (
+              <PaperFallback
+                failReason={paperFailReason}
+                aiError={paperAiError}
+                onRetry={() => refetchPaper(true)}
+              />
+            )}
+
             {/* لیسنینگ: پخش‌کنندهٔ بالای برگه */}
-            {skillKey === "listening" && (
+            {!paperFailed && skillKey === "listening" && (
               <RealAudioPlayer
                 tracks={payload.media.audioTracks}
                 shared={payload.media.audioShared}
@@ -237,7 +230,7 @@ export default function SkillPlayerPage() {
             )}
 
             {/* رایتینگ — صورت سوال جدا‌شده در بالای صفحه (بدون AI) */}
-            {skillKey === "writing" && (
+            {!paperFailed && skillKey === "writing" && (
               <WritingPanel
                 answers={payload.savedAnswers}
                 onChange={session.setAnswer}
@@ -249,12 +242,12 @@ export default function SkillPlayerPage() {
                 questionPaper={writingQuestionPaper}
                 pdfUrl={payload.media.pdfUrl}
                 paperLoading={paperLoading}
-                paperFailed={writingPaperFailed}
+                paperFailed={paperFailed}
               />
             )}
 
             {/* ریدینگ/لیسنینگ: برگهٔ امتحان (AI / پارسر) */}
-            {skillKey !== "writing" && paperReady && paper?.ok === true && (
+            {!paperFailed && skillKey !== "writing" && paperReady && paper?.ok === true && (
               <ExamPaper
                 skill={skillKey as "reading" | "listening"}
                 bookId={bookId}
@@ -273,23 +266,27 @@ export default function SkillPlayerPage() {
             {/* ریدینگ/لیسنینگ: در حال ساخت/خواندن برگه */}
             {skillKey !== "writing" && paperLoading && !paperGenerating && <PaperLoadingCard />}
 
-            {/* دکمهٔ تحویل */}
-            <button
-              onClick={() => setConfirmSubmit(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition active:scale-[0.99]"
-            >
-              <Send size={15} />
-              {tr("تحویل آزمون", "Submit exam")}
-              <span className="text-[10px] font-medium opacity-80">
-                ({tr(`${session.answeredCount} پاسخ`, `${session.answeredCount} answered`)})
-              </span>
-            </button>
+            {/* دکمهٔ تحویل — فقط وقتی برگه آماده است (در شکست،
+                فقط کادر «تلاش دوباره» بالای صفحه هست) */}
+            {!paperFailed && (
+              <button
+                onClick={() => setConfirmSubmit(true)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold transition active:scale-[0.99]"
+              >
+                <Send size={15} />
+                {tr("تحویل آزمون", "Submit exam")}
+                <span className="text-[10px] font-medium opacity-80">
+                  ({tr(`${session.answeredCount} پاسخ`, `${session.answeredCount} answered`)})
+                </span>
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* دکمهٔ شناور + پنل کشویی کتاب PDF — در هر وضعیت برگه در دسترس */}
-      {!showResult && payload.media.pdfUrl && (
+      {/* دکمهٔ شناور + پنل کشویی کتاب PDF — فقط وقتی برگه ساخته شده؛
+          در حالت شکست (v1.0.6.1) PDF پنهان است — فقط «تلاش دوباره» */}
+      {!showResult && !paperFailed && payload.media.pdfUrl && (
         <PdfDrawer
           open={pdfOpen}
           onOpen={() => setPdfOpen(true)}

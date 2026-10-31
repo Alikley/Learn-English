@@ -13,7 +13,8 @@ export type ChatReplyView = {
   createdAt: string;
   userId: string;
   authorName: string;
-  authorLevel: string | null;
+  /** v1.0.2.2 — سطح CEFR نویسنده (آخرین تعیین سطح) — null = تست نداده */
+  authorLevel?: string | null;
   likes: number;
   dislikes: number;
   myReaction: ChatReactionType;

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAuth, ok, err } from "@/lib/api-helpers";
 import { getBookPdf, getBookPages } from "@/lib/ielts/pdf-text";
 import { buildExamPaper, type PaperSkill } from "@/lib/ielts/paper-parser";
-import { acquireAiPaper, isAiExamConfigured } from "@/lib/ielts/ai-paper";
+import { acquireAiPaper, aiPaperSlug, getAiPaperProgress, isAiExamConfigured } from "@/lib/ielts/ai-paper";
 import { buildWritingPaper } from "@/lib/ielts/writing-paper";
 // v1.0.4.5 (English 1.0.0.9): «IELTS_BOOK_COUNT» به‌جای ایمپورت مستقیم از
 // طول «IELTS_BOOKS» گرفته می‌شود تا حتی با real-tests.ts قدیمی هم بیلد رد شود
@@ -120,12 +120,23 @@ export async function GET(req: Request) {
       await consumeAiQuota(auth.session.user.id, "ielts-paper");
       // تولید در پس‌زمینه — پاسخ سریع، کلاینت poll می‌کند
       after(() => state.run());
-      return ok({ ok: false, generating: true, reason: GENERATING_REASON });
+      // v1.0.6.1 — درصد پیشرفت واقعی برای نمایش در صفحهٔ ساخت
+      return ok({
+        ok: false,
+        generating: true,
+        reason: GENERATING_REASON,
+        progress: getAiPaperProgress(aiPaperSlug(bookId, testId, skill)),
+      });
     }
 
     if (state.status === "GENERATING") {
       // فرایند دیگری (یا همین) در حال ساخت است
-      return ok({ ok: false, generating: true, reason: GENERATING_REASON });
+      return ok({
+        ok: false,
+        generating: true,
+        reason: GENERATING_REASON,
+        progress: getAiPaperProgress(aiPaperSlug(bookId, testId, skill)),
+      });
     }
 
     // FAILED → ادامه به مسیر جایگزین (بدون retry خودکار — صرفه‌جویی توکن)

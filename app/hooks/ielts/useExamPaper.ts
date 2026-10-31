@@ -24,6 +24,10 @@ export type ExamPaperState = {
   /** true = برگه با AI در حال ساخت است (اولین بازدید این آزمون) */
   generating: boolean;
   error: string | null;
+  /** v1.0.6.1 — آخرین درصد پیشرفت واقعی از سرور (null = ثبت نشده) */
+  progress: { pct: number; at: number } | null;
+  /** v1.0.6.1 — شروع چرخهٔ ساخت جاری از دید کلاینت (ms) — برای تخمین درصد */
+  generatingSince: number | null;
   /** تلاش مجدد — با refresh=true کش دائمی AI شکسته و دوباره ساخته می‌شود */
   refetch: (refresh?: boolean) => void;
 };
@@ -37,6 +41,8 @@ export function useExamPaper(
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ pct: number; at: number } | null>(null);
+  const [generatingSince, setGeneratingSince] = useState<number | null>(null);
   const [nonce, setNonce] = useState(0);
 
   /** refresh فقط برای «اولین» درخواستِ این چرخه فرستاده می‌شود —
@@ -80,10 +86,16 @@ export function useExamPaper(
         if (data.ok === false && data.generating === true) {
           setPaper(null);
           setGenerating(true);
+          setProgress(data.progress ?? null);
+          // شروع چرخهٔ ساخت از دید کلاینت — فقط بار اول ثبت می‌شود
+          // (چرخهٔ بعدی مثل retry-after-failure دوباره از صفر شروع می‌شود)
+          setGeneratingSince((prev) => prev ?? Date.now());
           triesRef.current += 1;
           if (triesRef.current >= MAX_POLL_TRIES) {
             setGenerating(false);
             setLoading(false);
+            setGeneratingSince(null);
+            setProgress(null);
             setError("ساخت برگه بیش از حد طول کشید — کمی بعد دوباره وارد این آزمون شو");
             return;
           }
@@ -95,11 +107,15 @@ export function useExamPaper(
         setGenerating(false);
         setPaper(data);
         setLoading(false);
+        setGeneratingSince(null);
+        setProgress(null);
       } catch {
         if (cancelled) return;
         setGenerating(false);
         setError("خطا در ساخت برگهٔ امتحان از PDF");
         setLoading(false);
+        setGeneratingSince(null);
+        setProgress(null);
       }
     };
 
@@ -111,5 +127,5 @@ export function useExamPaper(
     };
   }, [bookId, testId, skill, nonce]);
 
-  return { paper, loading, generating, error, refetch };
+  return { paper, loading, generating, error, progress, generatingSince, refetch };
 }

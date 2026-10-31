@@ -45,7 +45,7 @@ console.log(
 );
 
 // ۴) تولید با AI
-console.log("\n--- calling CodeCraft (may take 1-3 min) ---");
+console.log("\n--- calling AI service (may take 1-3 min) ---");
 const t0 = Date.now();
 const result = await generateAiPaper({
   bookNumber,

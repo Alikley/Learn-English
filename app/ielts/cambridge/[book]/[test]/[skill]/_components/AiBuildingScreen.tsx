@@ -1,58 +1,67 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Brain, Database } from "lucide-react";
 import { motion } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
-// صفحهٔ «در حال آماده‌سازی امتحان» (v1.0.8.5 / English 1.0.2.4)
+// صفحهٔ «در حال آماده‌سازی امتحان» (v1.0.6.1 / English 1.0.2.4)
 //
-// 🎯 خواستهٔ کاربر (۱.۰.2.4): در حالت ساخت با هوش مصنوعی، در
-//    همهٔ کتاب‌ها و تست‌ها فقط همین صفحه باشد:
-//    ۱) عنوان بالا: «در حال آماده‌سازی امتحان»
-//    ۲) درصدِ آماده‌شدن برگه (نوار + عدد)
-//    ۳) فقط توضیحِ باکس سبز — هیچ توضیح دیگری نه
-//    (قبلاً: ۵ ردیف توضیح مراحل + متن زیر عنوان + نوار بی‌درصد)
+// 🎯 خواستهٔ کاربر: در حالت ساخت با هوش مصنوعی —
+//    «فقط توضیح باکس سبز باشه و اینکه درصد هم باشه که
+//     چند درصدش آماده شده و بالاش بنویسه در حال اماده سازی امتحان»
 //
-// درصد بر اساس زمان سپری‌شده تخمین زده می‌شود و روی ۹۵٪
-// می‌ایستد تا پاسخ نهایی poll (آماده/خطا) برسد — سرور
-// مرحله‌به‌مرحله درصد واقعی نمی‌فرستد.
+// چیدمان (خلاصه‌شده):
+//    ۱) عنوان «در حال آماده‌سازی امتحان»
+//    ۲) درصد پیشرفت (عدد بزرگ + نوار درصدی)
+//    ۳) فقط باکس سبز (توضیح یک‌بار بودن ساخت)
+//    — بدون هیچ توضیح/مرحلهٔ دیگر
+//
+// درصد = ترکیب پیشرفتِ واقعی از سرور (progress) با تخمین
+// زمانیِ نرم کلاینت — همیشه صعودی، تا سقف ۹۵٪ تا وقتی
+// برگه واقعاً آماده شود (آماده‌شدن = نمایش خود برگه).
+// (از [skill]/page.tsx جدا شد — v1.0.0.3)
 // ========================================
 
-const FA_DIGITS = ["۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"] as const;
-
-function toFaDigits(value: string): string {
-  return value.replace(/\d/g, (d) => FA_DIGITS[Number(d)]);
+/** تبدیل رقم لاتین به فارسی برای نمایش درصد در حالت فارسی */
+function toFaDigits(n: number): string {
+  return String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
 }
 
 export default function AiBuildingScreen({
   title,
   skillLabel,
   exitHref,
+  progress,
+  generatingSince,
 }: {
   title: string;
   skillLabel: string;
   exitHref: string;
+  /** آخرین درصد واقعی از سرور — null = هنوز چیزی ثبت نشده */
+  progress: { pct: number; at: number } | null;
+  /** شروع چرخهٔ ساخت از دید کلاینت (ms) — برای تخمین زمانی */
+  generatingSince: number | null;
 }) {
   const { tr, dir, lang } = useLanguage();
 
-  // درصدِ تخمینی — از لحظهٔ ورود به این صفحه شروع می‌شود
-  const startRef = useRef(Date.now());
-  const [percent, setPercent] = useState(0);
-
+  // تیک ۵۰۰ms برای روان بودن نوار درصد
+  const [now, setNow] = useState<number>(() => Date.now());
   useEffect(() => {
-    const id = setInterval(() => {
-      const elapsedSec = (Date.now() - startRef.current) / 1000;
-      // منحنی نرم: تند شروع، آرام ادامه — سقف ۹۵٪ تا پایان واقعی
-      const p = Math.min(95, Math.round(95 * (1 - Math.exp(-elapsedSec / 75))));
-      setPercent(p);
-    }, 1000);
-    return () => clearInterval(id);
+    const t = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(t);
   }, []);
 
-  const percentText = lang === "en" ? `${percent}%` : `${toFaDigits(String(percent))}٪`;
+  // ---- محاسبهٔ درصد نمایشی ----
+  // تخمین زمانی: منحنی نرم که در ~۲ دقیقه به ~۹۳٪ می‌رسد و
+  // هرگز از ۹۵٪ عبور نمی‌کند (۱۰۰٪ یعنی برگه واقعاً آماده است)
+  const elapsedMs = generatingSince ? Math.max(0, now - generatingSince) : 0;
+  const timePct = Math.min(95, 100 * (1 - Math.exp(-elapsedMs / 70_000)));
+  const serverPct = progress?.pct ?? 0;
+  const pct = Math.min(95, Math.max(2, Math.round(Math.max(timePct, serverPct))));
+  const pctLabel = lang === "fa" ? `${toFaDigits(pct)}٪` : `${pct}%`;
 
   return (
     <div className="min-h-screen bg-[#fbfbfb] dark:bg-[#0b1220] transition-colors" dir={dir}>
@@ -77,7 +86,7 @@ export default function AiBuildingScreen({
           animate={{ opacity: 1, y: 0 }}
           className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 md:p-8 space-y-6"
         >
-          {/* عنوان بالا — در حال آماده‌سازی امتحان */}
+          {/* عنوان — «در حال آماده‌سازی امتحان» */}
           <div className="flex items-center gap-4">
             <motion.div
               animate={{ scale: [1, 1.06, 1] }}
@@ -86,27 +95,43 @@ export default function AiBuildingScreen({
             >
               <Brain size={28} />
             </motion.div>
-            <p className="text-base md:text-lg font-black text-slate-800 dark:text-slate-100">
+            <p className="text-lg md:text-xl font-black text-slate-800 dark:text-slate-100">
               {tr("در حال آماده‌سازی امتحان", "Preparing your exam")}
             </p>
           </div>
 
-          {/* درصدِ آماده‌شدن برگه */}
+          {/* درصد پیشرفت — عدد بزرگ + نوار درصدی */}
           <div className="space-y-2.5">
-            <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-l from-amber-400 to-orange-500"
-                initial={{ width: "0%" }}
-                animate={{ width: `${percent}%` }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+            <div className="flex items-end justify-between gap-3">
+              <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                {tr("درصد آماده شدن برگه", "Paper readiness")}
+              </p>
+              <motion.p
+                key={pct}
+                initial={{ scale: 1.06 }}
+                animate={{ scale: 1 }}
+                className="text-3xl md:text-4xl font-black tabular-nums text-emerald-600 dark:text-emerald-400"
+                dir="ltr"
+              >
+                {pctLabel}
+              </motion.p>
+            </div>
+            <div
+              className="h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden"
+              role="progressbar"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={tr("درصد آماده شدن برگه", "Paper readiness")}
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-l from-emerald-500 to-emerald-400 transition-[width] duration-500 ease-out"
+                style={{ width: `${pct}%` }}
               />
             </div>
-            <p className="text-center text-sm font-black text-amber-600 dark:text-amber-400">
-              {tr(`${percentText} از برگه آماده شده`, `${percentText} of the paper is ready`)}
-            </p>
           </div>
 
-          {/* تنها توضیح — باکس سبز */}
+          {/* باکس سبز — تنها توضیح این صفحه */}
           <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 px-4 py-3 flex items-start gap-2.5">
             <Database size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <p className="text-[11px] leading-6 text-emerald-700 dark:text-emerald-300">

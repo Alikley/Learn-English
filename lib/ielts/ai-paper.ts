@@ -45,6 +45,17 @@ import type { IeltsExamPaper, IeltsSkill } from "@/types/ielts";
 //   AI_API_KEY="sk-..."
 //   AI_MODEL="gpt-4o"
 // (فقط همین سه خط — بدون هیچ تغییر کدی)
+//
+// v1.0.8.7 (English 1.0.2.6): مدل‌های «استدلالی» (DeepSeek V4.1 flash و
+// مانند آن) قبل از پاسخِ اصلی، reasoning_content (تفکر) استریم می‌کنند
+// که از همان بودجهٔ max_tokens می‌خورَد. با سقف کوچک (مثلاً ۳۸۴ که
+// کاربر گذاشته بود) پاسخ کاملاً خالی می‌شود و خطا تا امروز مثلِ
+// «ارتباط برقرار نشد» به‌چشم مشکل اتصال می‌آمد! حالا:
+//   - reasoning_content جمع و تشخیص داده می‌شود
+//   - پاسخِ خالیِ سقف‌شده → پیام خطای دقیق فارسی (بدون تلاش مجدد)
+//   - کفِ سقف برای تماس «برگهٔ کامل» خودکار تضمین می‌شود
+//   - ۴۰۰ِ «سقف مدل» → تکرار خودکار با سقف اعلامی سرویس
+//   - پارامتر effort (AI_EFFORT) برای مدل‌های استدلالی
 
 const CC_API_KEY = (process.env.AI_API_KEY ?? process.env.CODECRAFT_API_KEY ?? "").trim();
 const CC_BASE_URL = (
@@ -53,7 +64,20 @@ const CC_BASE_URL = (
   "https://codecraftapi.com/v1"
 ).replace(/\/+$/, "");
 const CC_MODEL = process.env.AI_MODEL ?? process.env.CODECRAFT_MODEL ?? "claude-opus-4.8";
-const CC_MAX_TOKENS = Number(process.env.AI_MAX_TOKENS ?? process.env.CODECRAFT_MAX_TOKENS ?? 24000);
+const CC_MAX_TOKENS = Number(process.env.AI_MAX_TOKENS ?? process.env.CODECRAFT_MAX_TOKENS ?? 32000);
+// v1.0.8.7 — مقدار عددیِ امن (env خراب/خالی → پیش‌فرض ۳۲هزار)
+const baseMaxTokens = Number.isFinite(CC_MAX_TOKENS) && CC_MAX_TOKENS > 0 ? CC_MAX_TOKENS : 32000;
+/** کفِ سقف خروجیِ تماس «برگهٔ کامل» (۴۰ سوال + متن کامل ریدینگ) —
+ *  مدل‌های استدلالی بخشی از همین سهم را صرف «تفکر» می‌کنند */
+const MIN_PAPER_TOKENS = 32000;
+/** کفِ سقف خروجیِ تماسِ تعمیر کلید (خروجی کوچک، ولی تفکر دارد) */
+const MIN_REPAIR_TOKENS = 6000;
+/**
+ * سطح «effort» (اختیاری — AI_EFFORT یا CODECRAFT_EFFORT):
+ * سرویس‌هایی که می‌فهمند (DeepSeek V4.1: low/high/max) برای مدل‌های
+ * استدلالی میزان تفکر را کم/زیاد می‌کنند. خالی = پیش‌فرض خود سرویس.
+ */
+const CC_EFFORT = (process.env.AI_EFFORT ?? process.env.CODECRAFT_EFFORT ?? "").trim().toLowerCase();
 
 /**
  * UA سفارشی (اختیاری):
@@ -157,10 +181,14 @@ function asString(v: unknown, max = 4000): string {
 // ---------- برش صفحات تست از PDF (مقاوم) ----------
 
 const RE_TEST_HEADING_LINE = /^\s*(?:practice\s+)?test\s+(\d)\b/i;
-/** «Answer key» / «Answer keys» / «Answers» — به‌تنهایی در خط (بدون شمارهٔ صفحه) */
-const RE_ANSWER_KEY_LINE = /^\s*(?:answer\s*keys?|answers?)\s*:?\s*$/i;
-/** «Tapescripts» / «Transcripts» در ابتدای خط */
-const RE_TAPESCRIPT_LINE = /^\s*(?:tapes?cripts?|transcripts?)\b/i;
+/** «Answer key» / «Answer keys» / «Answers» — به‌تنهایی در خط (بدون شمارهٔ صفحه).
+ * v1.0.8.8: سرصفحهٔ کامل «Listening and Reading Answer Keys» کتاب‌های
+ * ۱۰ به بعد هم پذیرفته می‌شود (تست واقعی کتاب ۱۰ — صفحهٔ ۱۵۱). */
+const RE_ANSWER_KEY_LINE =
+  /^\s*(?:(?:listening\s+and\s+reading|reading\s+and\s+listening)\s+)?(?:answer\s*keys?|answers?)\s*:?\s*$/i;
+/** «Tapescripts» / «Transcripts» / «Audioscripts» در ابتدای خط
+ * (v1.0.8.8: کتاب‌های ۱۰ به بعد بخش را «Audioscripts» می‌نامند) */
+const RE_TAPESCRIPT_LINE = /^\s*(?:tapes?cripts?|transcripts?|audios?cripts?)\b/i;
 /** بخش ماژول General Training (کتاب‌های ۱ و ۲) */
 const RE_GENERAL_TRAINING_LINE = /^\s*general\s+training\b/i;
 
@@ -255,14 +283,36 @@ export function locateTestsRobust(pages: string[]): {
   }
 
   // ---------- انتخاب شروع تست‌ها ----------
+  // v1.0.8.8 — انتخاب «خوشه‌ای»: در کتاب‌های OCRشده ممکن است یک عنوانِ
+  // «Test N» سرگردان وسط تست قبلی پیدا شود (تست واقعی کتاب ۱۰: خطِ
+  // «Test 4» روی صفحهٔ ۵۹ وسط تست ۳!). شروع واقعی هر تست جایی است که
+  // «Test N» روی «چند صفحهٔ متوالی» تکرار می‌شود (سرصفحه‌های تکراری
+  // کتاب). پس بین نامزدها، آن‌که در ۸ صفحهٔ بعدش بیشترین تکرار N را
+  // دارد انتخاب می‌شود؛ تساوی → قدیمی‌ترین بعد از شروع تست قبلی
+  // (رفتار نسخه‌های قبل). برای کتاب‌های سمتِ متنی که «Test N» فقط یک
+  // بار می‌آید همه شمارنده‌ها ۱ می‌مانند و رفتار همان قبلی است.
   const testPages: Record<number, number> = {};
+  const clusterStart = (hits: number[]): number | undefined => {
+    const after = hits.filter((p) => p > prevStart);
+    const pool = after.length > 0 ? after : hits;
+    if (pool.length === 0) return undefined;
+    let best = pool[0];
+    let bestCount = -1;
+    for (const c of pool) {
+      const count = hits.filter((h) => h >= c && h < c + 8).length;
+      if (count > bestCount || (count === bestCount && c === pool[0])) {
+        best = c;
+        bestCount = count;
+      }
+    }
+    return best;
+  };
   let prevStart = -1;
   for (let n = 1; n <= 4; n++) {
     const list = (hits[n] ?? []).filter(
       (p) => !tocPages.has(p) && (boundaryStart == null || p < boundaryStart),
     );
-    let start: number | undefined = list.find((p) => p > prevStart);
-    if (start === undefined) start = list[0];
+    const start = clusterStart(list);
     if (start !== undefined) {
       testPages[n] = start;
       prevStart = start;
@@ -416,7 +466,12 @@ ${keyText || "(answer key pages were not found in this book's PDF — set answer
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
-export type CodeCraftResult = { content: string; finishReason: string | null };
+export type CodeCraftResult = {
+  content: string;
+  finishReason: string | null;
+  /** v1.0.8.7 — طول «تفکر» مدل‌های استدلالی (reasoning_content) */
+  reasoningChars: number;
+};
 
 type HttpResult = { status: number; body: string };
 
@@ -433,8 +488,28 @@ function isCloudflareChallenge(body: string): boolean {
 
 /** نتیجهٔ یک تماس chat — موفق (محتوای انباشته) یا ناموفق (کد + بدنه) */
 type ChatHttpResult =
-  | { ok: true; content: string; finishReason: string | null }
-  | { ok: false; status: number; body: string };
+  | { ok: true; content: string; finishReason: string | null; reasoningChars: number }
+  | {
+      ok: false;
+      status: number;
+      body: string;
+      /** v1.0.8.7 — پاسخ ۲۰۰ بود ولی سقف توکن پر شد (finish_reason: length) */
+      lengthCut?: boolean;
+      /** v1.0.8.7 — اگر مدل استدلالی بود، طول تفکرِ پیش از پاسخ */
+      reasoningChars?: number;
+    };
+
+/**
+ * v1.0.8.7 — نگهبان «بایت اول»: TTFT نرمال < ۱ ثانیه است؛ ولی تست
+ * واقعی DeepSeek (2026-10-27) نشان داد سرویس گاهی درخواست را
+ * می‌پذیرد و پیش‌پردازش می‌کند (پرامپت وارد کش سرور می‌شود!) ولی
+ * استریمِ پاسخ هرگز شروع نمی‌شود — حتی هدرها هم نمی‌آیند. اگر در
+ * ۹۰ ثانیه هیچ بایتی نرسد، تلاش قطع می‌شود تا زنجیرهٔ استراتژی
+ * به گزینهٔ بعدی برود (به‌جای انتظار ۸ دقیقه‌ای برای هر تلاش).
+ */
+const FIRST_BYTE_TIMEOUT_MS = 90_000;
+/** شناسهٔ خطای داخلی نگهبان بایت اول (در callCodeCraft ترجمه می‌شود) */
+const FIRST_BYTE_TIMEOUT_ERR = "__CC_FIRST_BYTE_TIMEOUT__";
 
 /** خواندن کامل بدنهٔ پاسخ fetch به‌صورت جریانی */
 async function readFetchBody(res: Response): Promise<string> {
@@ -442,10 +517,26 @@ async function readFetchBody(res: Response): Promise<string> {
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let out = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    out += decoder.decode(value, { stream: true });
+  for (let i = 0; ; i++) {
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    if (i === 0) {
+      // فقط اولین read زیر نظر نگهبان است
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        chunk = await Promise.race([
+          reader.read(),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error(FIRST_BYTE_TIMEOUT_ERR)), FIRST_BYTE_TIMEOUT_MS);
+          }),
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    } else {
+      chunk = await reader.read();
+    }
+    if (chunk.done) break;
+    out += decoder.decode(chunk.value, { stream: true });
   }
   out += decoder.decode();
   return out;
@@ -462,16 +553,30 @@ function parseChatResponseText(text: string): ChatHttpResult {
   if (t.startsWith("{")) {
     try {
       const data = JSON.parse(t) as {
-        choices?: { message?: { content?: string }; finish_reason?: string }[];
+        choices?: {
+          message?: { content?: string; reasoning_content?: string };
+          finish_reason?: string;
+        }[];
       };
-      const content = data?.choices?.[0]?.message?.content;
+      const msg = data?.choices?.[0]?.message;
+      const content = msg?.content;
+      const reasoning = typeof msg?.reasoning_content === "string" ? msg.reasoning_content : "";
+      const finish = data?.choices?.[0]?.finish_reason ?? null;
       if (typeof content === "string" && content.trim()) {
         return {
           ok: true,
           content,
-          finishReason: data?.choices?.[0]?.finish_reason ?? null,
+          finishReason: finish,
+          reasoningChars: reasoning.length,
         };
       }
+      return {
+        ok: false,
+        status: 200,
+        body: t.slice(0, 500),
+        lengthCut: finish === "length",
+        reasoningChars: reasoning.length,
+      };
     } catch {
       /* بدنهٔ 200 غیرمنتظره */
     }
@@ -479,6 +584,7 @@ function parseChatResponseText(text: string): ChatHttpResult {
   }
   // ---------- SSE: data: {...} خط به خط ----------
   let content = "";
+  let reasoning = "";
   let finishReason: string | null = null;
   for (const line of text.split("\n")) {
     const l = line.trim();
@@ -488,21 +594,36 @@ function parseChatResponseText(text: string): ChatHttpResult {
     try {
       const chunk = JSON.parse(dataStr) as {
         choices?: {
-          delta?: { content?: string };
-          message?: { content?: string };
+          delta?: { content?: string; reasoning_content?: string };
+          message?: { content?: string; reasoning_content?: string };
           finish_reason?: string | null;
         }[];
       };
       const c = chunk.choices?.[0];
+      // v1.0.8.7 — مدل‌های استدلالی (مثل DeepSeek V4.1) اول «تفکر»
+      // استریم می‌کنند (reasoning_content) بعد پاسخِ اصلی؛ جمع می‌شود
+      // تا اگر پاسخ به‌خاطر سقف توکن نیامد، علت دقیق گزارش شود.
+      if (typeof c?.delta?.reasoning_content === "string") reasoning += c.delta.reasoning_content;
       if (typeof c?.delta?.content === "string") content += c.delta.content;
       else if (typeof c?.message?.content === "string" && !content) content += c.message.content;
+      if (typeof c?.message?.reasoning_content === "string" && !reasoning) {
+        reasoning = c.message.reasoning_content;
+      }
       if (c?.finish_reason) finishReason = c.finish_reason;
     } catch {
       /* خط خراب SSE — رد می‌شود */
     }
   }
-  if (content.trim()) return { ok: true, content, finishReason };
-  return { ok: false, status: 200, body: text.slice(0, 500) };
+  if (content.trim()) {
+    return { ok: true, content, finishReason, reasoningChars: reasoning.length };
+  }
+  return {
+    ok: false,
+    status: 200,
+    body: text.slice(0, 500),
+    lengthCut: finishReason === "length",
+    reasoningChars: reasoning.length,
+  };
 }
 
 /** تماس استریمی با fetch */
@@ -552,8 +673,17 @@ function chatViaCurl(
     let out = "";
     let err = "";
     const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs + 5000);
+    // v1.0.8.7 — نگهبان «بایت اول» برای curl هم (همان منطق fetch):
+    // اگر ۹۰ ثانیه هیچ خروجی‌ای نیامد، curl کشته می‌شود تا زنجیرهٔ
+    // استراتژی به گزینهٔ بعدی برود.
+    let killedByWatchdog = false;
+    const firstByteTimer = setTimeout(() => {
+      killedByWatchdog = true;
+      child.kill("SIGKILL");
+    }, FIRST_BYTE_TIMEOUT_MS);
 
     child.stdout.on("data", (d: Buffer) => {
+      clearTimeout(firstByteTimer);
       out += d.toString("utf8");
     });
     child.stderr.on("data", (d: Buffer) => {
@@ -565,6 +695,11 @@ function chatViaCurl(
     });
     child.on("close", (code) => {
       clearTimeout(timer);
+      clearTimeout(firstByteTimer);
+      if (killedByWatchdog) {
+        reject(new Error(FIRST_BYTE_TIMEOUT_ERR));
+        return;
+      }
       const idx = out.lastIndexOf("__CC_STATUS__");
       if (idx === -1) {
         reject(new Error(`curl exited ${code}${err ? `: ${err.slice(0, 200)}` : ""}`));
@@ -586,6 +721,27 @@ function chatViaCurl(
 }
 
 /**
+ * v1.0.8.7 — اگر سرویس ۴۰۰ داد چون max_tokens از سقف مدل بزرگ‌تر است،
+ * عددِ مجاز را از متن خطا بیرون می‌کشد:
+ *   OpenAI:   "…max_tokens is too large: 20000. This model supports at most 16384 tokens"
+ *   DeepSeek/دیگران: "max_tokens must be an integer between 1 and 8192" یا "<= 4096"
+ */
+function parseMaxTokensCap(body: string): number | null {
+  const patterns = [
+    /(?:at most|no more than|up to|maximum of|between\s+\d+\s+and|<=)\s*:?\s*(\d{2,7})/i,
+    /max_tokens[^\d]{0,60}(\d{2,7})/i,
+  ];
+  for (const re of patterns) {
+    const m = body.match(re);
+    if (m) {
+      const n = Number(m[1]);
+      if (Number.isInteger(n) && n >= 256 && n <= 1_000_000) return n;
+    }
+  }
+  return null;
+}
+
+/**
  * یک تماس chat/completions با سرویس CodeCraft.
  *
  * سرویس پشت Cloudflare است و دو مشکل دارد:
@@ -597,59 +753,81 @@ function chatViaCurl(
  */
 export async function callCodeCraft(
   messages: ChatMessage[],
-  maxTokens = CC_MAX_TOKENS,
+  maxTokens = baseMaxTokens,
   timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<CodeCraftResult> {
   if (!CC_API_KEY) throw new Error("کلید سرویس AI تنظیم نشده است — AI_API_KEY (یا CODECRAFT_API_KEY) را در .env قرار دهید");
 
   const url = `${CC_BASE_URL}/chat/completions`;
-  const payload: Record<string, unknown> = {
+  // v1.0.8.7 — پارامتر effort فقط وقتی فرستاده می‌شود که کاربر
+  // AI_EFFORT/CODECRAFT_EFFORT را گذاشته باشد؛ سرویس‌هایی که آن را
+  // نمی‌شناسند اصلاً نمی‌بینند و خطا نمی‌گیرند.
+  const makePayload = (tokens: number): Record<string, unknown> => ({
     model: CC_MODEL,
     messages,
-    max_tokens: maxTokens,
+    max_tokens: tokens,
     temperature: 0,
-  };
+    ...(CC_EFFORT ? { effort: CC_EFFORT } : {}),
+  });
   const baseHeaders: Record<string, string> = {
     "Content-Type": "application/json",
     Accept: "application/json",
     Authorization: `Bearer ${CC_API_KEY}`,
   };
 
-  const attempts: (() => Promise<ChatHttpResult>)[] = [];
-  if (CC_CUSTOM_UA === undefined) {
-    attempts.push(() => chatViaFetch(url, { ...baseHeaders }, payload, timeoutMs));
-    attempts.push(() =>
-      chatViaFetch(url, { ...baseHeaders, "User-Agent": BROWSER_UA }, payload, timeoutMs),
-    );
-    attempts.push(() =>
-      chatViaCurl(url, { ...baseHeaders, "User-Agent": BROWSER_UA }, payload, timeoutMs),
-    );
-  } else if (CC_CUSTOM_UA === "") {
-    attempts.push(() => chatViaFetch(url, { ...baseHeaders }, payload, timeoutMs));
-  } else {
-    attempts.push(() =>
-      chatViaFetch(url, { ...baseHeaders, "User-Agent": CC_CUSTOM_UA }, payload, timeoutMs),
-    );
-    attempts.push(() =>
-      chatViaCurl(url, { ...baseHeaders, "User-Agent": CC_CUSTOM_UA }, payload, timeoutMs),
-    );
-  }
+  const makeAttempts = (payload: Record<string, unknown>): (() => Promise<ChatHttpResult>)[] => {
+    const attempts: (() => Promise<ChatHttpResult>)[] = [];
+    if (CC_CUSTOM_UA === undefined) {
+      attempts.push(() => chatViaFetch(url, { ...baseHeaders }, payload, timeoutMs));
+      attempts.push(() =>
+        chatViaFetch(url, { ...baseHeaders, "User-Agent": BROWSER_UA }, payload, timeoutMs),
+      );
+      attempts.push(() =>
+        chatViaCurl(url, { ...baseHeaders, "User-Agent": BROWSER_UA }, payload, timeoutMs),
+      );
+    } else if (CC_CUSTOM_UA === "") {
+      attempts.push(() => chatViaFetch(url, { ...baseHeaders }, payload, timeoutMs));
+    } else {
+      attempts.push(() =>
+        chatViaFetch(url, { ...baseHeaders, "User-Agent": CC_CUSTOM_UA }, payload, timeoutMs),
+      );
+      attempts.push(() =>
+        chatViaCurl(url, { ...baseHeaders, "User-Agent": CC_CUSTOM_UA }, payload, timeoutMs),
+      );
+    }
+    return attempts;
+  };
 
+  let tokens = maxTokens;
+  let clamped = false; // آیا یک بار برای سقفِ مدل کم کرده‌ایم؟
   let sawChallenge = false;
   let lastNetworkError: string | null = null;
+  let sawEmpty200 = false;
 
-  for (const attempt of attempts) {
-    let r: ChatHttpResult;
-    try {
-      r = await attempt();
-    } catch (e) {
-      lastNetworkError = e instanceof Error ? e.message : String(e);
-      continue; // این استراتژی ناموفق → بعدی
-    }
+  // v1.0.8.7 — دور اول: همان زنجیرهٔ استراتژی. اگر سرویس ۴۰۰ِ «سقف
+  // مدل» بدهد، یک دور دیگر با بزرگ‌ترین مقدار مجازِ اعلام‌شده در متنِ
+  // خطا تکرار می‌شود (سرویس‌هایی که مثلاً ۳۲هزار توکن را نمی‌پذیرند).
+  for (let pass = 0; pass < 2; pass++) {
+    const payload = makePayload(tokens);
+    const attempts = makeAttempts(payload);
+    let restartWithCap: number | null = null;
 
-    if (r.ok) {
-      return { content: r.content, finishReason: r.finishReason };
-    }
+    for (const attempt of attempts) {
+      let r: ChatHttpResult;
+      try {
+        r = await attempt();
+      } catch (e) {
+        const raw = e instanceof Error ? e.message : String(e);
+        // v1.0.8.7 — سکوتِ بایت اول با پیام فارسی گزارش می‌شود
+        lastNetworkError = raw.includes(FIRST_BYTE_TIMEOUT_ERR)
+          ? "سرویس درخواست را پذیرفت ولی استریم پاسخ هرگز شروع نشد (سکوت موقت سرویس — دوباره تلاش کنید)"
+          : raw;
+        continue; // این استراتژی ناموفق → بعدی
+      }
+
+      if (r.ok) {
+        return { content: r.content, finishReason: r.finishReason, reasoningChars: r.reasoningChars };
+      }
     // v1.0.8.6 — خطاهای رایج با پیام دقیق + نام واقعی سرویس:
     // پاسخ HTTP سرورِ خودشان را می‌گویند تا «مشکل از اتصال یا کد؟»
     // از خودِ پیام معلوم شود (تست واقعی: CodeCraft با اعتبار تمام‌شده
@@ -689,14 +867,68 @@ export async function callCodeCraft(
       );
     }
     if (r.status === 200) {
+      // v1.0.8.7 — سرویس ۲۰۰ داد ولی «محتوا» نیامد. اگر سقف توکن پر
+      // شده باشد (مدل‌های استدلالی مثل deepseek-flash اول «تفکر»
+      // می‌نویسند و بودجه تمام می‌شود) تکرار استراتژی قطعاً همین
+      // نتیجه را می‌دهد → پیام دقیق، بدون سوختن توکن دوباره.
+      if (r.lengthCut) {
+        throw new Error(
+          `سقف خروجی AI (${tokens} توکن) زود پر شد${r.reasoningChars ? ` — مدل استدلالی است و ابتدا ${r.reasoningChars.toLocaleString("en-US")} نویسه «تفکر» نوشت؛ پاسخ اصلی جا نماند` : ""} — AI_MAX_TOKENS (یا CODECRAFT_MAX_TOKENS) را در .env بزرگ کنید (پیشنهاد: 32000)${CC_EFFORT ? "" : " و برای مدل‌های استدلالی AI_EFFORT=low را هم امتحان کنید"}`,
+        );
+      }
+      sawEmpty200 = true;
       continue; // بدنهٔ 200 غیرقابل تفسیر → استراتژی بعدی
     }
+    if (r.status === 400) {
+      // v1.0.8.7 — اگر max_tokens از سقف مدل بزرگ‌تر بود، با همان
+      // سقفی که سرویس در متن خطا اعلام کرده یک بار تکرار می‌شود.
+      if (!clamped) {
+        const cap = parseMaxTokensCap(r.body);
+        if (cap != null && cap >= 512 && cap < tokens) {
+          restartWithCap = cap;
+          break; // خروج از زنجیره → تکرار کل زنجیره با سقف مجاز
+        }
+      }
+      if (
+        /model\s+(?:not\s+exist|does\s+not\s+exist)|invalid\s+model|unknown\s+model|no\s+such\s+model/i.test(
+          r.body,
+        )
+      ) {
+        throw new Error(
+          `مدل «${CC_MODEL}» در سرویس ${label} وجود ندارد (400) — نام مدل را از مستندات همان سرویس بردارید (برای دیپ‌سیک: deepseek-flash یا deepseek-v4-pro)${bodyHint(r.body)}`,
+        );
+      }
+      throw new Error(`درخواست توسط سرویس ${label} رد شد (400)${bodyHint(r.body)}`);
+    }
     throw new Error(`سرویس ${label} پاسخ ${r.status} داد${bodyHint(r.body)}`);
+    }
+
+    if (restartWithCap != null) {
+      console.warn(
+        `[ai-paper] max_tokens=${tokens} از سقف مدل بزرگ‌تر بود — تکرار با ${restartWithCap} (سقف اعلامی خود سرویس)`,
+      );
+      tokens = restartWithCap;
+      clamped = true;
+      lastNetworkError = null;
+      sawChallenge = false;
+      sawEmpty200 = false;
+      continue;
+    }
+    break;
   }
 
   if (sawChallenge) {
     throw new Error(
       `دسترسی به سرویس ${aiProviderLabel()} توسط Cloudflare بلاک شد — CODECRAFT_USER_AGENT را در .env تنظیم کنید (یا شبکهٔ سرور را بررسی کنید)`,
+    );
+  }
+  // v1.0.8.7 — هر سه استراتژی «۲۰۰ بدون محتوا» دادند (نه خطای شبکه،
+  // نه چالش): پیام قبلی «ارتباط برقرار نشد» گمراه‌کننده بود؛ علت واقعی
+  // (سقف توکنِ کوچک روی مدل استدلالی) با /api/ai-status?probe=1 پیدا
+  // می‌شود، اینجا هم صریح گفته می‌شود.
+  if (sawEmpty200 && !lastNetworkError) {
+    throw new Error(
+      `سرویس ${aiProviderLabel()} پاسخ 200 داد ولی محتوایی برنگرداند — سقف توکن (AI_MAX_TOKENS) و نام مدل را بررسی کنید`,
     );
   }
   throw new Error(
@@ -988,7 +1220,9 @@ Return the JSON object now (keys = plain numbers as strings).`;
       { role: "system", content: system },
       { role: "user", content: user },
     ],
-    2000,
+    // v1.0.8.7 — کفِ ۶هزار: مدل‌های استدلالی قبل از این JSON کوچک هم
+    // «تفکر» می‌نویسند؛ با ۲هزارِ قبلی پاسخ خالی می‌شد.
+    Math.max(2000, MIN_REPAIR_TOKENS),
   );
 
   const raw = extractJsonObject(res.content);
@@ -1041,12 +1275,23 @@ export async function generateAiPaper(params: GenerateParams): Promise<Normalize
     },
   ];
 
+  // v1.0.8.7 — کفِ سقف خروجی برای «برگهٔ کامل»: مدل‌های استدلالی
+  // (deepseek-flash و مانند آن) بخش بزرگی از سهمِ توکن را صرف «تفکر»
+  // می‌کنند؛ با سقف کوچک (مثلاً ۳۸۴ که کاربر گذاشته بود) پاسخ اصلی
+  // کلاً نمی‌آید. اگر سقفِ تنظیم‌شده کم باشد، خودکار تا کف بالا می‌رود.
+  const paperTokens = Math.max(baseMaxTokens, MIN_PAPER_TOKENS);
+  if (paperTokens > baseMaxTokens) {
+    console.warn(
+      `[ai-paper] AI_MAX_TOKENS=${CC_MAX_TOKENS} برای برگهٔ کامل کم است — تماس اصلی با ${paperTokens} توکن انجام می‌شود (English 1.0.2.6+)`,
+    );
+  }
+
   // ---- تلاش ۱ ----
   onProgress?.(50); // درخواست به AI فرستاده شد
-  const first = await callCodeCraft(messages);
+  const first = await callCodeCraft(messages, paperTokens);
   if (first.finishReason === "length") {
     throw new Error(
-      "خروجی AI ناقص بود (سقف توکن) — CODECRAFT_MAX_TOKENS را در .env افزایش دهید",
+      `خروجی AI ناقص بود (سقف ${paperTokens} توکن) — AI_MAX_TOKENS را در .env افزایش دهید (مثلاً ۴۸۰۰۰)${CC_EFFORT ? "" : " و برای مدل‌های استدلالی AI_EFFORT=low را هم امتحان کنید"}`,
     );
   }
 
@@ -1057,17 +1302,20 @@ export async function generateAiPaper(params: GenerateParams): Promise<Normalize
     const errMsg = e instanceof Error ? e.message : "the JSON did not match the contract";
     // ---- تلاش ۲: اصلاح همان مکالمه ----
     onProgress?.(82); // پاسخ اول رسید ولی ناقص بود → اصلاح
-    const second = await callCodeCraft([
-      ...messages,
-      { role: "assistant", content: first.content.slice(0, 4000) },
-      {
-        role: "user",
-        content: `Your previous answer was rejected: ${errMsg}. Return the COMPLETE corrected JSON object now — same contract, all 40 questions exactly once, nothing else.`,
-      },
-    ]);
+    const second = await callCodeCraft(
+      [
+        ...messages,
+        { role: "assistant", content: first.content.slice(0, 4000) },
+        {
+          role: "user",
+          content: `Your previous answer was rejected: ${errMsg}. Return the COMPLETE corrected JSON object now — same contract, all 40 questions exactly once, nothing else.`,
+        },
+      ],
+      paperTokens,
+    );
     if (second.finishReason === "length") {
       throw new Error(
-        "خروجی AI ناقص بود (سقف توکن) — CODECRAFT_MAX_TOKENS را در .env افزایش دهید",
+        `خروجی AI ناقص بود (سقف ${paperTokens} توکن) — AI_MAX_TOKENS را در .env افزایش دهید (مثلاً ۴۸۰۰۰)${CC_EFFORT ? "" : " و برای مدل‌های استدلالی AI_EFFORT=low را هم امتحان کنید"}`,
       );
     }
     try {
@@ -1152,30 +1400,56 @@ export function aiExamStatus(): {
   provider: string;
   model: string | null;
   maxTokens: number | null;
+  /** v1.0.8.7 — سطح effort تنظیم‌شده (اگر باشد) */
+  effort: string | null;
+  /** v1.0.8.7 — اگر سقف توکن برای «برگهٔ کامل» کم باشد، هشدار متن */
+  maxTokensAdvice: string | null;
 } {
+  const maxTokens = Number.isFinite(CC_MAX_TOKENS) && CC_MAX_TOKENS > 0 ? CC_MAX_TOKENS : null;
   return {
     configured: isAiExamConfigured(),
     provider: aiProviderLabel(),
     model: CC_MODEL || null,
-    maxTokens: Number.isFinite(CC_MAX_TOKENS) && CC_MAX_TOKENS > 0 ? CC_MAX_TOKENS : null,
+    maxTokens,
+    effort: CC_EFFORT || null,
+    maxTokensAdvice:
+      maxTokens != null && maxTokens < MIN_PAPER_TOKENS
+        ? `سقف ${maxTokens} توکن برای «برگهٔ کامل» کم است — مدل‌های استدلالی بخشی از همین سهم را صرف تفکر می‌کنند؛ از English 1.0.2.6 سقفِ تماس اصلی خودکار تا ${MIN_PAPER_TOKENS} بالا می‌رود، ولی بهتر است خودتان AI_MAX_TOKENS را ${MIN_PAPER_TOKENS}+ بگذارید`
+        : null,
   };
 }
 
 /**
  * تست زندهٔ سرویس AI (v1.0.8.6 — برای /api/ai-status?probe=1):
- * یک تماس خیلی کوچک (حداکثر ۵ توکن، تایم‌اوت ۲۰ ثانیه). پاسخ واقعی
- * سرویس را برمی‌گرداند تا معلوم شود مشکل از اتصال است، از کلید/اعتبار
- * (۴۰۱/۴۰۲)، از مدل/آدرس (۴۰۴) یا از محدودیت نرخ (۴۲۹).
+ * یک تماس خیلی کوچک با سرویسِ تنظیم‌شده. پاسخ واقعی سرویس را
+ * برمی‌گرداند تا معلوم شود مشکل از اتصال است، از کلید/اعتبار
+ * (۴۰۱/۴۰۲)، از مدل/آدرس (۴۰۴/۴۰۰) یا از محدودیت نرخ (۴۲۹).
+ *
+ * v1.0.8.7 — بودجهٔ تست از ۵ به ۳۰۰ توکن رسید و «مدل استدلالی» بودن
+ * هم گزارش می‌شود: مدل‌های استدلالی (deepseek-flash) با ۵ توکن فقط
+ * «تفکر» می‌نوشتند و پاسخ خالی می‌شد — یعنی probe سالم را خراب
+ * نشان می‌داد! (تست واقعی همین رفتار ثبت شده است.)
  */
 export async function probeAiExam(): Promise<{
   ok: boolean;
   error: string | null;
   latencyMs: number;
+  /** v1.0.8.7 — آیا مدل قبل از پاسخ «تفکر» تولید کرد (مدل استدلالی) */
+  reasoning?: boolean;
 }> {
   const t0 = Date.now();
   try {
-    await callCodeCraft([{ role: "user", content: "ping" }], 5, 20_000);
-    return { ok: true, error: null, latencyMs: Date.now() - t0 };
+    const res = await callCodeCraft(
+      [{ role: "user", content: "Reply with exactly: OK" }],
+      300,
+      30_000,
+    );
+    return {
+      ok: true,
+      error: null,
+      latencyMs: Date.now() - t0,
+      reasoning: res.reasoningChars > 0,
+    };
   } catch (e) {
     return { ok: false, error: (e instanceof Error ? e.message : String(e)).slice(0, 300), latencyMs: Date.now() - t0 };
   }
@@ -1316,14 +1590,15 @@ async function runGeneration(
       reportProgress(slug, 25); // PDF خوانده شد
 
       // v1.0.8.6 (English 1.0.2.5): کتاب‌های اسکن تصویری هیچ لایهٔ متنی
-      // ندارند (تست واقعی کتاب ۱۰: ۱۸۰ صفحه / صفر کاراکتر). ساخت برگه با
-      // AI برایشان محال است — شکست سریع با پیام شفاف، به‌جای خطای مبهم
-      // «موقعیت تست شناسایی نشد» که به چشم مشکلِ موقتی دیده می‌شد و
-      // کاربر بی‌پایان «تلاش دوباره» می‌زد.
+      // ندارند (تست واقعی کتاب ۱۰: ۱۸۰ صفحه / صفر کاراکتر).
+      // v1.0.8.8 (English 1.0.2.7): getBookPages حالا متن OCR
+      // بسته‌بندی‌شده را خودکار جایگزین می‌کند — این گارد فقط وقتی
+      // می‌ماند که نه لایهٔ متنی هست و نه OCR برای همان کتاب ساخته
+      // شده. پیام، راه‌حلِ خودکار (اسکریپت OCR) را هم می‌گوید.
       const totalChars = pagesResult.pages.reduce((a, p) => a + p.trim().length, 0);
       if (totalChars < 200) {
         throw new Error(
-          `PDF کتاب ${bookNumber} لایهٔ متنی ندارد (نسخهٔ اسکن تصویری است — ${pagesResult.pages.length} صفحه بدون متن قابل استخراج). ساخت برگهٔ هوش مصنوعی برای این کتاب ممکن نیست؛ با آپلود نسخهٔ متنی همین کتاب در باکت، این آزمون هم فعال می‌شود`,
+          `PDF کتاب ${bookNumber} لایهٔ متنی ندارد (نسخهٔ اسکن تصویری است — ${pagesResult.pages.length} صفحه بدون متن قابل استخراج) و متن OCR بسته‌بندی‌شده‌ای هم برای این کتاب موجود نیست. دو راه دارید: (۱) یک بار اسکریپت «bun scripts/ocr-book.ts ${bookNumber}» را با یک سرویس AI دیداری (AI_VISION_API_KEY / AI_VISION_BASE_URL / AI_VISION_MODEL — مثلاً مدل gpt-4o یا claude از CodeCraft) اجرا کنید تا فایل data/ocr/cambridge/${bookNumber}.json ساخته شود و این آزمون هم فعال شود؛ (۲) نسخهٔ متنی (بدون اسکن) همین کتاب را در باکت B2 آپلود کنید`,
         );
       }
 

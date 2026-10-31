@@ -24,6 +24,8 @@ import path from "node:path";
 import { extractText, getDocumentProxy } from "unpdf";
 import { scanCambridge, signedCambridgeUrl } from "@/lib/b2-cambridge";
 import { cacheGet, cacheSet, cacheDel, cacheDelPrefix } from "@/lib/cache";
+import { getOcrTextBook } from "@/lib/ielts/ocr-text";
+import { findOcrSidecar, findOcrSidecarB2, b2PdfPathForBook } from "@/lib/ielts/ocr-sidecar";
 
 const PDF_TTL_MS = 20 * 60 * 1000;
 const PAGES_TTL_S = 30 * 60;
@@ -33,6 +35,8 @@ export type PdfSourceKind = "b2" | "local" | null;
 export type PdfResult =
   | { ok: true; buffer: Buffer; source: Exclude<PdfSourceKind, null>; filePath: string }
   | { ok: false; error: string };
+
+export type PagesSource = "b2" | "local" | "ocr";
 
 type BufferCacheEntry = { buffer: Buffer; source: "b2" | "local"; filePath: string; expiresAt: number };
 
@@ -143,8 +147,75 @@ export async function getBookPdf(bookNumber: number): Promise<PdfResult> {
 // ---------- استخراج متن صفحات ----------
 
 export type PagesResult =
-  | { ok: true; pages: string[]; source: "b2" | "local" }
+  | { ok: true; pages: string[]; source: PagesSource; ocr?: boolean }
   | { ok: false; error: string };
+
+/** شکل ذخیره‌شده در کش v2 (پرچم ocr و منبع هم زنده می‌مانند) */
+type CachedPages = { pages: string[]; ocr: boolean; source: PagesSource };
+
+// ========================================
+// v1.0.8.8 (English 1.0.2.7) — ادغام متن OCR برای کتاب‌های اسکن‌شده
+//
+// ۱۸ کتاب از ۲۰ کتابِ باکت، اسکنِ تصویری هستند (بدون لایهٔ متنی) —
+// ساخت برگهٔ AI و پاسخ‌نامه برایشان ممکن نبود. حالا متنِ OCRِ
+// بسته‌بندی‌شدهٔ هر کتاب (data/ocr/cambridge — ساخته‌شده با یک مدل
+// دیداری) در getBookPages با صفحاتِ بی‌متنِ PDF ادغام می‌شود:
+//  - صفحه‌ای که خودش متن دارد (≥۵۰ کاراکتر) → دست‌نخورده
+//  - صفحهٔ بی‌متن → متن OCR همان صفحه
+//  - تعداد صفحات فرق داشته و PDF کاملاً بی‌متن است → کلِ صفحات OCR
+// نتیجه در کلاین هم `ocr:true` اعلام می‌شود و کلید کش به نسخهٔ v2
+// رفت تا کشِ قدیمیِ «صفحات خالی» به کاربر نچسبد.
+//
+// ========================================
+// v1.0.9.0 (English 1.0.2.8) — OCR Sidecar: «<نام PDF>.ocr.json» کنار خود PDF
+//
+// ادغامِ بسته‌بندی‌شده برای «کتاب ۱۰» ساخته شده بود، ولی برای بقیهٔ
+// ۱۷ کتابِ اسکن‌شده باید متن را بدون تغییر کد/ری‌دیپلوی می‌شد اضافه
+// کرد. حالا اسکریپت آفلاین «scripts/ocr-book.mjs» (ویندوز — Tesseract،
+// بدون ابزار سیستمی) متن هر صفحه را می‌سازد و فایل
+// «<نام همان PDF>.ocr.json» را کنار خود PDF می‌گذارد (پوشهٔ محلی
+// IELTS_PDF_DIR یا باکت B2 — همان پوشهٔ خود PDF). getBookPages وقتی
+// مجموع متن PDF کمتر از ۲۰۰ کاراکتر بود اول همین فایل را برمی‌دارد:
+//  - بود → متن‌هایش به‌عنوان صفحات کتاب برگردانده و مثل حالت عادی
+//    کش می‌شود (پرچم ocr:true)
+//  - نبود → مسیر v1.0.8.8 (OCR بسته‌بندی‌شده) → نبود → همان خطای
+//    «لایهٔ متنی ندارد» قبلی می‌ماند
+// کلید کش به v3 رفت تا کشِ قدیمیِ «صفحات خالی»ِ ۳۰ دقیقه‌ایِ نسل قبل
+// برنگردد؛ نتیجهٔ «بی‌متن بدون OCR» هم دیگر فقط ۲ دقیقه کش می‌شود
+// تا فایل sidecarِ تازه‌آپلودشده سریع‌تر دیده شود.
+// ========================================
+
+function pagesTotalChars(pages: string[]): number {
+  return pages.reduce((a, p) => a + (p ?? "").trim().length, 0);
+}
+
+async function mergeOcrPages(
+  bookNumber: number,
+  pages: string[],
+): Promise<{ pages: string[]; ocr: boolean }> {
+  // متن کافی → کتابِ سمتِ متنی؛ کاری با OCR نداریم
+  if (pagesTotalChars(pages) >= 200) return { pages, ocr: false };
+
+  const ocrBook = await getOcrTextBook(bookNumber);
+  if (!ocrBook || !Array.isArray(ocrBook.pages)) return { pages, ocr: false };
+
+  // نسخهٔ متفاوت (تعداد صفحات فرق دارد) و PDF کاملاً بی‌متن →
+  // کلِ متن OCR جایگزین می‌شود — شمارهٔ صفحات از خودِ OCR می‌آید
+  if (ocrBook.pages.length !== pages.length) {
+    return { pages: ocrBook.pages.map((p) => p ?? ""), ocr: true };
+  }
+
+  let replaced = 0;
+  const merged = pages.map((pdfPage, i) => {
+    const pdfText = (pdfPage ?? "").trim();
+    if (pdfText.length >= 50) return pdfPage ?? "";
+    const ocrPage = (ocrBook.pages[i] ?? "").trim();
+    if (!ocrPage) return pdfPage ?? "";
+    replaced++;
+    return ocrPage;
+  });
+  return { pages: merged, ocr: replaced > 0 };
+}
 
 // v1.0.8.6 (English 1.0.2.5) — فیلتر موضعی هشدار فونت pdf.js
 //
@@ -200,50 +271,122 @@ function restoreConsole(): void {
   }
 }
 
-/** متن هر صفحهٔ PDF یک کتاب (کش ۳۰ دقیقه) */
+/**
+ * متن هر صفحهٔ PDF یک کتاب (کش ۳۰ دقیقه).
+ * v1.0.8.8 — صفحاتِ بی‌متن (کتاب اسکن) با OCR بسته‌بندی‌شده پر
+ * می‌شوند؛ کلید کش نسخهٔ v2 است تا نتیجهٔ قدیمیِ بدون-OCR برنگردد.
+ * v1.0.9.0 — اول «OCR sidecar» (فایل <نام همین PDF>.ocr.json کنار
+ * خود PDF — پوشهٔ محلی یا باکت B2) امتحان می‌شود؛ بعد مسیر قبلی.
+ * اگر خود PDF در دسترس نباشد (B2 قطع/سهمیهٔ روزانه/پوشهٔ محلی خالی)
+ * ولی متن OCR باشد، صفحات کلاً از OCR خوانده می‌شود — یعنی برگهٔ
+ * امتحان و پاسخ‌نامهٔ کتاب‌های OCRدار حتی بدون دانلودِ حتی یک بایت
+ * از B2 ساخته می‌شوند (بافت/سهمیهٔ روزانهٔ B2 محفوظ می‌ماند).
+ */
 export async function getBookPages(bookNumber: number, force = false): Promise<PagesResult> {
+  const cacheKey = `pdf:pages:v3:${bookNumber}`;
   if (!force) {
-    const cached = await cacheGet<string[]>(`pdf:pages:${bookNumber}`);
-    if (cached) {
-      const src = bufferCache.get(bookNumber)?.source ?? "b2";
-      return { ok: true, pages: cached, source: src };
+    const cached = await cacheGet<CachedPages>(cacheKey);
+    if (cached?.pages) {
+      return { ok: true, pages: cached.pages, source: cached.source, ocr: cached.ocr };
     }
   } else {
-    await cacheDel(`pdf:pages:${bookNumber}`);
+    await cacheDel(cacheKey);
+    await cacheDel(`pdf:pages:v2:${bookNumber}`); // نسل قبل
+    await cacheDel(`pdf:pages:${bookNumber}`); // نسل دو-قبل
   }
 
   const pdf = await getBookPdf(bookNumber);
-  if (!pdf.ok) return { ok: false, error: pdf.error };
+
+  // ---------- مسیر OCR-first: PDF نیست ولی متن OCR هست ----------
+  if (!pdf.ok) {
+    // v1.0.9.0: اول sidecar — مسیر PDF از اسکن کش‌شده، بدون دانلود PDF
+    const b2ref = await b2PdfPathForBook(bookNumber);
+    if (b2ref) {
+      const sidecar = await findOcrSidecarB2(b2ref.pdfPath);
+      if (sidecar) {
+        const result: CachedPages = { pages: sidecar.pages, ocr: true, source: "ocr" };
+        await cacheSet(cacheKey, result, PAGES_TTL_S);
+        return { ok: true, ...result };
+      }
+    }
+    const ocrBook = await getOcrTextBook(bookNumber);
+    if (ocrBook && Array.isArray(ocrBook.pages) && ocrBook.pages.length >= 20) {
+      const result: CachedPages = { pages: ocrBook.pages.map((p) => p ?? ""), ocr: true, source: "ocr" };
+      await cacheSet(cacheKey, result, PAGES_TTL_S);
+      return { ok: true, ...result };
+    }
+    return { ok: false, error: pdf.error };
+  }
 
   silenceFontWarnings();
+  let rawPages: string[] | null = null;
   try {
     const uint8 = new Uint8Array(pdf.buffer);
     const doc = await getDocumentProxy(uint8);
     const { text } = await extractText(doc, { mergePages: false });
-    const pages = (Array.isArray(text) ? text : [text]).map((t) =>
+    rawPages = (Array.isArray(text) ? text : [text]).map((t) =>
       (t ?? "").replace(/\r/g, "").replace(/[ \t]+/g, " "),
     );
-    // v1.0.4.6: ذخیره در کش دو سطحی (L1 + Redis)
-    await cacheSet(`pdf:pages:${bookNumber}`, pages, PAGES_TTL_S);
-    restoreConsole();
-    return { ok: true, pages, source: pdf.source };
   } catch (error) {
     restoreConsole();
+    // v1.0.9.0: استخراج خراب ولی sidecar کنار خود PDF هست → کافی است
+    const sidecar = await findOcrSidecar(pdf.source, pdf.filePath);
+    if (sidecar) {
+      const result: CachedPages = { pages: sidecar.pages, ocr: true, source: "ocr" };
+      await cacheSet(cacheKey, result, PAGES_TTL_S);
+      return { ok: true, ...result };
+    }
+    // v1.0.8.8: OCR بسته‌بندی‌شده → همان کافی است
+    const ocrBook = await getOcrTextBook(bookNumber);
+    if (ocrBook && Array.isArray(ocrBook.pages) && ocrBook.pages.length >= 20) {
+      const result: CachedPages = { pages: ocrBook.pages.map((p) => p ?? ""), ocr: true, source: "ocr" };
+      await cacheSet(cacheKey, result, PAGES_TTL_S);
+      return { ok: true, ...result };
+    }
     return {
       ok: false,
       error: `خواندن متن PDF ناموفق بود: ${error instanceof Error ? error.message : "خطای ناشناخته"}`,
     };
   }
+  restoreConsole();
 
+  // v1.0.9.0 (English 1.0.2.8) — OCR sidecar اولویت اول:
+  // PDF بی‌متن است و «<نام همین PDF>.ocr.json» کنار خودش هست؟
+  // → متن‌های همان فایل به‌عنوان صفحات کتاب (مثل حالت عادی کش می‌شود)
+  let finalPages = rawPages;
+  let usedOcr = false;
+  if (pagesTotalChars(rawPages) < 200) {
+    const sidecar = await findOcrSidecar(pdf.source, pdf.filePath);
+    if (sidecar) {
+      finalPages = sidecar.pages;
+      usedOcr = true;
+    }
+  }
+
+  // v1.0.8.8 — نبود sidecar → ادغام OCR بسته‌بندی‌شده (کتاب ۱۰)
+  if (!usedOcr) {
+    const merged = await mergeOcrPages(bookNumber, finalPages);
+    finalPages = merged.pages;
+    usedOcr = merged.ocr;
+  }
+
+  // v1.0.9.0: ذخیره در کش دو سطحی — نتیجهٔ «بی‌متن بدون OCR» فقط
+  // ۲ دقیقه کش می‌شود تا فایل sidecarِ تازه‌آپلودشده دیر نچسبد
+  const result: CachedPages = { pages: finalPages, ocr: usedOcr, source: pdf.source };
+  const textless = !usedOcr && pagesTotalChars(finalPages) < 200;
+  await cacheSet(cacheKey, result, textless ? 120 : PAGES_TTL_S);
+  return { ok: true, ...result };
 }
 
 /** شکستن کش (بعد از آپلود فایل جدید) */
 export async function invalidatePdfCache(bookNumber?: number): Promise<void> {
   if (bookNumber == null) {
     bufferCache.clear();
-    await cacheDelPrefix("pdf:pages:");
+    await cacheDelPrefix("pdf:pages:"); // کلیدهای همهٔ نسل‌ها (v1/v2/v3)
     return;
   }
   bufferCache.delete(bookNumber);
-  await cacheDel(`pdf:pages:${bookNumber}`);
+  await cacheDel(`pdf:pages:v3:${bookNumber}`);
+  await cacheDel(`pdf:pages:v2:${bookNumber}`); // نسل قبل
+  await cacheDel(`pdf:pages:${bookNumber}`); // نسل دو-قبل
 }

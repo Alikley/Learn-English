@@ -1,86 +1,58 @@
 "use client";
 
-import Link from "next/link";
 import { AlertCircle, RefreshCw } from "lucide-react";
-import { motion } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
 
 // ========================================
-// خطای ساخت برگهٔ امتحانی (v1.0.8.5 / English 1.0.2.4)
+// حالت شکست ساخت برگه (v1.0.6.1 / English 1.0.2.4)
 //
-// 🎯 خواستهٔ کاربر (۱.۰.2.4): وقتی برگه ساخته نمی‌شود، در همهٔ
-//    تست‌ها و آزمون‌ها PDF کتاب دیگر نمایش داده نشود — فقط
-//    یک کادر در بالای صفحه با دکمهٔ «تلاش دوباره». همین.
-//    (قبلاً: هشدار + PDF کامل کتاب + ورودی سریع پاسخ‌ها)
+// 🎯 خواستهٔ کاربر: وقتی خطا می‌آید و برگه ساخته نمی‌شود —
+//    «نمیخوام پی دی اف مربوط رو نشون بده فقط یه کادر بالای
+//     باشه تلاش دوباره بیاد» — برای همهٔ تست‌ها و آزمون‌ها
+//
+// این کامپوننت اکنون «فقط یک کادر بالای صفحه» است:
+//    ۱) پیام کوتاه شکست (دلیل اگر بود)
+//    ۲) دکمهٔ «تلاش دوباره» — ساخت دوبارهٔ برگه با AI
+//    — خود PDF و ورودی سریع پاسخ‌ها حذف شدند
+// (از [skill]/page.tsx جدا شد — v1.0.4.2؛ بازطراحی 1.0.2.4)
 // ========================================
 
 export default function PaperFallback({
-  title,
-  skillLabel,
-  exitHref,
   failReason,
   aiError,
   onRetry,
 }: {
-  title: string;
-  skillLabel: string;
-  exitHref: string;
-  /** دلیل ساخت‌نشدن برگه (پارسر یا شبکه) */
+  /** دلیل ساخت‌نشدن برگه (پارسر یا AI) */
   failReason: string | null;
   /** خطای اختصاصی ساخت هوشمند */
   aiError?: string;
+  /** تلاش دوباره — ساخت دوبارهٔ برگه با هوش مصنوعی */
   onRetry: () => void;
 }) {
-  const { tr, dir } = useLanguage();
-  const reason = aiError ?? failReason;
+  const { tr } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-[#fbfbfb] dark:bg-[#0b1220] transition-colors" dir={dir}>
-      {/* هدر باریک */}
-      <div className="border-b border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/50 backdrop-blur px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
-          <p className="text-[12px] font-black text-slate-700 dark:text-slate-200 truncate" dir="ltr">
-            {title} · {skillLabel}
+    <div className="rounded-2xl border border-amber-200 dark:border-amber-500/25 bg-amber-50/70 dark:bg-amber-500/10 p-4 space-y-3">
+      <div className="flex items-start gap-2.5">
+        <AlertCircle size={17} className="text-amber-500 shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <p className="text-xs font-black text-amber-700 dark:text-amber-300">
+            {tr("برگهٔ امتحان ساخته نشد", "The exam paper could not be built")}
           </p>
-          <Link
-            href={exitHref}
-            className="shrink-0 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[11px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition"
-          >
-            {tr("بازگشت", "Back")}
-          </Link>
+          {(failReason ?? aiError) && (
+            <p className="text-[10px] leading-5 text-amber-600/90 dark:text-amber-400/80" dir="auto">
+              {aiError ?? failReason ?? tr("ساختار فایل شناخته نشد", "File structure not recognized")}
+            </p>
+          )}
         </div>
       </div>
-
-      <div className="max-w-2xl mx-auto px-4 py-10 md:py-16">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          {/* تنها کادر — خطا + تلاش دوباره (بدون PDF کتاب) */}
-          <div className="rounded-3xl border border-red-200 dark:border-red-500/25 bg-red-50/80 dark:bg-red-500/10 p-5 md:p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <AlertCircle size={20} className="text-red-500 shrink-0 mt-0.5" />
-              <div className="space-y-1 min-w-0">
-                <p className="text-sm font-black text-red-700 dark:text-red-300">
-                  {tr("برگهٔ امتحانی درست نشد", "The exam paper could not be created")}
-                </p>
-                {reason && (
-                  <p
-                    className="text-[11px] leading-6 text-red-600/80 dark:text-red-400/70 break-words"
-                    dir="auto"
-                  >
-                    {reason}
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={onRetry}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition active:scale-[0.99]"
-            >
-              <RefreshCw size={15} />
-              {tr("تلاش دوباره", "Try again")}
-            </button>
-          </div>
-        </motion.div>
-      </div>
+      <button
+        onClick={onRetry}
+        className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-black transition active:scale-[0.99]"
+      >
+        <RefreshCw size={15} />
+        {tr("تلاش دوباره", "Try again")}
+      </button>
     </div>
   );
 }

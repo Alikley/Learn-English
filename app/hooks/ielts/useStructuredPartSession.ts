@@ -44,7 +44,13 @@ export interface StructuredPartSession {
   initialElapsed: number;
   result: IeltsSubmitResult | null;
   submittedView: IeltsResultSummary | null;
-  doSubmit: () => Promise<void>;
+  /**
+   * تحویل تلاش — v1.0.8.8 (English 1.0.2.7): پارامتر markStreak.
+   * پیش‌فرض true (تحویلِ واقعی = فعالیتی تمام‌شده → استریک ثبت می‌شود).
+   * تحویلِ خودکارِ «تلاش از-پیش-منقضی‌شده» در لحظهٔ ورود با false
+   * صدا زده می‌شود — ورود به چنین آزمونی فعالیتی تمام‌شده نیست.
+   */
+  doSubmit: (markStreak?: boolean) => Promise<void>;
   /** همهٔ شمارهٔ سوال‌های آزمون (مرتب) */
   allNums: number[];
   answered: (q: number) => boolean;
@@ -94,6 +100,10 @@ export function useStructuredPartSession({
 
   const elapsed0 = useRef(0);
   const submittedRef = useRef(false);
+  // v1.0.8.8 — آیا در همین نشست ساعتِ آزمون زمانِ باقی‌مانده > 0 نشان داده
+  // شده است؟ اگر از لحظهٔ ورود صفر بوده (تلاش از-پیش-منقضی)، تحویلِ خودکار
+  // فقط پاک‌سازی است و استریک ثبت نمی‌کند (قانون «فقط با تمام‌کردنِ فعالیت»).
+  const sawTimeOnClockRef = useRef(false);
 
   // شروع/ادامهٔ تلاش + خواندن حالت از query string
   useEffect(() => {
@@ -249,7 +259,7 @@ export function useStructuredPartSession({
     };
   }, [flush]);
 
-  const doSubmit = useCallback(async () => {
+  const doSubmit = useCallback(async (markStreak = true) => {
     if (!attemptId || submittedRef.current) return;
     submittedRef.current = true;
     await flush();
@@ -270,7 +280,12 @@ export function useStructuredPartSession({
       // v1.0.5.2 (English 1.0.1.2) — رفع باگ استریک: روزِ فعالیت فقط با
       // «تحویلِ کامل» آزمون آیلتس ثبت می‌شود، نه با شروع آن — آزمونی که
       // رها شود روزِ کاربر را فعال نمی‌کند
-      void recordStreakActivity();
+      //
+      // v1.0.8.8 (English 1.0.2.7) — رفع باگ «ورود به آزمونِ منقضی، استریک
+      // را روشن می‌کرد»: ورود دوباره به تلاشِ آزمونیِ که زمانش قبلاً تمام
+      // شده بوده، تحویلِ خودکارِ پاک‌سازی را اجرا می‌کند ولی دیگر استریک
+      // ثبت نمی‌کند — چون هیچ فعالیتی در این نشست تمام نشده است.
+      if (markStreak) void recordStreakActivity();
     } else {
       submittedRef.current = false;
     }
@@ -279,8 +294,15 @@ export function useStructuredPartSession({
 
   // پایان زمان در حالت آزمون → تحویل خودکار
   useEffect(() => {
+    // ساعتِ آزمون زمانِ باقی‌مانده دارد → کاربر واقعاً در همین نشست
+    // پشت آزمون نشسته (بعد از اتمام زمان، استریک مجاز است)
+    if (payload?.mode === "exam" && (payload.remainingSec ?? 0) > 0) {
+      sawTimeOnClockRef.current = true;
+    }
     if (payload?.mode === "exam" && payload.remainingSec === 0 && !submittedRef.current && !result) {
-      void doSubmit();
+      // v1.0.8.8 — از-پیش-منقضی (از لحظهٔ ورود صفر بوده) → بدون استریک؛
+      // در جریانِ همین نشست صفر شده → با استریک
+      void doSubmit(sawTimeOnClockRef.current);
     }
   }, [payload, doSubmit, result]);
 

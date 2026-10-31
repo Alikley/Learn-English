@@ -187,7 +187,7 @@ export type IeltsExamPaper =
       sections: IeltsPaperSection[];
       writing?: IeltsWritingPrompt[];
       totalQuestions: number;
-      source?: "b2" | "local";
+      source?: "b2" | "local" | "ocr";
       /** v1.0.4.0 — barghe ba AI sakhte shode va baraye hamishe cash shode */
       aiGenerated?: boolean;
       /**
@@ -204,9 +204,15 @@ export type IeltsExamPaper =
   | {
       ok: false;
       reason: string;
-      source?: "b2" | "local";
+      source?: "b2" | "local" | "ocr";
       /** v1.0.4.0 — bargeh dar hale sakht ba AI — client bayad poll konad */
       generating?: boolean;
       /** v1.0.4.0 — ellate shekast sakhte hoshmand (vaghti be masire jaygozin raft) */
       aiError?: string;
+      /**
+       * v1.0.6.1 (English 1.0.2.4) — درصد پیشرفت واقعی ساخت (وقتی generating
+       * است). at = زمان ثبت روی سرور. null = این اینسنس چیزی ثبت نکرده؛
+       * کلاینت با تخمین زمانی خودش درصد را ادامه می‌دهد.
+       */
+      progress?: { pct: number; at: number } | null;
     };
