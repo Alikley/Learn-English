@@ -469,7 +469,10 @@ export function parseWritingPaper(lines: string[]): WritingTaskPrompt[] {
   const taskMarks: { idx: number; task: 1 | 2 }[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(/^\s*writing\s+task\s+(\d)\b/i);
+    // v1.0.9.2 (English 1.0.2.11): تحمل نویسه‌های زائدِ ابتدای خط در
+    // OCR — مثل «"WRITING TASK 1» (کتاب ۸ تست ۲) که قبلاً دستِ خالی
+    // می‌گذاشت و تسک ۱ پارسر را از دست می‌داد
+    const m = lines[i].match(/^\s*\W{0,4}writing\s+task\s+(\d)\b/i);
     if (m && (m[1] === "1" || m[1] === "2")) {
       taskMarks.push({ idx: i, task: Number(m[1]) as 1 | 2 });
     }

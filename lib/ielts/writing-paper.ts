@@ -161,18 +161,37 @@ export async function buildWritingPaper(
   // ---------- مسیر ۱: نقشهٔ تأییدشده — فوری ----------
   const entry = lookupWritingPages(bookNumber, testNumber);
   if (entry) {
+    let prompts = lookupWritingPrompts(bookNumber, testNumber);
+    let source: "map" | "text" = "map";
+
+    // v1.0.9.2 (English 1.0.2.11): نقشهٔ صفحه‌دارِ «بی‌متن» → تشخیص
+    // زنده (لایهٔ متنی / OCR sidecar باکت) پشتیبانِ متن است.
+    // 🐞 ریشهٔ باگ 1.0.2.9/1.0.2.10: کتاب ۸ فقط صفحه‌دار شده بود؛
+    // مسیر نقشه با «متن خالی» زود برمی‌گشت و تسک ۲‌اش هیچ چیزی
+    // نشان نمی‌داد و مستقیم PDF باز می‌شد. دیگر هیچ کتابی بدون
+    // متنِ صورت سوال از این مسیر بیرون نمی‌رود.
+    if (prompts.length === 0) {
+      if (!detected) {
+        detected = await detectFromText(bookNumber, testNumber, force);
+      }
+      if (detected.ok && detected.prompts.length > 0) {
+        prompts = detected.prompts;
+        source = "text";
+      }
+    }
+
     const json: WritingPaperResult = {
       ok: true,
       // v1.0.4.4: متن تسک‌ها برای همهٔ کتاب‌ها از نقشهٔ استخراج
       // (لایهٔ متنی PDF + OCR صفحات اسکن‌شده — writing-map)
-      prompts: lookupWritingPrompts(bookNumber, testNumber),
+      prompts,
       questionPaper: {
         task1Page: entry.task1Page,
         task2Page: entry.task2Page,
         fromPage: entry.task1Page,
         toPage: entry.task2Page,
       },
-      source: "map",
+      source,
     };
     await cacheSet(key, json, CACHE_TTL_S);
     return json;

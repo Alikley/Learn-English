@@ -80,6 +80,13 @@ export type CambridgeScan = {
   source: CambridgeSource | null;
   bucketName: string | null;
   books: Record<number, CambridgeBookFiles>;
+  /**
+   * v1.0.9.1 (English 1.0.2.10): تصاویر نمودار رایتینگ تسک ۱ —
+   * آپلود کاربر: cambridge-writing/<book>-<test>-task1.jpg
+   * (۸۴ فایل = ۲۱ کتاب × ۴ تست). کلید = «<book>-<test>-task1.jpg»؛
+   * مقدار = مسیر کامل فایل در باکت (برای پل رسانه‌ای/لینک امضادار).
+   */
+  writingImages: Record<string, string>;
   unmatchedFiles: number;
   totalFiles: number;
   error: string | null;
@@ -193,6 +200,14 @@ async function listFiles(
 
 const AUDIO_EXT = new Set([".mp3", ".m4a", ".wav", ".aac", ".ogg", ".wma", ".flac"]);
 
+/**
+ * v1.0.9.1: الگوی تصویر نمودار رایتینگ تسک ۱ —
+ * cambridge-writing/<book>-<test>-task1.jpg (ریشهٔ باکت اختصاصی/اصلی).
+ * پسوند jpg/jpeg/png/webp پذیرفته می‌شود؛ کلید ذخیره همیشه استاندارد می‌شود.
+ */
+const RE_WRITING_IMAGE =
+  /^(?:cambridge[\\/_ -]*)?cambridge[\\/_ -]*writing[\\/_ -]+(\d{1,2})-(\d)-task1\.(jpe?g|png|webp)$/i;
+
 /** استخراج شمارهٔ کتاب (۱..۲۱) از کلید فایل */
 function extractBookNumber(key: string): number | null {
   // ۱) عدد ابتدای کلید: «1/...»، «1.pdf»، «1 - test.mp3»
@@ -223,18 +238,33 @@ function naturalCompare(a: string, b: string): number {
 export function groupCambridgeFiles(
   files: B2File[],
   source: CambridgeSource,
-): { books: Record<number, CambridgeBookFiles>; unmatched: number } {
+): { books: Record<number, CambridgeBookFiles>; unmatched: number; writingImages: Record<string, string> } {
   const books: Record<number, CambridgeBookFiles> = {};
   for (let n = 1; n <= IELTS_BOOK_COUNT; n++) {
     books[n] = { pdfPath: null, pdfSize: 0, audioFiles: [] };
   }
   let unmatched = 0;
+  // v1.0.9.1: تصاویر نمودار رایتینگ — کلید استاندارد «<book>-<test>-task1.jpg»
+  const writingImages: Record<string, string> = {};
 
   const pdfs: Record<number, B2File[]> = {};
   for (let n = 1; n <= IELTS_BOOK_COUNT; n++) pdfs[n] = [];
 
   for (const f of files) {
     const fileName = f.fileName;
+
+    // v1.0.9.1: تصویر نمودار تسک ۱ رایتینگ؟ (قبل از هر چیز —
+    // در حالت main-prefix پیشوند cambridge جدا نمی‌شود چون الگو
+    // خودش پیشوند اختیاری cambridge/ را می‌پذیرد)
+    const img = fileName.match(RE_WRITING_IMAGE);
+    if (img) {
+      const bookNum = Number(img[1]);
+      const testNum = Number(img[2]);
+      if (bookNum >= 1 && bookNum <= IELTS_BOOK_COUNT && testNum >= 1 && testNum <= 4) {
+        writingImages[`${bookNum}-${testNum}-task1.jpg`] = fileName;
+        continue;
+      }
+    }
 
     // برای حالت main-prefix پیشوند cambridge را جدا می‌کنیم
     let rel = fileName;
@@ -281,7 +311,7 @@ export function groupCambridgeFiles(
     books[n].audioFiles.sort(naturalCompare);
   }
 
-  return { books, unmatched };
+  return { books, unmatched, writingImages };
 }
 
 // ---------- اسکن کامل ----------
@@ -291,6 +321,7 @@ const EMPTY_SCAN: CambridgeScan = {
   source: null,
   bucketName: null,
   books: {},
+  writingImages: {},
   unmatchedFiles: 0,
   totalFiles: 0,
   error: null,
@@ -332,13 +363,14 @@ export async function scanCambridge(force = false): Promise<CambridgeScan> {
     }
 
     const files = await listFiles(bucket.bucketId, prefix);
-    const { books, unmatched } = groupCambridgeFiles(files, source);
+    const { books, unmatched, writingImages } = groupCambridgeFiles(files, source);
 
     const scan: CambridgeScan = {
       configured: true,
       source,
       bucketName: bucket.bucketName,
       books,
+      writingImages,
       unmatchedFiles: unmatched,
       totalFiles: files.length,
       error: null,
@@ -353,6 +385,7 @@ export async function scanCambridge(force = false): Promise<CambridgeScan> {
       source: null,
       bucketName: null,
       books: {},
+      writingImages: {},
       unmatchedFiles: 0,
       totalFiles: 0,
       error: message,

@@ -16,20 +16,33 @@ import { useLanguage } from "@/app/context/LanguageContext";
 import type { IeltsWritingPrompt } from "@/types/ielts";
 
 // ========================================
-// پنل رایتینگ — v1.0.4.4 (English 1.0.0.8)
+// پنل رایتینگ — v1.0.9.2 (English 1.0.2.11)
 //
-// 🎯 خواستهٔ کاربر (1.0.0.5 → 1.0.0.8):
-//    «صورت سوال باید از PDF جدا بشه و در بالای صفحه
-//     نمایش داده بشه — فقط خودِ سوال»
-//    (کاربر صریحاً نمایش کل PDF را رد کرد)
+// 🎯 خواستهٔ کاربر (1.0.2.10 → 1.0.2.11):
+//    «تسک ۲ خرابه — تسک ۲ چیزی نشان نمی‌دهد، می‌رود PDF»
 //
-// ✅ چیدمان جدید:
-//    ۱) «صورت سوال» به‌صورت متنِ استخراج‌شده در «بالای صفحه» —
-//       برای همهٔ کتاب‌ها و هر دو تسک (نقشهٔ استخراج v1.0.4.4:
-//       لایهٔ متنی PDF + OCR صفحات اسکن‌شده)
-//    ۲) کتاب PDF فقط یک «بخش جمع‌شوندهٔ اختیاری» شد —
-//       برای دیدن نمودار/تصویر تسک ۱ — نه نمایشگر اصلی
-//    ۳) ناحیهٔ متن‌نویسی با شمارش کلمه (همان قبلی)
+// 🔧 ریشهٔ باگ 1.0.2.9/1.0.2.10 و رفعش:
+//    کتاب ۸ (مثل کتاب ۳) اسکن‌شده است و در آن نسخه‌ها فقط
+//    «صفحه‌هایش» در نقشه بود، نه متن سوال → WritingPanel برای
+//    تسک ۲ «هیچ کارتی» رندر نمی‌کرد (شاخهٔ null) و تنها بخش
+//    «مشاهدهٔ صفحهٔ کتاب» خودکار باز می‌شد → عملاً فقط PDF.
+//    رفع (سمت سرور، lib/ielts/writing-map + writing-paper):
+//    متن کامل هر ۸ تسک کتاب ۸ و کتاب ۳ از OCR sidecar خود
+//    باکت استخراج و در نقشه ثبت شد؛ به‌علاوه مسیر نقشه دیگر
+//    با «متن خالی» زود برنمی‌گردد (تشخیص زنده پشتیبان).
+//
+// 🔒 تضمین UI — «هرگز خالی» (v1.0.9.2):
+//    ✓ تسک ۲ بدون متن → کارت هدایت کهربایی (به‌جای هیچ)
+//    ✓ تسک ۱ بدون عکس → کارت «عکس در B2 نیست» حتی بدون متن
+//    ✓ هر دو تسک با متن: دقیقاً همان چیدمان v1.0.9.1
+//
+// ✅ چیدمان (v1.0.9.1 — بدون تغییر):
+//    ۱) صورت سوال (متن استخراج‌شده) در بالای صفحه — هر دو تسک
+//    ۲) تسک ۱: کارت «نمودار تسک» زیر صورت سوال — عکس واقعی از
+//       B2 (کلید cambridge-writing/<book>-<test>-task1.jpg) با
+//       همان پل رسانه‌ای pdfUrl (لینک امضادار) — هیچ فال‌بک PDF
+//    ۳) تسک ۲: کتاب PDF همان بخش جمع‌شوندهٔ اختیاری قبلی
+//    ۴) ناحیهٔ متن‌نویسی با شمارش کلمه (همان قبلی)
 // ========================================
 
 function countWords(text: string): number {
@@ -37,6 +50,10 @@ function countWords(text: string): number {
   if (!t) return 0;
   return t.split(/\s+/).filter(Boolean).length;
 }
+
+/** وضعیت بارگذاری عکس نمودار — به URL گره خورده تا با
+* تغییر تست/کتاب (بدون remount) خودش ریست شود */
+type ChartImgState = { url: string; loaded: boolean; failed: boolean };
 
 export default function WritingPanel({
   answers,
@@ -48,6 +65,7 @@ export default function WritingPanel({
   prompts,
   questionPaper,
   pdfUrl,
+  task1ImageUrl,
   paperLoading,
   paperFailed,
 }: {
@@ -67,6 +85,12 @@ export default function WritingPanel({
   } | null;
   /** آدرس PDF کتاب (پل رسانه‌ای B2 یا روت محلی) */
   pdfUrl: string | null;
+  /**
+   * v1.0.9.1 (English 1.0.2.10): تصویر نمودار Writing Task 1 —
+   * پل رسانه‌ای B2 (کلید cambridge-writing/<book>-<test>-task1.jpg).
+   * null = B2 تنظیم نیست (لینک امضادار لازم است).
+   */
+  task1ImageUrl: string | null;
   /** برگهٔ رایتینگ هنوز در حال بررسی است */
   paperLoading: boolean;
   paperFailed: boolean;
@@ -79,11 +103,27 @@ export default function WritingPanel({
   const prompt = prompts.find((p) => p.task === activeTask) ?? null;
   const minWords = prompt?.minWords ?? (activeTask === 1 ? 150 : 250);
   const minutes = activeTask === 1 ? 20 : 40;
+
+  // v1.0.9.1: وضعیت عکس نمودار تسک ۱ (بارگذاری/خطا/ریتِری) —
+  // کلید = URL جاری؛ با عوض‌شدن URL (تست/کتاب دیگر) ریست می‌شود
+  const [chartImg, setChartImg] = useState<ChartImgState>({
+    url: "",
+    loaded: false,
+    failed: false,
+  });
+  const chartLoaded = task1ImageUrl != null && chartImg.url === task1ImageUrl && chartImg.loaded;
+  const chartFailed = task1ImageUrl != null && chartImg.url === task1ImageUrl && chartImg.failed;
+
   /** باز/بسته بودن بخش کتاب — تا وقتی کاربر toggle نکرده:
   * وقتی متن سوال در دسترس نیست (مثل کتاب ۳) نمایشگر کتاب
   * خودکار باز است تا صورت سوال از صفحهٔ چاپی دیده شود */
   const [userToggled, setUserToggled] = useState<boolean | null>(null);
   const bookOpen = userToggled ?? (!paperLoading && !prompt);
+
+  // v1.0.9.1 — 🔧 رفع 1.0.2.9: بخش «مشاهدهٔ صفحهٔ کتاب» فقط و
+  // فقط برای تسک ۲ است. برای تسک ۱ به‌هیچ‌وجه برنمی‌گردد —
+  // نه با خطای عکس، نه با نبودن عکس (جایگزین اضطراری حذف شد)
+  const showBookSection = activeTask === 2;
 
   // صفحهٔ کتابِ تسک جاری — برای بخش اختیاری «مشاهده در کتاب»
   const taskPage = useMemo(() => {
@@ -166,17 +206,6 @@ export default function WritingPanel({
             >
               {prompt.prompt}
             </p>
-
-            {/* تسک ۱ نمودار دارد — راهنمای دیدن نمودار */}
-            {activeTask === 1 && pdfUrl && taskPage != null && (
-              <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-5 text-amber-600 dark:text-amber-400">
-                <ImageIcon size={12} className="shrink-0 mt-0.5" />
-                {tr(
-                  "نمودار/جدول این تسک در صفحهٔ چاپی کتاب است — با دکمهٔ «مشاهدهٔ صفحهٔ کتاب» پایین ببینش.",
-                  "The chart/table for this task is in the printed book page — open it via “View book page” below.",
-                )}
-              </p>
-            )}
           </div>
         </div>
       ) : paperFailed || !pdfUrl ? (
@@ -188,10 +217,16 @@ export default function WritingPanel({
             </p>
             <p>
               {pdfUrl
-                ? tr(
-                    "صفحهٔ سوال از خود کتاب PDF باز می‌شود — با شمارهٔ صفحه در نوار PDF به بخش رایتینگ برو.",
-                    "The question opens straight from the book PDF — navigate to the writing section via the PDF page bar.",
-                  )
+                ? activeTask === 1
+                  ? // v1.0.9.1: تسک ۱ — نمودار و متن کامل تسک در تصویر زیر است
+                    tr(
+                      "متن سوال جدا نشد — نمودار و متن کاملِ تسک در تصویرِ پایین همین صفحه آمده است.",
+                      "The question text was not extracted — the chart and the full task text are in the image below on this page.",
+                    )
+                  : tr(
+                      "صفحهٔ سوال از خود کتاب PDF باز می‌شود — با شمارهٔ صفحه در نوار PDF به بخش رایتینگ برو.",
+                      "The question opens straight from the book PDF — navigate to the writing section via the PDF page bar.",
+                    )
                 : tr(
                     "فایل کتاب در باکت Backblaze (پوشهٔ cambridge) پیدا نشد. B2_KEY_ID و B2_APP_KEY را در .env.local چک کن.",
                     "Book files were not found in your Backblaze bucket (cambridge folder). Check B2_KEY_ID and B2_APP_KEY in .env.local.",
@@ -199,10 +234,114 @@ export default function WritingPanel({
             </p>
           </div>
         </div>
+      ) : activeTask === 2 ? (
+        // v1.0.9.2 (English 1.0.2.11): تضمین «هرگز خالی» — قبلاً این
+        // حالت هیچ کارتی رندر نمی‌کرد (شاخهٔ null) و تنها PDF خودکار
+        // باز می‌شد؛ حالا کارت هدایت روشنی هست. (با متن نقشه دیگر
+        // رخ نمی‌دهد — پشتیبانِ دفاعی برای کتاب‌های آینده است)
+        <div className="rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-500/40 bg-amber-50/60 dark:bg-amber-500/5 p-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
+          <div className="text-[11px] leading-6 text-amber-700 dark:text-amber-300">
+            <p className="font-bold">
+              {tr("متن سوال این تسک از کتاب جدا نشد", "The question text for this task could not be extracted")}
+            </p>
+            <p>
+              {tr(
+                "صفحهٔ سوال در بخش «مشاهدهٔ صفحهٔ کتاب» پایین همین صفحه باز است — صورت سوال را از همانجا بخوان.",
+                "The question page is open in the “View book page” section below — read the question from there.",
+              )}
+            </p>
+          </div>
+        </div>
       ) : null}
 
-      {/* ============ کتاب PDF — بخش جمع‌شوندهٔ اختیاری ============ */}
-      {pdfUrl && !paperLoading && (
+      {/* ============ نمودار تسک ۱ — عکس از B2 (v1.0.9.1) ============
+          زیر متن پرامپت؛ مستقل از پرامپت رندر می‌شود تا کتاب‌هایی
+          که متن سوال ندارند (مثل ۳ و ۸) هم نمودار را ببینند.
+          🔧 رفع 1.0.2.9: خطای بارگذاری هرگز به PDF برنمی‌گردد —
+          فقط حالت خطا + دکمهٔ «تلاش دوباره» در همین کارت */}
+      {activeTask === 1 && !paperLoading && task1ImageUrl && !chartFailed && (
+        <div className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-slate-900/60 overflow-hidden">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20">
+            <ImageIcon size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <p className="text-xs font-black text-emerald-700 dark:text-emerald-300 flex-1 min-w-0">
+              {tr("نمودار تسک — از صفحهٔ کتاب", "Task chart — from the book page")}
+            </p>
+          </div>
+          <div className="p-3 space-y-2">
+            {/* اسکلت تا آماده‌شدن عکس */}
+            {!chartLoaded && (
+              <div
+                className="w-full h-56 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse flex items-center justify-center"
+                dir="ltr"
+              >
+                <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                  <ImageIcon size={12} className="animate-pulse" />
+                  {tr("در حال بارگذاری نمودار…", "Loading the chart…")}
+                </span>
+              </div>
+            )}
+            <img
+              src={task1ImageUrl}
+              alt={tr(
+                "نمودار/جدول Writing Task 1",
+                "Writing Task 1 chart / table",
+              )}
+              onLoad={() =>
+                task1ImageUrl != null &&
+                setChartImg({ url: task1ImageUrl, loaded: true, failed: false })
+              }
+              onError={() =>
+                task1ImageUrl != null &&
+                setChartImg({ url: task1ImageUrl, loaded: false, failed: true })
+              }
+              className={`w-full h-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white ${
+                chartLoaded ? "" : "h-0 min-h-0 overflow-hidden border-0"
+              }`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* تسک ۱ — خطای بارگذاری عکس: فقط «تلاش دوباره»، بدون PDF (رفع 1.0.2.9) */}
+      {activeTask === 1 && !paperLoading && task1ImageUrl && chartFailed && (
+        <div className="rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-500/40 bg-amber-50/60 dark:bg-amber-500/5 px-4 py-3 flex items-start gap-2">
+          <ImageIcon size={14} className="text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-[10.5px] leading-5 text-amber-700 dark:text-amber-300 flex-1 min-w-0">
+            {tr(
+              "تصویر نمودار بارگذاری نشد — اتصال اینترنت/B2 را چک کن و دوباره تلاش کن.",
+              "The chart image failed to load — check your connection/B2 and retry.",
+            )}
+          </p>
+          <button
+            onClick={() => setChartImg({ url: "", loaded: false, failed: false })}
+            className="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-white/80 dark:bg-slate-800/80 border border-amber-200 dark:border-amber-500/40 px-2 py-1 rounded-lg hover:bg-white dark:hover:bg-slate-800 transition"
+          >
+            <RefreshCw size={11} />
+            {tr("تلاش دوباره", "Retry")}
+          </button>
+        </div>
+      )}
+
+      {/* تسک ۱ — B2 فعال ولی عکس نمودار برای این تسک نیست (نادر) —
+          v1.0.9.2: شرطِ prompt حذف شد تا «هرگز خالی» باشد */}
+      {activeTask === 1 && !paperLoading && !task1ImageUrl && pdfUrl && (
+        <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/30 px-4 py-3 flex items-start gap-2">
+          <ImageIcon size={14} className="text-slate-400 shrink-0 mt-0.5" />
+          <p className="text-[10.5px] leading-5 text-slate-500 dark:text-slate-400 flex-1 min-w-0">
+            {tr(
+              "تصویر نمودار این تسک فعلاً در باکت B2 پیدا نشد — بعداً به‌صورت cambridge-writing/<کتاب>-<تست>-task1.jpg اضافه می‌شود.",
+              "No chart image for this task in the B2 bucket yet — it will be added later as cambridge-writing/<book>-<test>-task1.jpg.",
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* ============ کتاب PDF — بخش جمع‌شوندهٔ اختیاری ============
+          v1.0.9.1 — 🔧 رفع 1.0.2.9: فقط و فقط تسک ۲.
+          برای تسک ۱ عکس نمودار جای آن را گرفته و هرگز
+          برنمی‌گردد (فال‌بک اضطراری حذف شد) */}
+      {pdfUrl && !paperLoading && showBookSection && (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 overflow-hidden">
           {/* دکمهٔ باز/بسته */}
           <button

@@ -80,6 +80,12 @@ export interface IeltsMediaInfo {
   error: string | null;
   /** آدرس پل رسانه‌ای PDF کتاب (قدیمی: null) */
   pdfUrl: string | null;
+  /**
+   * v1.0.9.1 (English 1.0.2.10): تصویر نمودار Writing Task 1 —
+   * پل رسانه‌ای B2 (کلید cambridge-writing/<book>-<test>-task1.jpg)
+   * با همان سازوکار pdfUrl (لینک امضادار). null = در دسترس نیست.
+   */
+  task1ImageUrl: string | null;
   /** فایل‌های صوتی این تست (آدرس پل رسانه‌ای) */
   audioTracks: string[];
   /** true اگر فایل‌های صوتی کتاب بین ۴ تست تقسیم‌نشده و مشترک‌اند */
