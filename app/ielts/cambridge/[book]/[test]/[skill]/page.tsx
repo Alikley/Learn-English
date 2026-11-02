@@ -241,6 +241,7 @@ export default function SkillPlayerPage() {
                 prompts={writingPrompts}
                 questionPaper={writingQuestionPaper}
                 task1ImageUrl={payload.media.task1ImageUrl}
+                task2ImageUrl={payload.media.task2ImageUrl}
                 paperLoading={paperLoading}
                 paperFailed={paperFailed}
               />
