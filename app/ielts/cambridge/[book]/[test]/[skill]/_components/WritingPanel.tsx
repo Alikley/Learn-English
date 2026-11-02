@@ -20,7 +20,8 @@ import type { IeltsWritingPrompt } from "@/types/ielts";
 //    ۱) صورت سوال (متن استخراج‌شده) در بالای صفحه — هر دو تسک
 //    ۲) تسک ۱: کارت «نمودار تسک» زیر صورت سوال — عکس واقعی از
 //       B2 (کلید cambridge-writing/<book>-<test>-task1.jpg)
-//    ۳) تسک ۲: فقط متن سوال — تسک ۲ نمودار ندارد (سوال تشریحی)
+//    ۳) تسک ۲: کارت «صفحهٔ تسک» زیر صورت سوال — عکس صفحهٔ سوال
+//       از B2 (کلید cambridge-writing/<book>-<test>-task2.jpg)
 //    ۴) ناحیهٔ متن‌نویسی با شمارش کلمه
 //
 // 🔒 هیچ‌کدام از دو تسک به PDF کتاب لینک یا فال‌بک ندارند —
@@ -48,6 +49,7 @@ export default function WritingPanel({
   prompts,
   questionPaper,
   task1ImageUrl,
+  task2ImageUrl,
   paperLoading,
   paperFailed,
 }: {
@@ -71,6 +73,12 @@ export default function WritingPanel({
    * null = B2 تنظیم نیست.
    */
   task1ImageUrl: string | null;
+  /**
+   * تصویر صفحهٔ Writing Task 2 (متن سوال) — پل رسانه‌ای B2
+   * (کلید cambridge-writing/<book>-<test>-task2.jpg).
+   * null = B2 تنظیم نیست.
+   */
+  task2ImageUrl: string | null;
   /** برگهٔ رایتینگ هنوز در حال بررسی است */
   paperLoading: boolean;
   paperFailed: boolean;
@@ -90,8 +98,9 @@ export default function WritingPanel({
     loaded: false,
     failed: false,
   });
-  const chartLoaded = task1ImageUrl != null && chartImg.url === task1ImageUrl && chartImg.loaded;
-  const chartFailed = task1ImageUrl != null && chartImg.url === task1ImageUrl && chartImg.failed;
+  const activeImageUrl = activeTask === 1 ? task1ImageUrl : task2ImageUrl;
+  const chartLoaded = activeImageUrl != null && chartImg.url === activeImageUrl && chartImg.loaded;
+  const chartFailed = activeImageUrl != null && chartImg.url === activeImageUrl && chartImg.failed;
 
   return (
     <div className="space-y-3">
@@ -174,29 +183,35 @@ export default function WritingPanel({
                 ? tr("صورت سوال از کتاب جدا نشد", "The question could not be extracted from the book")
                 : tr("متن سوال این تسک از کتاب جدا نشد", "The question text for this task could not be extracted")}
             </p>
-            {activeTask === 1 && (
-              <p>
-                {tr(
-                  "نمودار و متن کاملِ تسک در تصویرِ پایین همین صفحه آمده است.",
-                  "The chart and the full task text are in the image below on this page.",
-                )}
-              </p>
-            )}
+            <p>
+              {activeTask === 1
+                ? tr(
+                    "نمودار و متن کاملِ تسک در تصویرِ پایین همین صفحه آمده است.",
+                    "The chart and the full task text are in the image below on this page.",
+                  )
+                : tr(
+                    "متن کاملِ تسک در تصویرِ پایین همین صفحه آمده است.",
+                    "The full task text is in the image below on this page.",
+                  )}
+            </p>
           </div>
         </div>
       )}
 
-      {/* ============ نمودار تسک ۱ — عکس از B2 ============
-          زیر متن پرامپت؛ مستقل از پرامپت رندر می‌شود تا کتاب‌هایی
-          که متن سوال ندارند هم نمودار را ببینند.
+      {/* ============ تصویر تسک — عکس از B2 ============
+          تسک ۱: نمودار؛ تسک ۲: صفحهٔ متن سوال. زیر متن پرامپت؛
+          مستقل از پرامپت رندر می‌شود تا کتاب‌هایی که متن سوال
+          ندارند هم تصویر را ببینند.
           خطای بارگذاری هرگز به PDF برنمی‌گردد —
           فقط حالت خطا + دکمهٔ «تلاش دوباره» در همین کارت */}
-      {activeTask === 1 && !paperLoading && task1ImageUrl && !chartFailed && (
+      {!paperLoading && activeImageUrl && !chartFailed && (
         <div className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-500/30 bg-white dark:bg-slate-900/60 overflow-hidden">
           <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 border-b border-emerald-100 dark:border-emerald-500/20">
             <ImageIcon size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
             <p className="text-xs font-black text-emerald-700 dark:text-emerald-300 flex-1 min-w-0">
-              {tr("نمودار تسک — از صفحهٔ کتاب", "Task chart — from the book page")}
+              {activeTask === 1
+                ? tr("نمودار تسک — از صفحهٔ کتاب", "Task chart — from the book page")
+                : tr("صفحهٔ تسک — از صفحهٔ کتاب", "Task page — from the book page")}
             </p>
           </div>
           <div className="p-3 space-y-2">
@@ -208,23 +223,26 @@ export default function WritingPanel({
               >
                 <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500">
                   <ImageIcon size={12} className="animate-pulse" />
-                  {tr("در حال بارگذاری نمودار…", "Loading the chart…")}
+                  {activeTask === 1
+                    ? tr("در حال بارگذاری نمودار…", "Loading the chart…")
+                    : tr("در حال بارگذاری تصویر…", "Loading the image…")}
                 </span>
               </div>
             )}
             <img
-              src={task1ImageUrl}
-              alt={tr(
-                "نمودار/جدول Writing Task 1",
-                "Writing Task 1 chart / table",
-              )}
+              src={activeImageUrl}
+              alt={
+                activeTask === 1
+                  ? tr("نمودار/جدول Writing Task 1", "Writing Task 1 chart / table")
+                  : tr("صفحهٔ سوال Writing Task 2", "Writing Task 2 question page")
+              }
               onLoad={() =>
-                task1ImageUrl != null &&
-                setChartImg({ url: task1ImageUrl, loaded: true, failed: false })
+                activeImageUrl != null &&
+                setChartImg({ url: activeImageUrl, loaded: true, failed: false })
               }
               onError={() =>
-                task1ImageUrl != null &&
-                setChartImg({ url: task1ImageUrl, loaded: false, failed: true })
+                activeImageUrl != null &&
+                setChartImg({ url: activeImageUrl, loaded: false, failed: true })
               }
               className={`w-full h-auto rounded-xl border border-slate-200 dark:border-slate-700 bg-white ${
                 chartLoaded ? "" : "h-0 min-h-0 overflow-hidden border-0"
@@ -234,15 +252,20 @@ export default function WritingPanel({
         </div>
       )}
 
-      {/* تسک ۱ — خطای بارگذاری عکس: فقط «تلاش دوباره»، بدون PDF */}
-      {activeTask === 1 && !paperLoading && task1ImageUrl && chartFailed && (
+      {/* خطای بارگذاری عکس: فقط «تلاش دوباره»، بدون PDF */}
+      {!paperLoading && activeImageUrl && chartFailed && (
         <div className="rounded-2xl border-2 border-dashed border-amber-300 dark:border-amber-500/40 bg-amber-50/60 dark:bg-amber-500/5 px-4 py-3 flex items-start gap-2">
           <ImageIcon size={14} className="text-amber-500 shrink-0 mt-0.5" />
           <p className="text-[10.5px] leading-5 text-amber-700 dark:text-amber-300 flex-1 min-w-0">
-            {tr(
-              "تصویر نمودار بارگذاری نشد — اتصال اینترنت/B2 را چک کن و دوباره تلاش کن.",
-              "The chart image failed to load — check your connection/B2 and retry.",
-            )}
+            {activeTask === 1
+              ? tr(
+                  "تصویر نمودار بارگذاری نشد — اتصال اینترنت/B2 را چک کن و دوباره تلاش کن.",
+                  "The chart image failed to load — check your connection/B2 and retry.",
+                )
+              : tr(
+                  "تصویر صفحهٔ تسک بارگذاری نشد — اتصال اینترنت/B2 را چک کن و دوباره تلاش کن.",
+                  "The task page image failed to load — check your connection/B2 and retry.",
+                )}
           </p>
           <button
             onClick={() => setChartImg({ url: "", loaded: false, failed: false })}
@@ -254,14 +277,14 @@ export default function WritingPanel({
         </div>
       )}
 
-      {/* تسک ۱ — B2 فعال ولی عکس نمودار برای این تسک نیست (نادر) */}
-      {activeTask === 1 && !paperLoading && !task1ImageUrl && (
+      {/* B2 فعال ولی عکس این تسک نیست (نادر) */}
+      {!paperLoading && !activeImageUrl && (
         <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/30 px-4 py-3 flex items-start gap-2">
           <ImageIcon size={14} className="text-slate-400 shrink-0 mt-0.5" />
           <p className="text-[10.5px] leading-5 text-slate-500 dark:text-slate-400 flex-1 min-w-0">
             {tr(
-              "تصویر نمودار این تسک فعلاً در باکت B2 پیدا نشد — بعداً به‌صورت cambridge-writing/<کتاب>-<تست>-task1.jpg اضافه می‌شود.",
-              "No chart image for this task in the B2 bucket yet — it will be added later as cambridge-writing/<book>-<test>-task1.jpg.",
+              `تصویر این تسک فعلاً در باکت B2 پیدا نشد — بعداً به‌صورت cambridge-writing/<کتاب>-<تست>-task${activeTask}.jpg اضافه می‌شود.`,
+              `No image for this task in the B2 bucket yet — it will be added later as cambridge-writing/<book>-<test>-task${activeTask}.jpg.`,
             )}
           </p>
         </div>
