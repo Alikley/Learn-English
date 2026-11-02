@@ -206,7 +206,7 @@ const AUDIO_EXT = new Set([".mp3", ".m4a", ".wav", ".aac", ".ogg", ".wma", ".fla
  * پسوند jpg/jpeg/png/webp پذیرفته می‌شود؛ کلید ذخیره همیشه استاندارد می‌شود.
  */
 const RE_WRITING_IMAGE =
-  /^(?:cambridge[\\/_ -]*)?cambridge[\\/_ -]*writing[\\/_ -]+(\d{1,2})-(\d)-task1\.(jpe?g|png|webp)$/i;
+  /^(?:cambridge[\\/_ -]*)?cambridge[\\/_ -]*writing[\\/_ -]+(\d{1,2})-(\d)-task([12])\.(jpe?g|png|webp)$/i;
 
 /** استخراج شمارهٔ کتاب (۱..۲۱) از کلید فایل */
 function extractBookNumber(key: string): number | null {
@@ -261,7 +261,7 @@ export function groupCambridgeFiles(
       const bookNum = Number(img[1]);
       const testNum = Number(img[2]);
       if (bookNum >= 1 && bookNum <= IELTS_BOOK_COUNT && testNum >= 1 && testNum <= 4) {
-        writingImages[`${bookNum}-${testNum}-task1.jpg`] = fileName;
+        writingImages[`${bookNum}-${testNum}-task${img[3]}.jpg`] = fileName;
         continue;
       }
     }
