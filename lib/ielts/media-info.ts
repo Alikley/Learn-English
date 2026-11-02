@@ -33,6 +33,11 @@ export function writingTask1ImageKey(bookNumber: number, testNumber: number): st
   return `cambridge-writing/${bookNumber}-${testNumber}-task1.jpg`;
 }
 
+/** کلید استاندارد تصویر صفحهٔ تسک ۲ رایتینگ در باکت */
+export function writingTask2ImageKey(bookNumber: number, testNumber: number): string {
+  return `cambridge-writing/${bookNumber}-${testNumber}-task2.jpg`;
+}
+
 /**
  * v1.0.9.1: مسیر واقعی تصویر تسک ۱ در باکت (برای آدرس پل رسانه‌ای).
  * اول مسیر دقیق از اسکن (تأیید وجود فایل)؛ اگر کش اسکن قدیمی بود و
@@ -41,16 +46,19 @@ export function writingTask1ImageKey(bookNumber: number, testNumber: number): st
  * باکت اصلی‌اند: cambridge-writing/<b>-<t>-task1.jpg — پیشوند اشتباه
  * باعث ۴۰۴ و بازگشت به PDF می‌شد).
  */
-function writingTask1ImagePath(
+function writingImagePath(
   scan: CambridgeScan,
   bookNumber: number,
   testNumber: number,
+  task: 1 | 2,
 ): string | null {
   if (!scan.configured) return null;
-  const standard = `${bookNumber}-${testNumber}-task1.jpg`;
+  const standard = `${bookNumber}-${testNumber}-task${task}.jpg`;
   const found = scan.writingImages?.[standard];
   if (found) return found;
-  return writingTask1ImageKey(bookNumber, testNumber);
+  return task === 1
+    ? writingTask1ImageKey(bookNumber, testNumber)
+    : writingTask2ImageKey(bookNumber, testNumber);
 }
 
 export function buildMediaInfo(
@@ -66,6 +74,7 @@ export function buildMediaInfo(
       pdfUrl: localPdf ? `/api/ielts/paper?book=${test.bookNumber}&pdf=1` : null,
       // v1.0.9.1: بدون B2 تصویر نمودار هم نیست (لینک امضادار لازم است)
       task1ImageUrl: null,
+      task2ImageUrl: null,
       audioTracks: [],
       audioShared: false,
       bucketName: null,
@@ -81,8 +90,10 @@ export function buildMediaInfo(
 
   // v1.0.9.1 (English 1.0.2.10): تصویر نمودار Writing Task 1 —
   // با همان هلپر pdfUrl (پل رسانه‌ای → لینک امضادار B2)
-  const task1ImagePath = writingTask1ImagePath(scan, test.bookNumber, test.testNumber);
+  const task1ImagePath = writingImagePath(scan, test.bookNumber, test.testNumber, 1);
   const task1ImageUrl = task1ImagePath ? cambridgeMediaUrl(task1ImagePath) : null;
+  const task2ImagePath = writingImagePath(scan, test.bookNumber, test.testNumber, 2);
+  const task2ImageUrl = task2ImagePath ? cambridgeMediaUrl(task2ImagePath) : null;
 
   const all = bookFiles?.audioFiles ?? [];
   let tracks = all;
@@ -103,6 +114,7 @@ export function buildMediaInfo(
     error: scan.error,
     pdfUrl,
     task1ImageUrl,
+    task2ImageUrl,
     audioTracks: tracks.map(cambridgeMediaUrl),
     audioShared,
     bucketName: scan.bucketName,
