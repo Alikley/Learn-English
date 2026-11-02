@@ -240,7 +240,6 @@ export default function SkillPlayerPage() {
                 isExam={isExam}
                 prompts={writingPrompts}
                 questionPaper={writingQuestionPaper}
-                pdfUrl={payload.media.pdfUrl}
                 task1ImageUrl={payload.media.task1ImageUrl}
                 paperLoading={paperLoading}
                 paperFailed={paperFailed}
@@ -286,8 +285,10 @@ export default function SkillPlayerPage() {
       </div>
 
       {/* دکمهٔ شناور + پنل کشویی کتاب PDF — فقط وقتی برگه ساخته شده؛
-          در حالت شکست (v1.0.6.1) PDF پنهان است — فقط «تلاش دوباره» */}
-      {!showResult && !paperFailed && payload.media.pdfUrl && (
+          در حالت شکست (v1.0.6.1) PDF پنهان است — فقط «تلاش دوباره».
+          در رایتینگ کلاً رندر نمی‌شود: صورت سوال و نمودار تسک ۱
+          جداشده‌اند و نباید راهی به PDF کتاب باشد */}
+      {!showResult && !paperFailed && skillKey !== "writing" && payload.media.pdfUrl && (
         <PdfDrawer
           open={pdfOpen}
           onOpen={() => setPdfOpen(true)}
